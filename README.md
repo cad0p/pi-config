@@ -37,6 +37,7 @@ Assuming all prerequisites are installed:
 cp -r ~/.pi ~/.pi.bak # backup your pi config
 git clone https://github.com/cad0p/pi-config.git ~/.pi # replace your pi config
 pi update --all # install PierPi config
+pi /login # authenticate to a model provider
 cd ~/.pi && pi "let's explore what my pi config can do, and what I can set up"
 ```
 
