@@ -1,34 +1,44 @@
 # pi-config
 
-Personal configuration for the [pi coding agent](https://github.com/earendil-works/pi) — dotfiles-style: your live `~/.pi/` directory IS this checkout.
+Personal configuration for the PierPi [pi coding agent](https://github.com/earendil-works/pi): my `~/.pi/`.
 
 ## What this is
 
-This repo is the actual config directory pi reads on my machines. There are no symlinks and no install step that copies files around — `git clone` this repo to `~/.pi` and pi picks everything up on the next start. Everything here is what I actually run, so expect it to change as my setup evolves.
+This repo is the actual config directory pi reads on my machines. `git clone` this repo to `~/.pi` and pi picks everything up on the next start. Everything here is what I actually run, so expect it to change as my setup evolves.
 
 ## What's inside
 
-- `agent/settings.json` — the pi extension manifest: npm packages, enabled skills, providers, models, TUI options
-- `agent/steering/` — global [pi-steering](https://github.com/cad0p/pi-steering) config (TypeScript entry + integration tests + pnpm workspace)
-- `agent/prompts/` — prompt templates (`gm`, `impl`, `orchestrate`, `prr`, `rwd`, `forksync`)
-- `agent/npm/` — the extension fleet manifest: exact pinned versions of every `@cad0p/*` extension package, installed with pnpm
-- `agent/agents/general-purpose.md`, `agent/models.json`, `agent/mcp.json`, `agent/subagents.json`, `agent/vision.json` — agent, model, MCP, subagent and vision settings
+- `agent/settings.json` — the pi settings: my extensions, skills, and pi configs
+- `agent/steering/` — global [pi-steering](https://github.com/cad0p/pi-steering) TS config with tests
+- `agent/prompts/` — prompt templates (slash commands that prefill a parameterized prompt)
+- `agent/npm/` — where extensions live and where supply-chain policies on `minReleaseAge` are defined, installed with pnpm. Notable examples:
+  - [pi-napkin](https://github.com/cad0p/pi-napkin) — a human/agent shared, always updated Obsidian vault, knowledge base you control and can read
+  - [pi-tree-navigator](https://github.com/cad0p/pi-tree-navigator) — giving the agent access to pi's tree session structure, so work gets collapsed in summaries and the context window feels infinite
+  - [pi-timestamps](https://github.com/cad0p/pi-timestamps) — see when you and the agent communicated, so the session doesn't feel like time doesn't exist (agent doesn't see them)
+  - [pi-steering](https://github.com/cad0p/pi-steering) — instead of polluting your AGENTS.md, deterministic rules on bash tool usage, so the AGENT only sees the steering instruction when it was about to make a mistake
+  - [pi-heartbeat](https://github.com/cad0p/pi-heartbeat) — timers for agents, so they can monitor CI or other events for long-running tasks
+- `agent/agents/` — my subagent types
+- `agent/subagents.json` — my subagent extension [pi-subagents-tintinweb](https://github.com/cad0p/pi-subagents-tintinweb) settings
+- `agent/models.json` — the custom models I imported
+- `agent/mcp.json` — my MCP extensions (parallel search)
+- `agent/vision.json` — my model vision handoff settings
 
 ## Requirements
 
-- pi `0.84.x` (settings reference `lastChangelogVersion: 0.84.2`; the steering workspace peers on `@earendil-works/pi-coding-agent@0.84.1`)
-- [pnpm](https://pnpm.io) — the fleet and steering workspaces are pnpm-managed
-- Node `>=22.19.0` (the floor pi itself requires)
+- [pi](https://pi.dev) — `pnpm add -g --ignore-scripts @earendil-works/pi-coding-agent`)
+- [pnpm](https://pnpm.io) — pi and steering workspaces are pnpm-managed
+- [Node](https://nodejs.org/) `>=22.19.0` (the floor pi itself requires)
 
 ## Usage on a new machine
 
-```bash
-git clone https://github.com/cad0p/pi-config.git ~/.pi
-cd ~/.pi/agent/npm && pnpm install
-cd ~/.pi/agent/steering && pnpm install
-```
+Assuming all prerequisites are installed:
 
-Then start pi. Extension packages resolve from `agent/npm/node_modules` per `settings.json`; the steering hooks load from `agent/steering/`.
+```bash
+cp -r ~/.pi ~/.pi.bak # backup your pi config
+git clone https://github.com/cad0p/pi-config.git ~/.pi # replace your pi config
+pi update --all # install PierPi config
+cd ~/.pi && pi "let's explore what my pi config can do, and what I can set up"
+```
 
 ## Security
 
