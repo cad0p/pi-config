@@ -1,0 +1,84 @@
+{
+  "lastChangelogVersion": "0.84.2",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-flash",
+  "defaultThinkingLevel": "max",
+  "npmCommand": [
+    "pnpm"
+  ],
+  "steeringMode": "all",
+  "doubleEscapeAction": "tree",
+  "treeFilterMode": "no-tools",
+  "packages": [
+    {
+      "source": "npm:@cad0p/pi-heartbeat@next",
+      "skills": [
+        "-skills/pi-heartbeat/SKILL.md"
+      ]
+    },
+    {
+      "source": "npm:pi-shipit",
+      "skills": [
+        "-skills/review-fix-loop/SKILL.md",
+        "-skills/submit-fork-pr/SKILL.md"
+      ]
+    },
+    {
+      "source": "npm:@cad0p/pi-napkin@next",
+      "extensions": [
+        "+extensions/distill/index.ts",
+        "+extensions/napkin-context/index.ts"
+      ],
+      "skills": [
+        "-skills/napkin/SKILL.md"
+      ]
+    },
+    {
+      "source": "npm:@cad0p/pi-pioneer-provider@next",
+      "extensions": [
+        "-index.ts"
+      ]
+    },
+    "npm:@cad0p/pi-subagents-tintinweb@next",
+    {
+      "source": "npm:pi-mcp-adapter",
+      "skills": [
+        "-skills/mcp-scripting/SKILL.md"
+      ]
+    },
+    "npm:@cad0p/pi-fallback-provider@next",
+    {
+      "source": "npm:@cad0p/pi-steering@next",
+      "extensions": [
+        "+src/index.ts"
+      ],
+      "skills": [
+        "-skills/steering-authoring/SKILL.md"
+      ]
+    },
+    "npm:@cad0p/pi-timestamps@next",
+    {
+      "source": "npm:@cad0p/pi-provider-umans@next",
+      "extensions": [
+        "-web-search.ts",
+        "-index.ts"
+      ]
+    },
+    "npm:@cad0p/pi-bash-timeout@next",
+    "npm:@cad0p/pi-tree-navigator@next",
+    "npm:@getpipher/vision"
+  ],
+  "theme": "light/dark",
+  "enabledModels": [
+    "opencode/nemotron-3-ultra-free",
+    "tokenrouter/moonshotai/kimi-k3-free",
+    "opencode-go/deepseek-v4-flash",
+    "openai-codex/gpt-5.6-luna"
+  ],
+  "defaultProjectTrust": "always",
+  "compaction": {
+    "enabled": true
+  },
+  "showCacheMissNotices": true,
+  "tuiMode": "regular"
+}

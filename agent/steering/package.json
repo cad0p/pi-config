@@ -1,0 +1,22 @@
+{
+	"name": "pi-steering-global-config",
+	"version": "0.0.0-private",
+	"private": true,
+	"description": "Global pi-steering config: no-main-commit carved out for napkin vaults via the @cad0p/pi-napkin/steering plugin (dynamic .napkin/ detection).",
+	"type": "module",
+	"peerDependencies": {
+		"@cad0p/pi-steering": "*"
+	},
+	"devDependencies": {
+		"@cad0p/pi-napkin": "0.7.0-20260814.2",
+		"@cad0p/pi-steering": "0.2.0-20260813.0",
+		"@cad0p/pi-steering-github": "0.1.0-20260814.0",
+		"@earendil-works/pi-coding-agent": "0.84.1",
+		"@types/node": "^20.19.39",
+		"typescript": "^5.4.5"
+	},
+	"scripts": {
+		"test": "node --test --experimental-strip-types '**/*.test.ts'",
+		"typecheck": "tsc --noEmit"
+	}
+}

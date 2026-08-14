@@ -1,0 +1,102 @@
+{
+ "providers": {
+  "siliconflow": {
+   "baseUrl": "https://api.siliconflow.com/v1",
+   "api": "openai-completions",
+   "apiKey": "placeholder",
+   "compat": {
+    "supportsDeveloperRole": false,
+    "supportsReasoningEffort": false
+   },
+   "models": [
+    {
+     "id": "nex-agi/Nex-N2-Pro",
+     "name": "Nex-N2-Pro",
+     "reasoning": true,
+     "input": [
+      "text",
+      "image"
+     ],
+     "contextWindow": 262144,
+     "maxTokens": 262144,
+     "cost": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0
+     }
+    }
+   ]
+  },
+  "zenmux": {
+   "baseUrl": "https://zenmux.ai/api/v1",
+   "api": "openai-completions",
+   "apiKey": "placeholder",
+   "compat": {
+    "supportsDeveloperRole": false,
+    "supportsReasoningEffort": false
+   },
+   "models": [
+    {
+     "id": "z-ai/glm-5.2-free",
+     "name": "Z.AI: GLM 5.2 (Free)",
+     "reasoning": true,
+     "input": [
+      "text",
+      "image"
+     ],
+     "contextWindow": 1000000,
+     "maxTokens": 262144,
+     "cost": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0
+     }
+    }
+   ]
+  },
+  "umans": {
+   "modelOverrides": {
+    "umans-kimi-k3": {
+     "contextWindow": 240000
+    }
+   }
+  },
+  "opencode-go": {
+   "modelOverrides": {
+    "deepseek-v4-flash": {
+     "contextWindow": 400000
+    }
+   }
+  },
+  "tokenrouter": {
+   "baseUrl": "https://api.tokenrouter.com/v1",
+   "api": "openai-completions",
+   "apiKey": "placeholder",
+   "compat": {
+    "supportsDeveloperRole": false,
+    "supportsReasoningEffort": false
+   },
+   "models": [
+    {
+     "id": "moonshotai/kimi-k3-free",
+     "name": "Kimi K3 (Free)",
+     "reasoning": true,
+     "input": [
+      "text",
+      "image"
+     ],
+     "contextWindow": 262144,
+     "maxTokens": 32768,
+     "cost": {
+      "input": 0,
+      "output": 0,
+      "cacheRead": 0,
+      "cacheWrite": 0
+     }
+    }
+   ]
+  }
+ }
+}

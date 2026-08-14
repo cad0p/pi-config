@@ -1,0 +1,25 @@
+# --- Secrets (never commit) ---
+# OAuth tokens, provider credentials, pi-managed credential store
+agent/auth.json
+agent/models-store.json
+agent/umans-concurrency.json
+
+# --- Local state / caches ---
+agent/.npmrc
+agent/**/.npmrc
+*.npmrc
+.env*
+agent/mcp-cache.json
+agent/mcp-onboarding.json
+agent/vision-audit.log
+
+# --- Session history (contains private conversations) ---
+agent/sessions/
+
+# --- Local clones & binaries ---
+agent/git/
+agent/bin/
+
+# --- Dependencies (pnpm install output) ---
+agent/npm/node_modules/
+agent/steering/node_modules/

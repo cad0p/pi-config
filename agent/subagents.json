@@ -1,0 +1,12 @@
+{
+  "maxConcurrent": 6,
+  "defaultMaxTurns": 0,
+  "graceTurns": 5,
+  "defaultJoinMode": "async",
+  "schedulingEnabled": true,
+  "scopeModels": false,
+  "resultPreviewMode": "markdown",
+  "resultPreviewExpanded": true,
+  "failurePreviewMaxChars": 65536,
+  "disableDefaultAgents": true
+}

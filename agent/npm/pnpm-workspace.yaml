@@ -1,0 +1,13 @@
+minimumReleaseAgeExclude:
+  - '@cad0p/*'
+# pi's jiti loader resolves imports from the symlink path (not realpath), so
+# transitive sibling packages (@cad0p/napkin, @cad0p/unbash-walker) must be
+# hoisted to the root node_modules or extension loading fails with
+# "Cannot find module '@cad0p/...'". Discovered 2026-08-14 during the
+# git: -> npm:@...@next install switch.
+publicHoistPattern:
+  - '@cad0p/*'
+onlyBuiltDependencies:
+  - "@google/genai@1.52.0"
+  - "protobufjs@7.6.4"
+  - "koffi@2.16.2"
