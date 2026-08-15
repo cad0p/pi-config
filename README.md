@@ -34,10 +34,21 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
 Assuming all prerequisites are installed:
 
 ```bash
+mkdir ~/.pi # if you've never used pi
 cp -r ~/.pi ~/.pi.bak # backup your pi config
 git clone https://github.com/cad0p/pi-config.git ~/.pi # replace your pi config
 pi update --all # install PierPi config
-pi /login # authenticate to a model provider
+```
+
+Run pi to log in with your model provider
+
+```bash
+pi 
+/login # authenticate to a model provider
+```
+
+
+```bash
 cd ~/.pi && pi "let's explore what my pi config can do, and what I can set up"
 ```
 
