@@ -7,7 +7,8 @@ minimumReleaseAgeExclude:
 # git: -> npm:@...@next install switch.
 publicHoistPattern:
   - '@cad0p/*'
-onlyBuiltDependencies:
-  - "@google/genai@1.52.0"
-  - "protobufjs@7.6.4"
-  - "koffi@2.16.2"
+allowBuilds:
+  '@google/genai': true
+  protobufjs: true
+  koffi: true
+  glimpseui: false
