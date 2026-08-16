@@ -221,7 +221,7 @@ describe("global config — shape", () => {
 		// github plugin ships as @cad0p/pi-steering-github (2026-08-14)
 		// — PR issue-link + vault body-file policy.
 		const pluginNames = config.plugins?.map((p) => p.name) ?? [];
-		assert.deepEqual(pluginNames, ["git", "napkin", "github"]);
+		assert.deepEqual(pluginNames, ["git", "napkin", "github", "agent-dir"]);
 	});
 
 	it("napkin plugin ships the two exemptions targeting the SHIPPED commit-on-main rules", () => {
@@ -287,7 +287,24 @@ describe("global config — carve-out behavior (real fixtures)", () => {
 		assert.equal(block, false, `expected allow at ${vault}, got block by ${rule}`);
 	});
 
-	it("blocks `git commit` on main OUTSIDE any vault (github clone)", async () => {
+	it("allows `git commit` on main inside the agent dir (~/.pi — config repo commits by design)", async () => {
+		// The global steering config repo itself: ~/.pi/agent/steering is
+		// a real github clone on main whose ruleset has NO pull_request
+		// rule — config syncs commit to main directly.
+		const agentDir = join(homedir(), ".pi", "agent", "steering");
+		const { block, rule } = await evaluateBash(agentDir, "git commit -m 'note'");
+		assert.equal(block, false, `expected allow at ${agentDir}, got block by ${rule}`);
+	});
+
+	it("allows `git commit` on main in an agent-dir subdirectory (settings/, prompts/)", async () => {
+		const { block, rule } = await evaluateBash(
+			join(homedir(), ".pi", "agent", "settings"),
+			"git commit -m 'note'",
+		);
+		assert.equal(block, false, `expected allow at ~/.pi/agent/settings, got block by ${rule}`);
+	});
+
+	it("still blocks `git commit` on main OUTSIDE any vault (github clone)", async () => {
 		const outside = makeFixtureDir();
 		const { block, rule } = await evaluateBash(outside, "git commit -m 'x'");
 		assert.equal(block, true, `expected block outside vault at ${outside}`);

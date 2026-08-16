@@ -32,10 +32,54 @@
 // real vault fixtures).
 
 import { defineConfig } from "@cad0p/pi-steering";
+import type { PredicateShape } from "@cad0p/pi-steering";
 import gitPlugin from "@cad0p/pi-steering/plugins/git";
 import napkinSteeringPlugin from "@cad0p/pi-napkin/steering";
 import githubPlugin from "@cad0p/pi-steering-github";
+import { homedir } from "node:os";
+import { join, sep } from "node:path";
+
+declare global {
+	/**
+	 * `when.isUnderAgentDir` — true when the effective cwd is inside
+	 * the pi agent dir (`~/.pi`). Registered by the inline
+	 * `agent-dir` plugin; usable by any config that lists it.
+	 * Fail-closed: unknown cwd → `"unknown"` sentinel.
+	 */
+	interface PiSteeringPredicates {
+		isUnderAgentDir: PredicateShape<boolean>;
+	}
+}
+
+/**
+ * Agent-dir carve-out (`~/.pi`) — mirrors the napkin-vault exemption
+ * pattern: the pi config repo (`~/.pi/agent/steering`, github
+ * cad0p/pi-config) is committed to `main` directly by design (no PR
+ * flow on a personal config repo — the repo ruleset carries no
+ * `pull_request` rule). Commits under `~/.pi` are configuration
+ * management, not code — the guard would otherwise fire on every
+ * config sync. Exemption is STRICTLY fail-closed: unknown cwd never
+ * exempts, and anything outside the agent dir still hits
+ * `no-main-commit` / `no-main-commit-github`.
+ */
+const AGENT_DIR = join(homedir(), ".pi");
+
+const agentDirPlugin = {
+	name: "agent-dir",
+	predicates: {
+		isUnderAgentDir: (args: unknown, ctx: { cwd: string }) => {
+			if (args !== true) return false;
+			const cwd = ctx.cwd;
+			if (typeof cwd !== "string" || cwd === "unknown") return "unknown";
+			return cwd === AGENT_DIR || cwd.startsWith(AGENT_DIR + sep);
+		},
+	},
+	exemptions: [
+		{ rule: "no-main-commit", when: { isUnderAgentDir: true } },
+		{ rule: "no-main-commit-github", when: { isUnderAgentDir: true } },
+	],
+};
 
 export default defineConfig({
-	plugins: [gitPlugin, napkinSteeringPlugin, githubPlugin],
+	plugins: [gitPlugin, napkinSteeringPlugin, githubPlugin, agentDirPlugin],
 });
