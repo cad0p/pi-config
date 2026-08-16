@@ -358,6 +358,16 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 		assert.equal(block, false, `expected allow, got block by ${rule}`);
 	});
 
+	it("allows a chain-set \$BODY vault body file (issue #51 resolved-by-default words)", async () => {
+		const fx = makeVaultRepoFixture(repo);
+		const { block, rule } = await evaluateBash(
+			makeFixtureDir(),
+			`BODY=${fx.prBodyFile} && gh pr create --title "feat: x (closes #12)" --body-file <(perl -0777 -pe '${BODY_STRIP}' "$BODY")`,
+			host,
+		);
+		assert.equal(block, false, `expected allow, got block by ${rule}`);
+	});
+
 	it("allows pr create with a stripped body file in a nested-layout vault (.obsidian/.napkin/)", async () => {
 		const vault = makeNestedVaultFixture();
 		const prsDir = join(vault, "open-source", "github", repo, "prs");

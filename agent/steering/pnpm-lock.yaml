@@ -12,11 +12,11 @@ importers:
         specifier: 0.7.0-20260814.2
         version: 0.7.0-20260814.2(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)
       '@cad0p/pi-steering':
-        specifier: 0.2.0-20260813.0
-        version: 0.2.0-20260813.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))
+        specifier: 0.2.0-20260816.0
+        version: 0.2.0-20260816.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))
       '@cad0p/pi-steering-github':
         specifier: 0.1.0-20260816.5
-        version: 0.1.0-20260816.5(@cad0p/pi-steering@0.2.0-20260813.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)
+        version: 0.1.0-20260816.5(@cad0p/pi-steering@0.2.0-20260816.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)
       '@earendil-works/pi-coding-agent':
         specifier: 0.84.1
         version: 0.84.1(ws@8.21.3)(zod@4.4.3)
@@ -167,15 +167,15 @@ packages:
     peerDependencies:
       '@cad0p/pi-steering': ^0.1.0
 
-  '@cad0p/pi-steering@0.2.0-20260813.0':
-    resolution: {integrity: sha512-+07c6cChdZuTbzjCmiMxrsHwn1bQ08YycZaqKMH/2OHIE0uZgHqJGprNu8PF+QLwzD/fadKok9Vdgj0AD180ew==}
+  '@cad0p/pi-steering@0.2.0-20260816.0':
+    resolution: {integrity: sha512-oPc3QbJAuUxrITHZ5f7ssSjOy06fKtJEfeSM45IA7Vf75EYk/YOGwjmGVir7G6xZdUl/ol8d75zyVJI3xiUcwQ==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
-      '@earendil-works/pi-coding-agent': '*'
+      '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/unbash-walker@0.1.0':
-    resolution: {integrity: sha512-DVtmALxhJDd2PegCgQ8tPzd8kpb8WuILRhi5a1bTwJyrqb9GQTs6V3t3/SVogcNeoNY+AVdR4RPM+qv0bwTmbg==}
+  '@cad0p/unbash-walker@0.1.0-20260816.0':
+    resolution: {integrity: sha512-L9zZ155cl67J2EzJygenROj4ab/Uz6kEnjqE0jN0JXYRyQFxepXHqkM5DzLJuUjOpxzmawoHm6FD10/W2F9byg==}
     engines: {node: '>=22'}
 
   '@earendil-works/pi-agent-core@0.84.1':
@@ -999,23 +999,23 @@ snapshots:
       '@earendil-works/pi-tui': 0.84.1
       '@sinclair/typebox': 0.34.52
 
-  '@cad0p/pi-steering-github@0.1.0-20260816.5(@cad0p/pi-steering@0.2.0-20260813.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-steering-github@0.1.0-20260816.5(@cad0p/pi-steering@0.2.0-20260816.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/pi-napkin': 0.7.0-20260814.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)
-      '@cad0p/pi-steering': 0.2.0-20260813.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))
+      '@cad0p/pi-steering': 0.2.0-20260816.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))
     transitivePeerDependencies:
       - '@earendil-works/pi-coding-agent'
       - '@earendil-works/pi-tui'
       - '@sinclair/typebox'
 
-  '@cad0p/pi-steering@0.2.0-20260813.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))':
+  '@cad0p/pi-steering@0.2.0-20260816.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))':
     dependencies:
-      '@cad0p/unbash-walker': 0.1.0
+      '@cad0p/unbash-walker': 0.1.0-20260816.0
       '@earendil-works/pi-coding-agent': 0.84.1(ws@8.21.3)(zod@4.4.3)
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/unbash-walker@0.1.0':
+  '@cad0p/unbash-walker@0.1.0-20260816.0':
     dependencies:
       unbash: 3.0.0
 

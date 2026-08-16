@@ -8,8 +8,8 @@ allowBuilds:
   glimpseui: false
   protobufjs: false
 minimumReleaseAgeExclude:
-  - '@cad0p/unbash-walker@0.1.0'
-  - '@cad0p/pi-steering@0.2.0-20260813.0'
+  - '@cad0p/unbash-walker@0.1.0-20260816.0 || 0.1.0'
+  - '@cad0p/pi-steering@0.2.0-20260813.0 || 0.2.0-20260816.0'
   - '@cad0p/pi-napkin@0.7.0-20260814.0 || 0.7.0-20260814.1 || 0.7.0-20260814.2'
   - '@cad0p/pi-steering-github@0.1.0-20260814.0 || 0.1.0-20260816.5'
   - '@cad0p/napkin@0.14.0-20260814.0 || 0.14.0-20260814.2'
