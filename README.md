@@ -27,7 +27,7 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
 ## Requirements
 
 - [pi](https://pi.dev) — `pnpm add -g --ignore-scripts @earendil-works/pi-coding-agent`)
-- [pnpm](https://pnpm.io) — pi and steering workspaces are pnpm-managed
+- [pnpm](https://pnpm.io) — pi and steering workspaces are pnpm-managed. Recommended install via [mise](https://mise.jdx.dev/)
 - [Node](https://nodejs.org/) `>=22.19.0` (the floor pi itself requires)
 
 ## Usage on a new machine
