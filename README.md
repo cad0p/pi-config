@@ -48,7 +48,7 @@ pi
 ```
 
 Current recommendation: 
-- Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (5$/month)
+- Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (10$/month)
 - Model: deepseek-v4-flash
 - Thinking: max
 
