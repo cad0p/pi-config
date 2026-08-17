@@ -17,6 +17,7 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
   - [pi-timestamps](https://github.com/cad0p/pi-timestamps) — see when you and the agent communicated, so the session doesn't feel like time doesn't exist (agent doesn't see them)
   - [pi-steering](https://github.com/cad0p/pi-steering) — instead of polluting your AGENTS.md, deterministic rules on bash tool usage, so the AGENT only sees the steering instruction when it was about to make a mistake
   - [pi-heartbeat](https://github.com/cad0p/pi-heartbeat) — timers for agents, so they can monitor CI or other events for long-running tasks
+  - [pi-fallback-provider](https://github.com/cad0p/pi-fallback-provider) — automatic fallback to another model in `/scoped-models` when the agent stops working because of provider issues
 - `agent/agents/` — my subagent types
 - `agent/subagents.json` — my subagent extension [pi-subagents-tintinweb](https://github.com/cad0p/pi-subagents-tintinweb) settings
 - `agent/models.json` — the custom models I imported
