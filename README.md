@@ -47,6 +47,11 @@ pi
 /login # authenticate to a model provider
 ```
 
+Current recommendation: 
+- Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (5$/month)
+- Model: deepseek-v4-flash
+- Thinking: max
+
 
 ```bash
 cd ~/.pi && pi "let's explore what my pi config can do, and what I can set up"
