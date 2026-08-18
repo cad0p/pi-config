@@ -5,16 +5,16 @@
     "@cad0p/pi-bash-timeout": "0.1.0-20260630.1",
     "@cad0p/pi-fallback-provider": "0.1.0-20260814.0",
     "@cad0p/pi-heartbeat": "0.0.1-20260814.0",
-    "@cad0p/pi-napkin": "0.7.0-20260814.2",
+    "@cad0p/pi-napkin": "0.7.2-20260818.0",
     "@cad0p/pi-pioneer-provider": "0.2.3-20260622.0",
     "@cad0p/pi-provider-umans": "1.4.0-20260814.1",
-    "@cad0p/pi-steering": "0.2.0-20260814.3",
+    "@cad0p/pi-steering": "0.2.0-20260816.0",
     "@cad0p/pi-subagents-tintinweb": "0.14.2-20260814.3",
     "@cad0p/pi-timestamps": "0.2.0-20260813.0",
     "@cad0p/pi-tree-navigator": "0.1.1-20260809.0",
     "@getpipher/vision": "^0.5.2",
     "@marcfargas/pi-heartbeat": "^0.0.1",
-    "pi-mcp-adapter": "^2.24.0",
+    "pi-mcp-adapter": "^2.26.0",
     "pi-shipit": "^1.0.1"
   }
 }

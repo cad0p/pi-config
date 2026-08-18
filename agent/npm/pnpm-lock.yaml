@@ -18,8 +18,8 @@ importers:
         specifier: 0.0.1-20260814.0
         version: 0.0.1-20260814.0
       '@cad0p/pi-napkin':
-        specifier: 0.7.0-20260814.2
-        version: 0.7.0-20260814.2(@sinclair/typebox@0.34.52)
+        specifier: 0.7.2-20260818.0
+        version: 0.7.2-20260818.0(@sinclair/typebox@0.34.52)
       '@cad0p/pi-pioneer-provider':
         specifier: 0.2.3-20260622.0
         version: 0.2.3-20260622.0
@@ -27,8 +27,8 @@ importers:
         specifier: 1.4.0-20260814.1
         version: 1.4.0-20260814.1
       '@cad0p/pi-steering':
-        specifier: 0.2.0-20260814.3
-        version: 0.2.0-20260814.3
+        specifier: 0.2.0-20260816.0
+        version: 0.2.0-20260816.0
       '@cad0p/pi-subagents-tintinweb':
         specifier: 0.14.2-20260814.3
         version: 0.14.2-20260814.3
@@ -45,8 +45,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       pi-mcp-adapter:
-        specifier: ^2.24.0
-        version: 2.24.0
+        specifier: ^2.26.0
+        version: 2.26.0
       pi-shipit:
         specifier: ^1.0.1
         version: 1.0.1
@@ -77,8 +77,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.0'
 
-  '@cad0p/pi-napkin@0.7.0-20260814.2':
-    resolution: {integrity: sha512-nolRgsQqlPZfQWEPfkByZo0/nJwpNnNkTwQpLBv0M6IqiQpWiU7wePIWcOtLDJyAVV3cvT/DhOgPFSaf93cGpQ==}
+  '@cad0p/pi-napkin@0.7.2-20260818.0':
+    resolution: {integrity: sha512-1qlLBgjD3ucB+POkz1BUjpyCYVC0e6Ak9w/Jm0woeyrYFfyXt0SJvOH/7KO8kESFPws8kIOPK47WMwoFN8abEw==}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.74.0'
       '@earendil-works/pi-tui': '>=0.74.0'
@@ -94,8 +94,8 @@ packages:
     resolution: {integrity: sha512-P2PR3PaYW0bU6FlaFKm9479o/SNvG3LokqQlEhmAGMqXGhcKKgqjR+7cltdMmZv5iG7+ShGXwezKqD//05fmRA==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-steering@0.2.0-20260814.3':
-    resolution: {integrity: sha512-VqIjLczA3vBEMWjsDaqcR22zM9iTRerho+N+xU7Xa3Y00v1LcNlZdw2W4IM+fSWAVKAFNv2gcVWa0TaLKAnbfg==}
+  '@cad0p/pi-steering@0.2.0-20260816.0':
+    resolution: {integrity: sha512-oPc3QbJAuUxrITHZ5f7ssSjOy06fKtJEfeSM45IA7Vf75EYk/YOGwjmGVir7G6xZdUl/ol8d75zyVJI3xiUcwQ==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
@@ -122,8 +122,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.74.0'
       typebox: ^1.0.0
 
-  '@cad0p/unbash-walker@0.1.0':
-    resolution: {integrity: sha512-DVtmALxhJDd2PegCgQ8tPzd8kpb8WuILRhi5a1bTwJyrqb9GQTs6V3t3/SVogcNeoNY+AVdR4RPM+qv0bwTmbg==}
+  '@cad0p/unbash-walker@0.1.0-20260816.0':
+    resolution: {integrity: sha512-L9zZ155cl67J2EzJygenROj4ab/Uz6kEnjqE0jN0JXYRyQFxepXHqkM5DzLJuUjOpxzmawoHm6FD10/W2F9byg==}
     engines: {node: '>=22'}
 
   '@getpipher/vision@0.5.2':
@@ -394,8 +394,8 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
-  pi-mcp-adapter@2.24.0:
-    resolution: {integrity: sha512-1RlYIKm156RlZ9NC35dtsZgOc5MN5fPiWu4zT2WLXdaGjSNDNv/nkCGbd1fj4ZXjdKwXcBz8JpRdxTtyQs5QOA==}
+  pi-mcp-adapter@2.26.0:
+    resolution: {integrity: sha512-S1L1cTvYdDUIkNGvg/dR1v3ljfxeq6nAA8ffnB+xB5nZH4DSU8Ks9KdmKgmEH4TAEsSxGgv194i6WYORHF0Clg==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -528,7 +528,7 @@ snapshots:
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0': {}
 
-  '@cad0p/pi-napkin@0.7.0-20260814.2(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-napkin@0.7.2-20260818.0(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/napkin': 0.14.0-20260814.2
       '@sinclair/typebox': 0.34.52
@@ -537,9 +537,9 @@ snapshots:
 
   '@cad0p/pi-provider-umans@1.4.0-20260814.1': {}
 
-  '@cad0p/pi-steering@0.2.0-20260814.3':
+  '@cad0p/pi-steering@0.2.0-20260816.0':
     dependencies:
-      '@cad0p/unbash-walker': 0.1.0
+      '@cad0p/unbash-walker': 0.1.0-20260816.0
       jiti: 2.7.0
       unbash: 3.0.0
 
@@ -553,7 +553,7 @@ snapshots:
 
   '@cad0p/pi-tree-navigator@0.1.1-20260809.0': {}
 
-  '@cad0p/unbash-walker@0.1.0':
+  '@cad0p/unbash-walker@0.1.0-20260816.0':
     dependencies:
       unbash: 3.0.0
 
@@ -755,7 +755,7 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  pi-mcp-adapter@2.24.0:
+  pi-mcp-adapter@2.26.0:
     dependencies:
       '@modelcontextprotocol/client': 2.0.0
       '@modelcontextprotocol/core': 2.0.0
