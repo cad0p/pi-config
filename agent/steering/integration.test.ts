@@ -250,6 +250,7 @@ describe("global config — shape", () => {
 		assert.deepEqual(
 			plugin?.rules?.map((r) => r.name),
 			[
+				"gh-repo-flag-before-subcommand",
 				"pr-body-from-vault-file",
 				"pr-create-needs-issue-link",
 				"pr-merge-needs-closing-keywords",
@@ -345,6 +346,32 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 	const repo = "fixture-repo";
 	const remote = `https://github.com/cad0p/${repo}.git`;
 	const host = hostWithRemote(remote);
+
+	// ---- gh-repo-flag-before-subcommand (FIRST — the -R entry gate) ----
+
+	it("MUST-BLOCK repro: foreign gh -R pr merge fires the redirect rule", async () => {
+		// The #19 under-block: the -R gate must fire regardless of
+		// keywords. Pins that the SHIPPED roster carries the rule
+		// (a roster regression — rule defined but not in the array —
+		// would silently re-open the hole; caught 2026-08-20 in
+		// 0.1.0-20260820.1).
+		const { block, rule } = await evaluateBash(
+			makeFixtureDir(),
+			"gh -R cad0p/other pr merge --squash",
+			host,
+		);
+		assert.equal(block, true, "expected block");
+		assert.equal(rule, "gh-repo-flag-before-subcommand");
+	});
+
+	it("allows the fork→upstream flow (target basename == cwd repo basename)", async () => {
+		const { block, rule } = await evaluateBash(
+			makeFixtureDir(),
+			"gh -R upstream/fixture-repo pr create --title t",
+			host,
+		);
+		assert.equal(block, false, `expected allow, got block by ${rule}`);
+	});
 
 	// ---- pr-body-from-vault-file (runs FIRST — first-match-wins) ----
 
