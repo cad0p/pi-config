@@ -27,8 +27,8 @@ importers:
         specifier: 1.4.0-20260814.1
         version: 1.4.0-20260814.1
       '@cad0p/pi-steering':
-        specifier: 0.2.0-20260820.0
-        version: 0.2.0-20260820.0
+        specifier: 0.2.0-20260820.1
+        version: 0.2.0-20260820.1
       '@cad0p/pi-subagents-tintinweb':
         specifier: 0.14.2-20260814.3
         version: 0.14.2-20260814.3
@@ -36,8 +36,8 @@ importers:
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
       '@cad0p/pi-tree-navigator':
-        specifier: 0.1.1-20260820.0
-        version: 0.1.1-20260820.0
+        specifier: 0.1.2-20260820.0
+        version: 0.1.2-20260820.0
       '@getpipher/vision':
         specifier: ^0.5.2
         version: 0.5.2
@@ -97,8 +97,8 @@ packages:
     resolution: {integrity: sha512-P2PR3PaYW0bU6FlaFKm9479o/SNvG3LokqQlEhmAGMqXGhcKKgqjR+7cltdMmZv5iG7+ShGXwezKqD//05fmRA==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-steering@0.2.0-20260820.0':
-    resolution: {integrity: sha512-8DiiSPRaDTjHgysVjOyCOv+0oLhXckF3myWnKt1hyBy/enD4EueLjUh/tUkMvW0FDjdmdvUBcg82lpOHAUgdbA==}
+  '@cad0p/pi-steering@0.2.0-20260820.1':
+    resolution: {integrity: sha512-DD4wTQ89MNzuH07bOi1gG01RvnfV3tjTfOYp4GaHbIwVvSLIlLKfRbbLQL/fVyepyykG8tS85nXoFgdCkS/BeQ==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
@@ -118,8 +118,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.80.4'
       '@earendil-works/pi-tui': '>=0.80.4'
 
-  '@cad0p/pi-tree-navigator@0.1.1-20260820.0':
-    resolution: {integrity: sha512-HBdrvTrxYLGALr+jKMIP8lre+G1NIOQe8b/AGnQb3iFcJC38LgmSnXdB5Z0g8OXfxGg2xrWQaojTl46twfrwyg==}
+  '@cad0p/pi-tree-navigator@0.1.2-20260820.0':
+    resolution: {integrity: sha512-1F/qQU9otM8MPDYPXNk5KjSYC+Lpwqcz98S2NcE/zqug2U8upQAZ/EknDwQfefP7JxjpYJslEgaoOP+b6qBOrw==}
     peerDependencies:
       '@earendil-works/pi-agent-core': '>=0.81.0'
       '@earendil-works/pi-coding-agent': '>=0.81.0'
@@ -551,7 +551,7 @@ snapshots:
 
   '@cad0p/pi-provider-umans@1.4.0-20260814.1': {}
 
-  '@cad0p/pi-steering@0.2.0-20260820.0':
+  '@cad0p/pi-steering@0.2.0-20260820.1':
     dependencies:
       '@cad0p/unbash-walker': 0.1.0-20260816.0
       jiti: 2.7.0
@@ -565,7 +565,7 @@ snapshots:
 
   '@cad0p/pi-timestamps@0.2.0-20260813.0': {}
 
-  '@cad0p/pi-tree-navigator@0.1.1-20260820.0': {}
+  '@cad0p/pi-tree-navigator@0.1.2-20260820.0': {}
 
   '@cad0p/unbash-walker@0.1.0-20260816.0':
     dependencies:
