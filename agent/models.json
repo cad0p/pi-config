@@ -70,6 +70,13 @@
     }
    }
   },
+  "commandcode": {
+   "modelOverrides": {
+    "deepseek/deepseek-v4-flash": {
+     "contextWindow": 400000
+    }
+   }
+  },
   "tokenrouter": {
    "baseUrl": "https://api.tokenrouter.com/v1",
    "api": "openai-completions",

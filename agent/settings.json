@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.84.2",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4-flash",
+  "defaultProvider": "openai-codex",
+  "defaultModel": "gpt-5.6-luna",
   "defaultThinkingLevel": "max",
   "npmCommand": [
     "pnpm"
@@ -66,14 +66,14 @@
     },
     "npm:@cad0p/pi-bash-timeout@next",
     "npm:@cad0p/pi-tree-navigator@next",
-    "npm:@getpipher/vision"
+    "npm:@getpipher/vision",
+    "npm:pi-commandcode-provider"
   ],
   "theme": "light/dark",
   "enabledModels": [
-    "opencode/nemotron-3-ultra-free",
-    "tokenrouter/moonshotai/kimi-k3-free",
     "opencode-go/deepseek-v4-flash",
-    "openai-codex/gpt-5.6-luna"
+    "openai-codex/gpt-5.6-luna",
+    "commandcode/deepseek/deepseek-v4-flash"
   ],
   "defaultProjectTrust": "always",
   "compaction": {

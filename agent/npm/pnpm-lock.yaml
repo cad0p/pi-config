@@ -18,8 +18,8 @@ importers:
         specifier: 0.0.1-20260814.0
         version: 0.0.1-20260814.0
       '@cad0p/pi-napkin':
-        specifier: 0.7.2-20260818.0
-        version: 0.7.2-20260818.0(@sinclair/typebox@0.34.52)
+        specifier: 0.7.2-20260820.0
+        version: 0.7.2-20260820.0(@sinclair/typebox@0.34.52)
       '@cad0p/pi-pioneer-provider':
         specifier: 0.2.3-20260622.0
         version: 0.2.3-20260622.0
@@ -27,8 +27,8 @@ importers:
         specifier: 1.4.0-20260814.1
         version: 1.4.0-20260814.1
       '@cad0p/pi-steering':
-        specifier: 0.2.0-20260816.0
-        version: 0.2.0-20260816.0
+        specifier: 0.2.0-20260820.0
+        version: 0.2.0-20260820.0
       '@cad0p/pi-subagents-tintinweb':
         specifier: 0.14.2-20260814.3
         version: 0.14.2-20260814.3
@@ -36,17 +36,20 @@ importers:
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
       '@cad0p/pi-tree-navigator':
-        specifier: 0.1.1-20260809.0
-        version: 0.1.1-20260809.0
+        specifier: 0.1.1-20260820.0
+        version: 0.1.1-20260820.0
       '@getpipher/vision':
         specifier: ^0.5.2
         version: 0.5.2
       '@marcfargas/pi-heartbeat':
         specifier: ^0.0.1
         version: 0.0.1
+      pi-commandcode-provider:
+        specifier: ^0.5.1
+        version: 0.5.1
       pi-mcp-adapter:
-        specifier: ^2.26.0
-        version: 2.26.0
+        specifier: ^2.26.1
+        version: 2.26.1
       pi-shipit:
         specifier: ^1.0.1
         version: 1.0.1
@@ -57,8 +60,8 @@ packages:
     resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
     engines: {node: '>=6.9.0'}
 
-  '@cad0p/napkin@0.14.0-20260814.2':
-    resolution: {integrity: sha512-PGhpY5v1FgrqIboE7ZZSicg17yXCkJUDmKRiQI9D66q/97WsYtYv34Qw7kOIrWZymYyzyuMPTfRs3uLq0wPBPw==}
+  '@cad0p/napkin@0.14.0-20260820.1':
+    resolution: {integrity: sha512-Mc34T00mtkymdRh98ieQ2U7LX2HvXMfTZ6jZ6Ad2SYMYc+yoHBeQ+U1/nD/uf1cIFGy5wyO54M0kFmXO3LoXCw==}
     hasBin: true
 
   '@cad0p/pi-bash-timeout@0.1.0-20260630.1':
@@ -77,8 +80,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.0'
 
-  '@cad0p/pi-napkin@0.7.2-20260818.0':
-    resolution: {integrity: sha512-1qlLBgjD3ucB+POkz1BUjpyCYVC0e6Ak9w/Jm0woeyrYFfyXt0SJvOH/7KO8kESFPws8kIOPK47WMwoFN8abEw==}
+  '@cad0p/pi-napkin@0.7.2-20260820.0':
+    resolution: {integrity: sha512-Q/VlOEsrpSj0RXvZkF3Tn7CJCJJanyTxTM6X1j3GKVBtfHTCbjwDWFal8IcylfIdgnvhm2ayPYPxd7dEtw225A==}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.74.0'
       '@earendil-works/pi-tui': '>=0.74.0'
@@ -94,8 +97,8 @@ packages:
     resolution: {integrity: sha512-P2PR3PaYW0bU6FlaFKm9479o/SNvG3LokqQlEhmAGMqXGhcKKgqjR+7cltdMmZv5iG7+ShGXwezKqD//05fmRA==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-steering@0.2.0-20260816.0':
-    resolution: {integrity: sha512-oPc3QbJAuUxrITHZ5f7ssSjOy06fKtJEfeSM45IA7Vf75EYk/YOGwjmGVir7G6xZdUl/ol8d75zyVJI3xiUcwQ==}
+  '@cad0p/pi-steering@0.2.0-20260820.0':
+    resolution: {integrity: sha512-8DiiSPRaDTjHgysVjOyCOv+0oLhXckF3myWnKt1hyBy/enD4EueLjUh/tUkMvW0FDjdmdvUBcg82lpOHAUgdbA==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
@@ -115,11 +118,11 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.80.4'
       '@earendil-works/pi-tui': '>=0.80.4'
 
-  '@cad0p/pi-tree-navigator@0.1.1-20260809.0':
-    resolution: {integrity: sha512-Sox0USXAqymw3xyT7h9hjw/c5ILpxRGYkl3iZQp3u1E8GcXrHqUmRiKqmayi+Z0pvI6JVVkkuI2UVnjWlrAvJA==}
+  '@cad0p/pi-tree-navigator@0.1.1-20260820.0':
+    resolution: {integrity: sha512-HBdrvTrxYLGALr+jKMIP8lre+G1NIOQe8b/AGnQb3iFcJC38LgmSnXdB5Z0g8OXfxGg2xrWQaojTl46twfrwyg==}
     peerDependencies:
-      '@earendil-works/pi-agent-core': '>=0.74.0'
-      '@earendil-works/pi-coding-agent': '>=0.74.0'
+      '@earendil-works/pi-agent-core': '>=0.81.0'
+      '@earendil-works/pi-coding-agent': '>=0.81.0'
       typebox: ^1.0.0
 
   '@cad0p/unbash-walker@0.1.0-20260816.0':
@@ -394,8 +397,19 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
-  pi-mcp-adapter@2.26.0:
-    resolution: {integrity: sha512-S1L1cTvYdDUIkNGvg/dR1v3ljfxeq6nAA8ffnB+xB5nZH4DSU8Ks9KdmKgmEH4TAEsSxGgv194i6WYORHF0Clg==}
+  pi-commandcode-provider@0.5.1:
+    resolution: {integrity: sha512-zP5FHRfA3gPtdbUk0MhgMrhEmhQaggfFby9ocbAj66UOZdx24iTZg81PmaALnHKt/bW5qxNC7xLT9B0k+9X/lA==}
+    peerDependencies:
+      '@earendil-works/pi-ai': '*'
+      '@earendil-works/pi-coding-agent': '*'
+    peerDependenciesMeta:
+      '@earendil-works/pi-ai':
+        optional: true
+      '@earendil-works/pi-coding-agent':
+        optional: true
+
+  pi-mcp-adapter@2.26.1:
+    resolution: {integrity: sha512-6/KDXIEPXTVM77274jAloxAo9AQSEy5EJ/7afIlUK2T8HOfeVapTJvwImvyChiIH+0gGShbFgnBK2BXFrjbj2w==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -509,7 +523,7 @@ snapshots:
 
   '@babel/runtime@7.29.7': {}
 
-  '@cad0p/napkin@0.14.0-20260814.2':
+  '@cad0p/napkin@0.14.0-20260820.1':
     dependencies:
       chalk: 5.6.2
       commander: 14.0.3
@@ -528,16 +542,16 @@ snapshots:
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0': {}
 
-  '@cad0p/pi-napkin@0.7.2-20260818.0(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-napkin@0.7.2-20260820.0(@sinclair/typebox@0.34.52)':
     dependencies:
-      '@cad0p/napkin': 0.14.0-20260814.2
+      '@cad0p/napkin': 0.14.0-20260820.1
       '@sinclair/typebox': 0.34.52
 
   '@cad0p/pi-pioneer-provider@0.2.3-20260622.0': {}
 
   '@cad0p/pi-provider-umans@1.4.0-20260814.1': {}
 
-  '@cad0p/pi-steering@0.2.0-20260816.0':
+  '@cad0p/pi-steering@0.2.0-20260820.0':
     dependencies:
       '@cad0p/unbash-walker': 0.1.0-20260816.0
       jiti: 2.7.0
@@ -551,7 +565,7 @@ snapshots:
 
   '@cad0p/pi-timestamps@0.2.0-20260813.0': {}
 
-  '@cad0p/pi-tree-navigator@0.1.1-20260809.0': {}
+  '@cad0p/pi-tree-navigator@0.1.1-20260820.0': {}
 
   '@cad0p/unbash-walker@0.1.0-20260816.0':
     dependencies:
@@ -755,7 +769,9 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  pi-mcp-adapter@2.26.0:
+  pi-commandcode-provider@0.5.1: {}
+
+  pi-mcp-adapter@2.26.1:
     dependencies:
       '@modelcontextprotocol/client': 2.0.0
       '@modelcontextprotocol/core': 2.0.0

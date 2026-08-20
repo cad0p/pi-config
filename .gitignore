@@ -11,6 +11,7 @@ agent/**/.npmrc
 .env*
 agent/mcp-cache.json
 agent/mcp-onboarding.json
+agent/commandcode-models.json
 agent/vision-audit.log
 
 # --- Session history (contains private conversations) ---
