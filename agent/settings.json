@@ -1,6 +1,6 @@
 {
-  "lastChangelogVersion": "0.84.2",
-  "defaultProvider": "nous-portal",
+  "lastChangelogVersion": "0.84.3",
+  "defaultProvider": "openrouter",
   "defaultModel": "stealth/ox-alpha",
   "defaultThinkingLevel": "max",
   "npmCommand": [
@@ -67,17 +67,18 @@
     "npm:@cad0p/pi-bash-timeout@next",
     "npm:@cad0p/pi-tree-navigator@next",
     "npm:@getpipher/vision",
-    "npm:pi-commandcode-provider"
+    "npm:pi-commandcode-provider",
+    "npm:pi-context-view"
   ],
   "theme": "light/dark",
   "enabledModels": [
-    "opencode-go/deepseek-v4-flash",
-    "openai-codex/gpt-5.6-luna",
-    "commandcode/deepseek/deepseek-v4-flash",
     "opencode-go/ox-alpha-free",
     "commandcode/stealth/ox-alpha",
     "nous-portal/stealth/ox-alpha",
-    "openrouter/stealth/ox-alpha"
+    "openrouter/stealth/ox-alpha",
+    "opencode-go/deepseek-v4-flash",
+    "openai-codex/gpt-5.6-luna",
+    "commandcode/deepseek/deepseek-v4-flash"
   ],
   "defaultProjectTrust": "always",
   "compaction": {

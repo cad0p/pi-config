@@ -145,6 +145,9 @@
    "modelOverrides": {
     "deepseek-v4-flash": {
      "contextWindow": 400000
+    },
+    "ox-alpha-free": {
+     "contextWindow": 400000
     }
    }
   },
