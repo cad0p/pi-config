@@ -197,7 +197,7 @@ async function evaluateBash(
 	host: ReturnType<typeof createRecordingHost> = hostOnMainGithub(),
 ): Promise<{ block: boolean; rule: string | null | undefined }> {
 	const ctx = mockExtensionContext(cwd, host.entries);
-	const harness = loadHarness({ config, host, includeDefaults: true });
+	const harness = loadHarness({ config, host });
 	const event = {
 		type: "tool_call",
 		toolCallId: "tc1",
@@ -215,13 +215,20 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares gitPlugin + the napkin steering plugin + the github plugin package (opt-in since the monorepo split)", () => {
+	it("declares git + rm + async + napkin + github plugins + inline agent-dir (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
-		// is empty: plugins are opt-in and MUST be declared here. The
-		// github plugin ships as @cad0p/pi-steering-github (2026-08-14)
-		// — PR issue-link + vault body-file policy.
+		// is empty: plugins are opt-in and MUST be declared here. Since
+		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm + async
+		// are declared to carry no-rm-rf-slash / no-long-running-commands.
 		const pluginNames = config.plugins?.map((p) => p.name) ?? [];
-		assert.deepEqual(pluginNames, ["git", "napkin", "github", "agent-dir"]);
+		assert.deepEqual(pluginNames, [
+			"git",
+			"rm",
+			"async",
+			"napkin",
+			"github",
+			"agent-dir",
+		]);
 	});
 
 	it("napkin plugin ships the two exemptions targeting the SHIPPED commit-on-main rules", () => {

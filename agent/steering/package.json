@@ -9,7 +9,7 @@
   },
   "devDependencies": {
     "@cad0p/pi-napkin": "0.7.0-20260814.2",
-    "@cad0p/pi-steering": "0.2.0-20260824.1",
+    "@cad0p/pi-steering": "0.2.0-20260825.0",
     "@cad0p/pi-steering-github": "0.1.0-20260820.4",
     "@earendil-works/pi-coding-agent": "0.84.1",
     "@types/node": "^20.19.39",
