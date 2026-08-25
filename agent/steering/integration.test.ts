@@ -215,17 +215,21 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares git + rm + async + napkin + github plugins + inline agent-dir (opt-in since the monorepo split)", () => {
+	it("declares git + rm + async + napkin + flags + github plugins + inline agent-dir (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
 		// is empty: plugins are opt-in and MUST be declared here. Since
 		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm + async
 		// are declared to carry no-rm-rf-slash / no-long-running-commands.
+		// flags is REQUIRED since pi-steering-github went declarative:
+		// its gates compose the registered infoOnly/requiresFlagValue
+		// predicates owned by @cad0p/pi-steering-flags.
 		const pluginNames = config.plugins?.map((p) => p.name) ?? [];
 		assert.deepEqual(pluginNames, [
 			"git",
 			"rm",
 			"async",
 			"napkin",
+			"flags",
 			"github",
 			"agent-dir",
 		]);
@@ -371,13 +375,35 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 		assert.equal(rule, "gh-repo-flag-before-subcommand");
 	});
 
-	it("allows the fork→upstream flow (target basename == cwd repo basename)", async () => {
+	it("allows the fork→upstream flow (target basename == cwd repo basename) through the FULL policy stack", async () => {
+		// The foreign gate RELEASES on basename equality — and since
+		// pi-steering-github #42 the released flag-first form LANDS on
+		// the per-subcommand policies instead of allowing clean (a
+		// clean allow was a coverage-gap signal). So a legit fork-flow
+		// create must ALSO carry a valid vault body file + closing-
+		// keyword title: this pins release (no redirect rule) AND the
+		// fall-through landing, end-to-end.
+		const fx = makeVaultRepoFixture(repo);
 		const { block, rule } = await evaluateBash(
 			makeFixtureDir(),
-			"gh -R upstream/fixture-repo pr create --title t",
+			`gh -R upstream/${repo} pr create --title "feat: x (closes #12)" --body-file ${stripSubstitution(fx.prBodyFile)}`,
 			host,
 		);
 		assert.equal(block, false, `expected allow, got block by ${rule}`);
+	});
+
+	it("fork-flow create WITHOUT vault body lands on pr-body-from-vault-file (released ≠ exempt, #42)", async () => {
+		// Companion pin: same released shape minus the body file —
+		// must be blocked BY THE BODY RULE, not by the foreign gate
+		// and not allowed clean. This is the #42 widening working:
+		// first-firing-rule-wins + release fall-through.
+		const { block, rule } = await evaluateBash(
+			makeFixtureDir(),
+			`gh -R upstream/${repo} pr create --title t`,
+			host,
+		);
+		assert.equal(block, true);
+		assert.equal(rule, "pr-body-from-vault-file");
 	});
 
 	// ---- pr-body-from-vault-file (runs FIRST — first-match-wins) ----

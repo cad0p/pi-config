@@ -41,6 +41,11 @@ import rmPlugin from "@cad0p/pi-steering/plugins/rm";
 import asyncPlugin from "@cad0p/pi-steering/plugins/async";
 import napkinSteeringPlugin from "@cad0p/pi-napkin/steering";
 import githubPlugin from "@cad0p/pi-steering-github";
+// REQUIRED since pi-steering-github went fully declarative (#35/#37):
+// its gates compose REGISTERED predicates (`not.infoOnly`,
+// `requiresFlagValue`) owned by the flags plugin — without it they
+// throw UnknownPredicateError at evaluation time.
+import { flagsPlugin } from "@cad0p/pi-steering-flags";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -91,6 +96,7 @@ export default defineConfig({
 		rmPlugin,
 		asyncPlugin,
 		napkinSteeringPlugin,
+		flagsPlugin,
 		githubPlugin,
 		agentDirPlugin,
 	],
