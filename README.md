@@ -66,6 +66,12 @@ Make sure to upload it as private repository. You can use Obsidian to open it an
 Then, continue using `~/personal/github/<repo>` for private repositories and `~/open-source/github/<repo>` for public ones.
 The vault will have the same structure internally: `~/personal/github/<vault>/open-source/github/<repo>` for example.
 
+## Terminal choice recommendation
+
+- macOS/Linux: [Ghostty](https://ghostty.org/)
+- Windows: Windows Subsystem for Linux + [GhostInTheWSL](https://github.com/Codavo/ghostinthewsl)
+- iOS: [VVTerm](https://github.com/cad0p/vvterm)
+
 ## Security
 
 Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-cache.json`, `agent/mcp-onboarding.json`, `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list.
