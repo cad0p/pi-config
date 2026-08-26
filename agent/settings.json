@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.84.3",
-  "defaultProvider": "openrouter",
-  "defaultModel": "stealth/ox-alpha",
+  "defaultProvider": "commandcode",
+  "defaultModel": "deepseek/deepseek-v4-flash",
   "defaultThinkingLevel": "max",
   "npmCommand": [
     "pnpm"
@@ -72,10 +72,6 @@
   ],
   "theme": "light/dark",
   "enabledModels": [
-    "opencode-go/ox-alpha-free",
-    "commandcode/stealth/ox-alpha",
-    "nous-portal/stealth/ox-alpha",
-    "openrouter/stealth/ox-alpha",
     "opencode-go/deepseek-v4-flash",
     "openai-codex/gpt-5.6-luna",
     "commandcode/deepseek/deepseek-v4-flash"

@@ -56,97 +56,9 @@
     }
    ]
   },
-  "umans": {
-   "modelOverrides": {
-    "umans-kimi-k3": {
-     "contextWindow": 240000
-    }
-   }
-  },
-  "opencode": {
-   "models": [
-    {
-     "id": "x-preview-f-free",
-     "name": "Ox Alpha Free",
-     "api": "openai-completions",
-     "baseUrl": "https://opencode.ai/zen/v1",
-     "reasoning": true,
-     "input": [
-      "text",
-      "image"
-     ],
-     "contextWindow": 400000,
-     "maxTokens": 131072,
-     "cost": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0
-     }
-    }
-   ],
-   "modelOverrides": {
-    "x-preview-f-free": {
-     "thinkingLevelMap": {
-      "off": null,
-      "minimal": "minimal",
-      "low": "low",
-      "medium": "medium",
-      "high": "high",
-      "xhigh": "xhigh",
-      "max": "max"
-     }
-    }
-   }
-  },
-  "nous-portal": {
-   "baseUrl": "https://inference-api.nousresearch.com/v1",
-   "api": "openai-completions",
-   "apiKey": "placeholder",
-   "models": [
-    {
-     "id": "stealth/ox-alpha",
-     "name": "Ox Alpha (Nous)",
-     "reasoning": true,
-     "input": [
-      "text",
-      "image"
-     ],
-     "contextWindow": 400000,
-     "maxTokens": 131072,
-     "cost": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0
-     }
-    }
-   ],
-   "compat": {
-    "supportsDeveloperRole": false,
-    "supportsReasoningEffort": true,
-    "maxTokensField": "max_tokens"
-   },
-   "modelOverrides": {
-    "stealth/ox-alpha": {
-     "thinkingLevelMap": {
-      "off": null,
-      "minimal": "minimal",
-      "low": "low",
-      "medium": "medium",
-      "high": "high",
-      "xhigh": "xhigh",
-      "max": "max"
-     }
-    }
-   }
-  },
   "opencode-go": {
    "modelOverrides": {
     "deepseek-v4-flash": {
-     "contextWindow": 400000
-    },
-    "ox-alpha-free": {
      "contextWindow": 400000
     }
    }
@@ -155,18 +67,6 @@
    "modelOverrides": {
     "deepseek/deepseek-v4-flash": {
      "contextWindow": 400000
-    },
-    "stealth/ox-alpha": {
-     "contextWindow": 400000,
-     "thinkingLevelMap": {
-      "off": null,
-      "minimal": "minimal",
-      "low": "low",
-      "medium": "medium",
-      "high": "high",
-      "xhigh": "xhigh",
-      "max": "max"
-     }
     }
    }
   },
@@ -174,18 +74,6 @@
    "modelOverrides": {
     "deepseek/deepseek-v4-flash": {
      "contextWindow": 400000
-    },
-    "stealth/ox-alpha": {
-     "contextWindow": 400000,
-     "thinkingLevelMap": {
-      "off": null,
-      "minimal": "minimal",
-      "low": "low",
-      "medium": "medium",
-      "high": "high",
-      "xhigh": "xhigh",
-      "max": "max"
-     }
     }
    }
   },
