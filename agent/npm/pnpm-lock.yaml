@@ -45,8 +45,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       pi-commandcode-provider:
-        specifier: ^0.5.1
-        version: 0.5.1
+        specifier: ^0.6.0
+        version: 0.6.0
       pi-context-view:
         specifier: ^0.4.3
         version: 0.4.3
@@ -400,8 +400,8 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
-  pi-commandcode-provider@0.5.1:
-    resolution: {integrity: sha512-zP5FHRfA3gPtdbUk0MhgMrhEmhQaggfFby9ocbAj66UOZdx24iTZg81PmaALnHKt/bW5qxNC7xLT9B0k+9X/lA==}
+  pi-commandcode-provider@0.6.0:
+    resolution: {integrity: sha512-bhG65hdZDDlr8QSOMpt/a+DBYbeIkLWAEmBQnyREuBMu/H2ibgbfNy5iLaRqBF2wfv8yBpxQb/TJ6ZF2QkhO+w==}
     peerDependencies:
       '@earendil-works/pi-ai': '*'
       '@earendil-works/pi-coding-agent': '*'
@@ -779,7 +779,7 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  pi-commandcode-provider@0.5.1: {}
+  pi-commandcode-provider@0.6.0: {}
 
   pi-context-view@0.4.3: {}
 
