@@ -72,6 +72,10 @@ The vault will have the same structure internally: `~/personal/github/<vault>/op
 - Windows: Windows Subsystem for Linux + [GhostInTheWSL](https://github.com/Codavo/ghostinthewsl)
 - iOS: [VVTerm](https://github.com/cad0p/vvterm)
 
+## Web UI recommendation
+
+- [@cad0p/pi-web-agegr](https://github.com/cad0p/pi-web-agegr]: `pnpm -g install @cad0p/pi-web-agegr`, then `pi-web`
+
 ## Security
 
 Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-cache.json`, `agent/mcp-onboarding.json`, `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list.
