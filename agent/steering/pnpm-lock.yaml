@@ -18,8 +18,8 @@ importers:
         specifier: 0.1.1-20260824.0
         version: 0.1.1-20260824.0(@cad0p/pi-steering@0.2.0-20260825.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))
       '@cad0p/pi-steering-github':
-        specifier: 0.1.0-20260825.0
-        version: 0.1.0-20260825.0(@cad0p/pi-steering@0.2.0-20260825.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)
+        specifier: 0.1.0-20260830.0
+        version: 0.1.0-20260830.0(@cad0p/pi-steering@0.2.0-20260825.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)
       '@earendil-works/pi-coding-agent':
         specifier: 0.84.1
         version: 0.84.1(ws@8.21.3)(zod@4.4.3)
@@ -170,8 +170,8 @@ packages:
     peerDependencies:
       '@cad0p/pi-steering': ^0.1.0
 
-  '@cad0p/pi-steering-github@0.1.0-20260825.0':
-    resolution: {integrity: sha512-DgEjchAZzPjVXnYj0SFjh+zvHlbOtU26DJtu3a9p9sxWndwn9v/3KYcuqvtqWBTKGxv/5MeK5x0rX0gwAepCyw==}
+  '@cad0p/pi-steering-github@0.1.0-20260830.0':
+    resolution: {integrity: sha512-gpm89vjRXw+AftH/LXzLWYUInzhsP1T1g5wZdteV0G/+S3LEbwg4l1kLU6lGGdy5etm083imQxYJ1gPlauoYvw==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@cad0p/pi-steering': ^0.1.0
@@ -1012,7 +1012,7 @@ snapshots:
     dependencies:
       '@cad0p/pi-steering': 0.2.0-20260825.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))
 
-  '@cad0p/pi-steering-github@0.1.0-20260825.0(@cad0p/pi-steering@0.2.0-20260825.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-steering-github@0.1.0-20260830.0(@cad0p/pi-steering@0.2.0-20260825.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/pi-napkin': 0.7.0-20260814.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.84.1)(@sinclair/typebox@0.34.52)
       '@cad0p/pi-steering': 0.2.0-20260825.0(@earendil-works/pi-coding-agent@0.84.1(ws@8.21.3)(zod@4.4.3))
