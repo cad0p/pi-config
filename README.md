@@ -75,7 +75,7 @@ The vault will have the same structure internally: `~/personal/github/<vault>/op
 
 ## Web UI recommendation
 
-- [@cad0p/pi-web-agegr](https://github.com/cad0p/pi-web-agegr]: `pnpm -g install @cad0p/pi-web-agegr`, then `pi-web`
+- [@cad0p/pi-web-agegr](https://github.com/cad0p/pi-web-agegr): `pnpm -g install @cad0p/pi-web-agegr`, then `pi-web`
 
 ## Security
 
