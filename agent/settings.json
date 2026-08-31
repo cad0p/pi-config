@@ -1,7 +1,7 @@
 {
-  "lastChangelogVersion": "0.84.3",
-  "defaultProvider": "commandcode",
-  "defaultModel": "deepseek/deepseek-v4-flash",
+  "lastChangelogVersion": "0.84.4",
+  "defaultProvider": "opencode-go",
+  "defaultModel": "deepseek-v4-flash",
   "defaultThinkingLevel": "max",
   "npmCommand": [
     "pnpm"
@@ -71,6 +71,7 @@
     "npm:pi-context-view"
   ],
   "theme": "light/dark",
+  "externalEditor": "nvim",
   "enabledModels": [
     "opencode-go/deepseek-v4-flash",
     "openai-codex/gpt-5.6-luna",

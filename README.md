@@ -29,6 +29,7 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
 - [mise](https://mise.jdx.dev/) for tooling version management
 - [Node](https://nodejs.org/) `>=22.19.0` (the floor pi itself requires): `mise use -g node@lts`
 - [pnpm](https://pnpm.io) — pi and steering workspaces are pnpm-managed: `mise use -g pnpm@11`
+- [neovim](https://neovim.io) — external editor for pi's Ctrl+G drafts: `mise use -g neovim@latest` (or `brew install neovim`)
 - [pi](https://pi.dev): `pnpm add -g --ignore-scripts @earendil-works/pi-coding-agent`)
 
 ## Usage on a new machine
