@@ -1,5 +1,5 @@
 {
-  "provider": "opencode",
-  "model": "mimo-v2.5-free",
+  "provider": "commandcode",
+  "model": "xiaomi/mimo-v2.5",
   "defaultReasoningEffort": "high"
 }
