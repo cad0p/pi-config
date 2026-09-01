@@ -46,21 +46,26 @@ pi update --all # install PierPi config
 Run pi to log in with your model provider
 
 ```bash
-pi 
+pi
 /login # authenticate to a model provider
 ```
 
-Then set your default model to the one you set up. Ask your agent how to do it.
-
-Current recommendation: 
-- Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (10$/month)
-- Model: deepseek-v4-flash
-- Thinking: max
-
+Then set your default model to the one you set up. Ask your agent how to do it. See [model recommendation](#llm-modelprovider-recommendation) section.
 
 ```bash
 cd ~/.pi && pi "let's explore what my pi config can do, and what I can set up"
 ```
+
+## LLM model/provider recommendation
+
+- Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (10$/month)
+- Model: deepseek-v4-flash
+- Thinking: max
+
+Other sensible choice (Opencode Go or also [CommandCode GOAT plan](https://commandcode.ai/docs/plans/goat)):
+
+- Model: glm-5.3-flash
+- Thinking: high
 
 ## Folder structure recommendation
 
