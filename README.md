@@ -50,6 +50,8 @@ pi
 /login # authenticate to a model provider
 ```
 
+Then set your default model to the one you set up. Ask your agent how to do it.
+
 Current recommendation: 
 - Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (10$/month)
 - Model: deepseek-v4-flash
