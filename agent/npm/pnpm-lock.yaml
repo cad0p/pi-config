@@ -27,8 +27,8 @@ importers:
         specifier: 1.4.0-20260814.1
         version: 1.4.0-20260814.1
       '@cad0p/pi-steering':
-        specifier: 0.2.0-20260827.0
-        version: 0.2.0-20260827.0
+        specifier: 0.2.0-20260901.0
+        version: 0.2.0-20260901.0
       '@cad0p/pi-subagents-tintinweb':
         specifier: 0.14.2-20260814.3
         version: 0.14.2-20260814.3
@@ -48,11 +48,11 @@ importers:
         specifier: ^0.6.0
         version: 0.6.0
       pi-context-view:
-        specifier: ^0.4.3
-        version: 0.4.3
+        specifier: ^0.5.0
+        version: 0.5.0
       pi-mcp-adapter:
-        specifier: ^2.29.0
-        version: 2.29.0
+        specifier: ^2.31.0
+        version: 2.31.0
       pi-shipit:
         specifier: ^1.0.1
         version: 1.0.1
@@ -100,8 +100,8 @@ packages:
     resolution: {integrity: sha512-P2PR3PaYW0bU6FlaFKm9479o/SNvG3LokqQlEhmAGMqXGhcKKgqjR+7cltdMmZv5iG7+ShGXwezKqD//05fmRA==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-steering@0.2.0-20260827.0':
-    resolution: {integrity: sha512-furx+5rv7bA207x6xdVehBjYiovWbxdDtisgfIXxkmMfZYFqDl0AWFFKH0ff9pv41Qfg4r2pfjxlQM2p2oBq1w==}
+  '@cad0p/pi-steering@0.2.0-20260901.0':
+    resolution: {integrity: sha512-TxBuUZ8H8DNIrmOig32CDyjIllqPsb5lJ59k9+r4n1G/VcWZmJX6m/TOnCCZbmVsZqxeCkX3E64DZgZhMCLzmg==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
@@ -411,15 +411,15 @@ packages:
       '@earendil-works/pi-coding-agent':
         optional: true
 
-  pi-context-view@0.4.3:
-    resolution: {integrity: sha512-iKwFmK+3SOiVtwNR1gfi+ssFQtO94Onv3aUve1s2VltgwzidZTYknEgmPgapTZr/jocauvBfbEo7RJJC37AkvQ==}
+  pi-context-view@0.5.0:
+    resolution: {integrity: sha512-9NID030s3Oqi0gH4NNVYxdayY2kKZ5Rv/gm429mTgjoKv0UKnzI82THLlAtoOVT/3lyBxn9LnqrR5wCabbB4Zw==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '*'
       '@earendil-works/pi-tui': '*'
 
-  pi-mcp-adapter@2.29.0:
-    resolution: {integrity: sha512-SxwR1KzE8Dx0dWdMetKB1Jx2nKOGNXV0IfL5S53jLwdv88rcpNN6PhX0AP7/h1O3UWLQYv8o5SEj9dd7eqpxTA==}
+  pi-mcp-adapter@2.31.0:
+    resolution: {integrity: sha512-yKPgHWFLQY6FT7ukCgEp5KvkAZ4ZC1pl7+8Tdq+j4evfTtjhHXPuIpi0joNN7lIIKuJD1cjlTb+hu6IxRpseoA==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -561,7 +561,7 @@ snapshots:
 
   '@cad0p/pi-provider-umans@1.4.0-20260814.1': {}
 
-  '@cad0p/pi-steering@0.2.0-20260827.0':
+  '@cad0p/pi-steering@0.2.0-20260901.0':
     dependencies:
       '@cad0p/unbash-walker': 0.1.0-20260827.0
       jiti: 2.7.0
@@ -781,9 +781,9 @@ snapshots:
 
   pi-commandcode-provider@0.6.0: {}
 
-  pi-context-view@0.4.3: {}
+  pi-context-view@0.5.0: {}
 
-  pi-mcp-adapter@2.29.0:
+  pi-mcp-adapter@2.31.0:
     dependencies:
       '@modelcontextprotocol/client': 2.0.0
       '@modelcontextprotocol/core': 2.0.0

@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.84.4",
-  "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-v4-flash",
+  "defaultProvider": "commandcode",
+  "defaultModel": "z-ai/glm-5.3-flash",
   "defaultThinkingLevel": "max",
   "npmCommand": [
     "pnpm"
@@ -75,7 +75,7 @@
   "enabledModels": [
     "opencode-go/deepseek-v4-flash",
     "openai-codex/gpt-5.6-luna",
-    "commandcode/deepseek/deepseek-v4-flash"
+    "commandcode/z-ai/glm-5.3-flash"
   ],
   "defaultProjectTrust": "always",
   "compaction": {

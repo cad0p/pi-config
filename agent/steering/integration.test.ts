@@ -210,7 +210,7 @@ async function evaluateBash(
 	}
 	const raw = result.reason ?? "";
 	const reason = typeof raw === "string" ? raw : String(raw);
-	const match = reason.match(/^\[steering:([^@\]]+)(?:@[^\]]+)?\]/);
+	const match = reason.match(/(?:^|\n)\[steering:([^@\]]+)(?:@[^\]]+)?\]/);
 	return { block: true, rule: match ? match[1] : null };
 }
 
