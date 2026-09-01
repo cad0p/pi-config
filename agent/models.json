@@ -1,109 +1,357 @@
 {
- "providers": {
-  "siliconflow": {
-   "baseUrl": "https://api.siliconflow.com/v1",
-   "api": "openai-completions",
-   "apiKey": "placeholder",
-   "compat": {
-    "supportsDeveloperRole": false,
-    "supportsReasoningEffort": false
-   },
-   "models": [
-    {
-     "id": "nex-agi/Nex-N2-Pro",
-     "name": "Nex-N2-Pro",
-     "reasoning": true,
-     "input": [
-      "text",
-      "image"
-     ],
-     "contextWindow": 262144,
-     "maxTokens": 262144,
-     "cost": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0
-     }
+  "providers": {
+    "siliconflow": {
+      "baseUrl": "https://api.siliconflow.com/v1",
+      "api": "openai-completions",
+      "apiKey": "placeholder",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "nex-agi/Nex-N2-Pro",
+          "name": "Nex-N2-Pro",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144,
+          "maxTokens": 262144,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        }
+      ]
+    },
+    "zenmux": {
+      "baseUrl": "https://zenmux.ai/api/v1",
+      "api": "openai-completions",
+      "apiKey": "placeholder",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "z-ai/glm-5.2-free",
+          "name": "Z.AI: GLM 5.2 (Free)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 262144,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        }
+      ]
+    },
+    "opencode": {
+      "modelOverrides": {
+        "deepseek-v4-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "deepseek": {
+      "modelOverrides": {
+        "deepseek-v4-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "zai": {
+      "modelOverrides": {
+        "glm-5.3-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "zai-coding-cn": {
+      "modelOverrides": {
+        "glm-5.3-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "qwen-token-plan": {
+      "modelOverrides": {
+        "deepseek-v4-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "qwen-token-plan-cn": {
+      "modelOverrides": {
+        "deepseek-v4-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "fireworks": {
+      "modelOverrides": {
+        "accounts/fireworks/models/deepseek-v4-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "vercel-ai-gateway": {
+      "modelOverrides": {
+        "deepseek/deepseek-v4-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          },
+          "contextWindow": 400000
+        },
+        "zai/glm-5.3-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "cloudflare-ai-gateway": {
+      "modelOverrides": {
+        "workers-ai/@cf/zai-org/glm-5.3-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "cloudflare-workers-ai": {
+      "modelOverrides": {
+        "workers-ai/@cf/zai-org/glm-5.3-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "opencode-go": {
+      "modelOverrides": {
+        "deepseek-v4-flash": {
+          "contextWindow": 400000,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          }
+        },
+        "glm-5.3-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "commandcode": {
+      "modelOverrides": {
+        "deepseek/deepseek-v4-flash": {
+          "contextWindow": 400000,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          }
+        },
+        "z-ai/glm-5.3-flash": {
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "openrouter": {
+      "modelOverrides": {
+        "deepseek/deepseek-v4-flash": {
+          "contextWindow": 400000,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          }
+        },
+        "z-ai/glm-5.3-flash": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "xhigh": null,
+            "max": null
+          },
+          "contextWindow": 400000
+        },
+        "~deepseek/deepseek-v4-flash-latest": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": null,
+            "max": "max"
+          },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "tokenrouter": {
+      "baseUrl": "https://api.tokenrouter.com/v1",
+      "api": "openai-completions",
+      "apiKey": "placeholder",
+      "compat": {
+        "supportsDeveloperRole": false,
+        "supportsReasoningEffort": false
+      },
+      "models": [
+        {
+          "id": "moonshotai/kimi-k3-free",
+          "name": "Kimi K3 (Free)",
+          "reasoning": true,
+          "input": [
+            "text",
+            "image"
+          ],
+          "contextWindow": 262144,
+          "maxTokens": 32768,
+          "cost": {
+            "input": 0,
+            "output": 0,
+            "cacheRead": 0,
+            "cacheWrite": 0
+          }
+        }
+      ]
     }
-   ]
-  },
-  "zenmux": {
-   "baseUrl": "https://zenmux.ai/api/v1",
-   "api": "openai-completions",
-   "apiKey": "placeholder",
-   "compat": {
-    "supportsDeveloperRole": false,
-    "supportsReasoningEffort": false
-   },
-   "models": [
-    {
-     "id": "z-ai/glm-5.2-free",
-     "name": "Z.AI: GLM 5.2 (Free)",
-     "reasoning": true,
-     "input": [
-      "text",
-      "image"
-     ],
-     "contextWindow": 1000000,
-     "maxTokens": 262144,
-     "cost": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0
-     }
-    }
-   ]
-  },
-  "opencode-go": {
-   "modelOverrides": {
-    "deepseek-v4-flash": {
-     "contextWindow": 400000
-    }
-   }
-  },
-  "commandcode": {
-   "modelOverrides": {
-    "deepseek/deepseek-v4-flash": {
-     "contextWindow": 400000
-    }
-   }
-  },
-  "openrouter": {
-   "modelOverrides": {
-    "deepseek/deepseek-v4-flash": {
-     "contextWindow": 400000
-    }
-   }
-  },
-  "tokenrouter": {
-   "baseUrl": "https://api.tokenrouter.com/v1",
-   "api": "openai-completions",
-   "apiKey": "placeholder",
-   "compat": {
-    "supportsDeveloperRole": false,
-    "supportsReasoningEffort": false
-   },
-   "models": [
-    {
-     "id": "moonshotai/kimi-k3-free",
-     "name": "Kimi K3 (Free)",
-     "reasoning": true,
-     "input": [
-      "text",
-      "image"
-     ],
-     "contextWindow": 262144,
-     "maxTokens": 32768,
-     "cost": {
-      "input": 0,
-      "output": 0,
-      "cacheRead": 0,
-      "cacheWrite": 0
-     }
-    }
-   ]
   }
- }
 }
