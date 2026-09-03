@@ -67,7 +67,6 @@
     "npm:@cad0p/pi-bash-timeout@next",
     "npm:@cad0p/pi-tree-navigator@next",
     "npm:@getpipher/vision",
-    "npm:pi-commandcode-provider",
     "npm:pi-context-view"
   ],
   "theme": "light/dark",
