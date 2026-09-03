@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.84.4",
-  "defaultProvider": "opencode",
-  "defaultModel": "muse-spark-1.3-contributor-free",
+  "defaultProvider": "commandcode",
+  "defaultModel": "meta/muse-spark-1.3-contributor",
   "defaultThinkingLevel": "max",
   "npmCommand": [
     "pnpm"
