@@ -45,14 +45,14 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       pi-commandcode-provider:
-        specifier: ^0.6.0
-        version: 0.6.0
+        specifier: ^0.6.1
+        version: 0.6.1
       pi-context-view:
         specifier: ^0.5.0
         version: 0.5.0
       pi-mcp-adapter:
-        specifier: ^2.31.0
-        version: 2.31.0
+        specifier: ^2.32.1
+        version: 2.32.1
       pi-shipit:
         specifier: ^1.0.1
         version: 1.0.1
@@ -400,8 +400,8 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
-  pi-commandcode-provider@0.6.0:
-    resolution: {integrity: sha512-bhG65hdZDDlr8QSOMpt/a+DBYbeIkLWAEmBQnyREuBMu/H2ibgbfNy5iLaRqBF2wfv8yBpxQb/TJ6ZF2QkhO+w==}
+  pi-commandcode-provider@0.6.1:
+    resolution: {integrity: sha512-9fayuuTOYMHy825s11ai8LXY+PV3893WfB+dzJAaHqATmA+mSAdOaZualv9V/wLCWCPCWvZSyuc6fjIodfgjeA==}
     peerDependencies:
       '@earendil-works/pi-ai': '*'
       '@earendil-works/pi-coding-agent': '*'
@@ -418,8 +418,8 @@ packages:
       '@earendil-works/pi-coding-agent': '*'
       '@earendil-works/pi-tui': '*'
 
-  pi-mcp-adapter@2.31.0:
-    resolution: {integrity: sha512-yKPgHWFLQY6FT7ukCgEp5KvkAZ4ZC1pl7+8Tdq+j4evfTtjhHXPuIpi0joNN7lIIKuJD1cjlTb+hu6IxRpseoA==}
+  pi-mcp-adapter@2.32.1:
+    resolution: {integrity: sha512-GNLYa2U9T5ZqIhZmhx/RTenEjfakJTelq/z6Q+At5SIxyuYvrvobriDEVsnx+lqetVDizUCudTWLfdZytQu0rg==}
     engines: {node: '>=20'}
     hasBin: true
     peerDependencies:
@@ -779,11 +779,11 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  pi-commandcode-provider@0.6.0: {}
+  pi-commandcode-provider@0.6.1: {}
 
   pi-context-view@0.5.0: {}
 
-  pi-mcp-adapter@2.31.0:
+  pi-mcp-adapter@2.32.1:
     dependencies:
       '@modelcontextprotocol/client': 2.0.0
       '@modelcontextprotocol/core': 2.0.0
