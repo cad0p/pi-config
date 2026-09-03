@@ -12,7 +12,7 @@
     "@cad0p/pi-subagents-tintinweb": "0.14.2-20260814.3",
     "@cad0p/pi-timestamps": "0.2.0-20260813.0",
     "@cad0p/pi-tree-navigator": "0.1.2-20260824.1",
-    "@getpipher/vision": "^0.5.2",
+    "@getpipher/vision": "^0.5.3",
     "@marcfargas/pi-heartbeat": "^0.0.1",
     "pi-context-view": "^0.5.0",
     "pi-mcp-adapter": "^2.32.1",

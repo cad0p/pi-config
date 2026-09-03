@@ -39,8 +39,8 @@ importers:
         specifier: 0.1.2-20260824.1
         version: 0.1.2-20260824.1
       '@getpipher/vision':
-        specifier: ^0.5.2
-        version: 0.5.2
+        specifier: ^0.5.3
+        version: 0.5.3
       '@marcfargas/pi-heartbeat':
         specifier: ^0.0.1
         version: 0.0.1
@@ -129,8 +129,8 @@ packages:
     resolution: {integrity: sha512-3dpq0ivvpAINYrLLU8nVFd3Bl7E1BH1d2WZVn8IQ0Aw7kD07bxOrcKwghoI0k6T0LrWmcJvMBiiVl3kc5MHKsg==}
     engines: {node: '>=22'}
 
-  '@getpipher/vision@0.5.2':
-    resolution: {integrity: sha512-frHkPWjsfG0ENaKxyDa5n3hwJkx3HsmrKVuMGp3OqSh/7oNUpsY2X5vt1RCbgmB71Kk7TNeCFu+opmwRUJ10cA==}
+  '@getpipher/vision@0.5.3':
+    resolution: {integrity: sha512-nInSwMc+XSylMWAcK5LhoHi0N6zxA4R2dy99byDGph49kHL0Tcym7qj41zT52m9oi2lIQsTglBMnhXb5vCTtiw==}
     engines: {node: '>=20'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '*'
@@ -571,7 +571,7 @@ snapshots:
     dependencies:
       unbash: 4.0.11
 
-  '@getpipher/vision@0.5.2': {}
+  '@getpipher/vision@0.5.3': {}
 
   '@marcfargas/pi-heartbeat@0.0.1': {}
 
