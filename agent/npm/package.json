@@ -14,7 +14,7 @@
     "@cad0p/pi-tree-navigator": "0.1.2-20260824.1",
     "@getpipher/vision": "^0.5.2",
     "@marcfargas/pi-heartbeat": "^0.0.1",
-    "pi-commandcode-provider": "^0.6.1",
+    "pi-commandcode-provider": "^0.6.2",
     "pi-context-view": "^0.5.0",
     "pi-mcp-adapter": "^2.32.1",
     "pi-shipit": "^1.0.1"
