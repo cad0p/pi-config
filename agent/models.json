@@ -297,6 +297,19 @@
             "max": "max"
           }
         },
+        "meta/muse-spark-1.3-contributor": {
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "off",
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": null,
+            "xhigh": "xhigh",
+            "max": null
+          },
+          "contextWindow": 400000
+        },
         "z-ai/glm-5.3-flash": {
           "reasoning": true,
           "thinkingLevelMap": {
