@@ -27,8 +27,8 @@ importers:
         specifier: 1.4.0-20260814.1
         version: 1.4.0-20260814.1
       '@cad0p/pi-steering':
-        specifier: 0.2.0-20260901.0
-        version: 0.2.0-20260901.0
+        specifier: 0.2.0-20260903.0
+        version: 0.2.0-20260903.0
       '@cad0p/pi-subagents-tintinweb':
         specifier: 0.14.2-20260814.3
         version: 0.14.2-20260814.3
@@ -100,8 +100,8 @@ packages:
     resolution: {integrity: sha512-P2PR3PaYW0bU6FlaFKm9479o/SNvG3LokqQlEhmAGMqXGhcKKgqjR+7cltdMmZv5iG7+ShGXwezKqD//05fmRA==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-steering@0.2.0-20260901.0':
-    resolution: {integrity: sha512-TxBuUZ8H8DNIrmOig32CDyjIllqPsb5lJ59k9+r4n1G/VcWZmJX6m/TOnCCZbmVsZqxeCkX3E64DZgZhMCLzmg==}
+  '@cad0p/pi-steering@0.2.0-20260903.0':
+    resolution: {integrity: sha512-kk19b/UK8Lv4oz7SquhWjgiZEhOlGMrkP3RtBgtH5t4TmZv9rZiTNoHvoH92mdNSs8PGI4WT0/9OQlNS1n1bmA==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
@@ -128,8 +128,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.81.0'
       typebox: ^1.0.0
 
-  '@cad0p/unbash-walker@0.1.0-20260827.0':
-    resolution: {integrity: sha512-vszhX3PI8gP/LKER4uetFmaqhHY8Q6BwhR5XGc10YME98jIUC9VcdJGL5Z+WHmOx0mmKOdgTw+gJ2NZPo60MuQ==}
+  '@cad0p/unbash-walker@0.1.0-20260903.3':
+    resolution: {integrity: sha512-3dpq0ivvpAINYrLLU8nVFd3Bl7E1BH1d2WZVn8IQ0Aw7kD07bxOrcKwghoI0k6T0LrWmcJvMBiiVl3kc5MHKsg==}
     engines: {node: '>=22'}
 
   '@getpipher/vision@0.5.2':
@@ -517,6 +517,10 @@ packages:
     resolution: {integrity: sha512-FeFPZ/WFT0mbRCuydiZzpPFlrYN8ZUpphQKoq4EeElVIYjYyGzPMxQR/simUwCOJIyVhpFk4RbtyO7RuMpMnHA==}
     engines: {node: '>=14'}
 
+  unbash@4.0.11:
+    resolution: {integrity: sha512-FoSOKV7NEofQSkAefMVHam4ZPKYMxjAydxiV72UFEDNV/YofxjGfiZ2A9pZjdL/lRJzTjcu4PABo1JYJX8N5iQ==}
+    engines: {node: '>=14'}
+
   which@2.0.2:
     resolution: {integrity: sha512-BLI3Tl1TW3Pvl70l3yq3Y64i+awpwXqsGBYWkkqMtnbXgrMD+yj7rhW0kuEDxzJaYXGjEW5ogapKNMEKNMjibA==}
     engines: {node: '>= 8'}
@@ -561,9 +565,9 @@ snapshots:
 
   '@cad0p/pi-provider-umans@1.4.0-20260814.1': {}
 
-  '@cad0p/pi-steering@0.2.0-20260901.0':
+  '@cad0p/pi-steering@0.2.0-20260903.0':
     dependencies:
-      '@cad0p/unbash-walker': 0.1.0-20260827.0
+      '@cad0p/unbash-walker': 0.1.0-20260903.3
       jiti: 2.7.0
       unbash: 3.0.0
 
@@ -577,9 +581,9 @@ snapshots:
 
   '@cad0p/pi-tree-navigator@0.1.2-20260824.1': {}
 
-  '@cad0p/unbash-walker@0.1.0-20260827.0':
+  '@cad0p/unbash-walker@0.1.0-20260903.3':
     dependencies:
-      unbash: 3.0.0
+      unbash: 4.0.11
 
   '@getpipher/vision@0.5.2': {}
 
@@ -864,6 +868,8 @@ snapshots:
   tslib@2.8.1: {}
 
   unbash@3.0.0: {}
+
+  unbash@4.0.11: {}
 
   which@2.0.2:
     dependencies:
