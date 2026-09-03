@@ -44,9 +44,6 @@ importers:
       '@marcfargas/pi-heartbeat':
         specifier: ^0.0.1
         version: 0.0.1
-      pi-commandcode-provider:
-        specifier: ^0.6.2
-        version: 0.6.2
       pi-context-view:
         specifier: ^0.5.0
         version: 0.5.0
@@ -399,17 +396,6 @@ packages:
   path-key@3.1.1:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
-
-  pi-commandcode-provider@0.6.2:
-    resolution: {integrity: sha512-VOU8OM99ycvZ5tEiNQJE48zm5ZWqXkg1KK13+U8rPva0rVYr/SZlUN72tqyOhK1iJGFzjD65+UNETJoSCpLhVg==}
-    peerDependencies:
-      '@earendil-works/pi-ai': '*'
-      '@earendil-works/pi-coding-agent': '*'
-    peerDependenciesMeta:
-      '@earendil-works/pi-ai':
-        optional: true
-      '@earendil-works/pi-coding-agent':
-        optional: true
 
   pi-context-view@0.5.0:
     resolution: {integrity: sha512-9NID030s3Oqi0gH4NNVYxdayY2kKZ5Rv/gm429mTgjoKv0UKnzI82THLlAtoOVT/3lyBxn9LnqrR5wCabbB4Zw==}
@@ -782,8 +768,6 @@ snapshots:
       wsl-utils: 0.1.0
 
   path-key@3.1.1: {}
-
-  pi-commandcode-provider@0.6.2: {}
 
   pi-context-view@0.5.0: {}
 
