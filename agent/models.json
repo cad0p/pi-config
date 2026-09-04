@@ -280,6 +280,18 @@
             "max": null
           },
           "contextWindow": 400000
+        },
+        "muse-spark-1.3-contributor": {
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": "minimal",
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh",
+            "max": null
+          },
+          "contextWindow": 400000
         }
       }
     },
