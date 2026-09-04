@@ -24,3 +24,4 @@ agent/bin/
 # --- Dependencies (pnpm install output) ---
 agent/npm/node_modules/
 agent/steering/node_modules/
+agent/pi-fallback-alias-models.json
