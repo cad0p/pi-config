@@ -3,8 +3,10 @@ description: Autonomous implementation workflow
 argument-hint: "[#issue-or-plan.md]"
 ---
 
-work autonomously on issue/plan $@, multiple parallel reviewer lenses
+work autonomously on issue/plan $@
 in isolated worktree (other agents on this machine)
+
+multiple parallel reviewer lenses
 
 gather all context, when gathered anchor (context-gathered) and write the plan in goldmine and review subagent until good.
 when plan good rewind to `context-gathered` and start impl subagent and review subagent until good, list anchors and rewind after every milestone or rabbit hole / dead end, push to draft PR as you go and monitor ci
