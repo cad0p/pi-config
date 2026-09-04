@@ -12,8 +12,8 @@ importers:
         specifier: 0.1.0-20260630.1
         version: 0.1.0-20260630.1
       '@cad0p/pi-fallback-provider':
-        specifier: 0.1.0-20260814.0
-        version: 0.1.0-20260814.0
+        specifier: 0.1.0-20260904.0
+        version: 0.1.0-20260904.0
       '@cad0p/pi-heartbeat':
         specifier: 0.0.1-20260814.0
         version: 0.0.1-20260814.0
@@ -70,9 +70,9 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.74.0'
       typebox: ^1.0.0
 
-  '@cad0p/pi-fallback-provider@0.1.0-20260814.0':
-    resolution: {integrity: sha512-ILHEok+TY9zjuqDtoVLzG9Rof0aUzgb15vo0TXJlk90xAJ7kDsu1yQUTR4uXDGUqpQtWm7wNHidqBEBSNcTeEA==}
-    engines: {node: '>=20'}
+  '@cad0p/pi-fallback-provider@0.1.0-20260904.0':
+    resolution: {integrity: sha512-MAn5VU3IB/Oeezf/Xiyd2eyFIvdu7mqvJD0Uzs0Z4YRmWl05vOiGQIkua98IETNORLKuqvDokw4dkXCASZn4tw==}
+    engines: {node: '>=22.19.0'}
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0':
     resolution: {integrity: sha512-x2amb8pGnpzhA1jug0dZLsoaFwH/OBfWi8IQ8GT+q2E0qtILWIQ+c12CuBxVup64AkJBJ1iZyTeRf6vl5VqUeA==}
@@ -538,7 +538,7 @@ snapshots:
 
   '@cad0p/pi-bash-timeout@0.1.0-20260630.1': {}
 
-  '@cad0p/pi-fallback-provider@0.1.0-20260814.0': {}
+  '@cad0p/pi-fallback-provider@0.1.0-20260904.0': {}
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0': {}
 

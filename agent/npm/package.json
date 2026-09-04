@@ -3,7 +3,7 @@
   "private": true,
   "dependencies": {
     "@cad0p/pi-bash-timeout": "0.1.0-20260630.1",
-    "@cad0p/pi-fallback-provider": "0.1.0-20260814.0",
+    "@cad0p/pi-fallback-provider": "0.1.0-20260904.0",
     "@cad0p/pi-heartbeat": "0.0.1-20260814.0",
     "@cad0p/pi-napkin": "0.7.2-20260824.0",
     "@cad0p/pi-pioneer-provider": "0.2.3-20260622.0",
