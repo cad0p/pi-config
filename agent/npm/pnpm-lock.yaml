@@ -27,8 +27,8 @@ importers:
         specifier: 1.4.0-20260814.1
         version: 1.4.0-20260814.1
       '@cad0p/pi-steering':
-        specifier: 0.2.0-20260904.2
-        version: 0.2.0-20260904.2
+        specifier: 0.2.0-20260905.0
+        version: 0.2.0-20260905.0
       '@cad0p/pi-subagents-tintinweb':
         specifier: 0.14.2-20260814.3
         version: 0.14.2-20260814.3
@@ -97,8 +97,8 @@ packages:
     resolution: {integrity: sha512-P2PR3PaYW0bU6FlaFKm9479o/SNvG3LokqQlEhmAGMqXGhcKKgqjR+7cltdMmZv5iG7+ShGXwezKqD//05fmRA==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-steering@0.2.0-20260904.2':
-    resolution: {integrity: sha512-UzN0356Xzker7IU/JNBsESGYsu8jkmeTITAkGbE6dsYa/vlWomNdgPLvHn+44rbFeYJ9AWUDLd1ibCPF2rWNbQ==}
+  '@cad0p/pi-steering@0.2.0-20260905.0':
+    resolution: {integrity: sha512-Aw9upcdnX62CWl5p1rSs3LvHDM44ZGpJUGltIcZ2lWH2o/kjGR7T78G81Wg7ZyPof/nO2HWC280oDKYR6//p9A==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
@@ -551,7 +551,7 @@ snapshots:
 
   '@cad0p/pi-provider-umans@1.4.0-20260814.1': {}
 
-  '@cad0p/pi-steering@0.2.0-20260904.2':
+  '@cad0p/pi-steering@0.2.0-20260905.0':
     dependencies:
       '@cad0p/unbash-walker': 0.1.0-20260904.0
       jiti: 2.7.0
