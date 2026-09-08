@@ -12,3 +12,4 @@ allowBuilds:
   protobufjs: true
   koffi: true
   glimpseui: false
+  esbuild: true
