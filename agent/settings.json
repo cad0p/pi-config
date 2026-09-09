@@ -38,7 +38,7 @@
     },
     "npm:@cad0p/pi-fallback-provider@next",
     {
-      "source": "npm:@cad0p/pi-steering@0.2.0-20260825.0",
+      "source": "npm:@cad0p/pi-steering@next",
       "extensions": ["+src/index.ts"],
       "skills": ["-skills/steering-authoring/SKILL.md"]
     },

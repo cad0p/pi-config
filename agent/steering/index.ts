@@ -7,8 +7,10 @@
 // rules: every rail is opt-in via a declared domain plugin —
 //   - git    → no-force-push, no-hard-reset, no-main-commit(-github)
 //   - rm     → no-rm-rf-slash
-//   - async  → no-long-running-commands
-// This config declares all three so protection is explicit and fully
+// (async's no-long-running-commands died with core #117 — the plugin
+// was deleted, not restored per pi-steering#120 wont-do; dev-server
+// availability is unmanaged again.)
+// This config declares git + rm so protection is explicit and fully
 // type-checked (disabledRules typos surface at compile time).
 //
 // Vault carve-out via the NAPKIN STEERING PLUGIN (pi-napkin #73):
@@ -28,8 +30,8 @@
 // exemption clauses, and unknown walker cwd never exempts — the guard
 // still fires (its own `onUnknown` policy decides).
 //
-// Layout: thin entry (this file) — all five plugins are shipped or
-// inline: git + rm + async (pi-steering core), napkin
+// Layout: thin entry (this file) — all four plugins are shipped or
+// inline: git + rm (pi-steering core), napkin
 // (pi-napkin/steering), github (@cad0p/pi-steering-github: PR
 // issue-link + vault body-file policy). Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures).
@@ -38,14 +40,13 @@ import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
 import gitPlugin from "@cad0p/pi-steering/plugins/git";
 import rmPlugin from "@cad0p/pi-steering/plugins/rm";
-import asyncPlugin from "@cad0p/pi-steering/plugins/async";
 import napkinSteeringPlugin from "@cad0p/pi-napkin/steering";
 import githubPlugin from "@cad0p/pi-steering-github";
-// REQUIRED since pi-steering-github went fully declarative (#35/#37):
-// its gates compose REGISTERED predicates (`not.infoOnly`,
-// `requiresFlagValue`) owned by the flags plugin — without it they
-// throw UnknownPredicateError at evaluation time.
-import { flagsPlugin } from "@cad0p/pi-steering-flags";
+// NOTE: `flagsPlugin` is deliberately NOT listed. The github plugin
+// re-adopts `infoOnly` + `requiresFlagValue` from @cad0p/pi-steering-flags
+// (same function references) and registers them itself — listing flags
+// alongside only produces duplicate-predicate warnings, which DISABLE
+// steering in strict mode (observed live). Single registration wins.
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -91,12 +92,18 @@ const agentDirPlugin = {
 };
 
 export default defineConfig({
+	// Strict-at-test-time, resilient-at-runtime: `failOnWarnings: false`
+	// keeps rails live when the merger reports KNOWN-benign diagnostics
+	// (gh descriptor overload set — first-entry-wins, pinned exactly in
+	// integration.test.ts, which fails on ANY new diagnostic). Runtime
+	// strict would disable ALL steering on those warnings (fail-open
+	// sessions — observed live). See core: same-table overload warnings
+	// are a flat-namespace artifact; per-subcommand scoping is the fix.
+	failOnWarnings: false,
 	plugins: [
 		gitPlugin,
 		rmPlugin,
-		asyncPlugin,
 		napkinSteeringPlugin,
-		flagsPlugin,
 		githubPlugin,
 		agentDirPlugin,
 	],

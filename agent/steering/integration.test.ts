@@ -61,13 +61,50 @@ before(async () => {
 	const { config: merged, diagnostics } = await loadSteeringConfig(
 		process.cwd(),
 	);
+	// Exactly one benign diagnostic is accepted: flags + github BOTH
+	// register `infoOnly` / `requiresFlagValue` (github re-adopts them
+	// from the flags package since its command-first migration) and
+	// the merger keeps flags' copy — same function reference, first-
+	// registered wins. Pinned by exact message so any NEW diagnostic
+	// still fails this gate.
+	const BENIGN_DUPLICATE =
+		/^duplicate predicate "when\.(infoOnly|requiresFlagValue)" — plugins "flags" \(kept\) and "github" \(ignored\); first-registered wins$/;
+	// `-t` is `--title` on create and `--subject` on merge, `-l` is
+	// `--label` vs `--license`, etc. (gh overloads letters per
+	// subcommand — the descriptor documents this; the consuming set
+	// dedupes and both facade views resolve). The overloaded SPELLINGS
+	// set is pinned exactly below so a NEW collision fails the gate.
+	const SPELLING_DUP =
+		/^duplicate flag spelling "(.+)" in CLI descriptor "gh" — plugins entry "(.+)" ignored for that spelling \(first-entry "(.+)" wins\)$/;
+	const KNOWN_OVERLOADED_SPELLINGS = [
+		"--template",
+		"-h",
+		"-l",
+		"-p",
+		"-r",
+		"-t",
+		"-t",
+	];
+	const seenSpellingDups: string[] = [];
 	for (const d of diagnostics) {
+		if (d.type === "warning" && BENIGN_DUPLICATE.test(d.message)) continue;
+		const m =
+			d.type === "warning" ? SPELLING_DUP.exec(d.message) : null;
+		if (m && m[1] !== undefined) {
+			seenSpellingDups.push(m[1]);
+			continue;
+		}
 		assert.equal(
 			d.type,
 			"error",
 			`unexpected diagnostic while loading global config: ${d.message}`,
 		);
 	}
+	assert.deepEqual(
+		[...seenSpellingDups].sort(),
+		[...KNOWN_OVERLOADED_SPELLINGS].sort(),
+		"gh descriptor overloaded-spelling set changed — verify against `gh help` + descriptor header, then update KNOWN_OVERLOADED_SPELLINGS",
+	);
 	config = merged;
 });
 
@@ -215,21 +252,22 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares git + rm + async + napkin + flags + github plugins + inline agent-dir (opt-in since the monorepo split)", () => {
+	it("declares git + rm + napkin + github plugins + inline agent-dir (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
 		// is empty: plugins are opt-in and MUST be declared here. Since
-		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm + async
-		// are declared to carry no-rm-rf-slash / no-long-running-commands.
-		// flags is REQUIRED since pi-steering-github went declarative:
-		// its gates compose the registered infoOnly/requiresFlagValue
-		// predicates owned by @cad0p/pi-steering-flags.
+		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm
+		// is declared to carry no-rm-rf-slash. async's
+		// no-long-running-commands died with core #117 (plugin deleted,
+		// pi-steering#120 wont-do).
+		// flags is deliberately NOT listed: the github plugin re-adopts
+		// infoOnly/requiresFlagValue from @cad0p/pi-steering-flags and
+		// registers them itself — a second listing only duplicates the
+		// predicates, and strict mode disables steering on warnings.
 		const pluginNames = config.plugins?.map((p) => p.name) ?? [];
 		assert.deepEqual(pluginNames, [
 			"git",
 			"rm",
-			"async",
 			"napkin",
-			"flags",
 			"github",
 			"agent-dir",
 		]);
@@ -271,7 +309,7 @@ describe("global config — shape", () => {
 		);
 		for (const r of plugin?.rules ?? []) {
 			assert.equal(r.tool, "bash");
-			assert.equal(r.field, "command");
+			assert.equal(r.command, "gh");
 			assert.ok(!("noOverride" in r), `${r.name} must be strict`);
 		}
 		assert.equal(typeof plugin?.predicates?.missingVaultBodyFile, "function");
