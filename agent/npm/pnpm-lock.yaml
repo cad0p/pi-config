@@ -45,8 +45,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       pi-context-view:
-        specifier: ^0.5.0
-        version: 0.5.0
+        specifier: ^0.5.2
+        version: 0.5.2
       pi-mcp-adapter:
         specifier: ^2.32.1
         version: 2.32.1
@@ -397,8 +397,8 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
-  pi-context-view@0.5.0:
-    resolution: {integrity: sha512-9NID030s3Oqi0gH4NNVYxdayY2kKZ5Rv/gm429mTgjoKv0UKnzI82THLlAtoOVT/3lyBxn9LnqrR5wCabbB4Zw==}
+  pi-context-view@0.5.2:
+    resolution: {integrity: sha512-qDsLmtN4yIr7cB4SncYZnSON0zCQi77ejRcyva2hE1a3Vk9IbWC1pqEBr9naCZivkusDFbbcqHV7Mu+7tNdqJQ==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '*'
@@ -769,7 +769,7 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  pi-context-view@0.5.0: {}
+  pi-context-view@0.5.2: {}
 
   pi-mcp-adapter@2.32.1:
     dependencies:
