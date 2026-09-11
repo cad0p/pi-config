@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "0.85.1",
   "defaultProvider": "opencode-go",
-  "defaultModel": "deepseek-flash",
+  "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "max",
   "npmCommand": [
     "pnpm"
@@ -78,8 +78,8 @@
   "theme": "light/dark",
   "externalEditor": "nvim",
   "enabledModels": [
-    "opencode-go/deepseek-flash",
-    "opencode-go-2/deepseek-flash"
+    "opencode-go/deepseek-v4.1-flash",
+    "opencode-go-2/deepseek-v4.1-flash"
   ],
   "defaultProjectTrust": "always",
   "compaction": {
