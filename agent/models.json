@@ -257,7 +257,7 @@
     },
     "opencode-go": {
       "modelOverrides": {
-        "deepseek-flash": {
+        "deepseek-v4.1-flash": {
           "contextWindow": 400000
         },
         "deepseek-v4-flash": {
