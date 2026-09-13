@@ -53,7 +53,7 @@
         "+src/index.ts"
       ],
       "skills": [
-        "-skills/steering-authoring/SKILL.md"
+        "+skills/steering-authoring/SKILL.md"
       ]
     },
     "npm:@cad0p/pi-timestamps@next",
