@@ -18,8 +18,8 @@ importers:
         specifier: 0.0.1-20260814.0
         version: 0.0.1-20260814.0
       '@cad0p/pi-napkin':
-        specifier: 0.7.2-20260824.0
-        version: 0.7.2-20260824.0(@sinclair/typebox@0.34.52)
+        specifier: 0.7.3-20260913.0
+        version: 0.7.3-20260913.0(@sinclair/typebox@0.34.52)
       '@cad0p/pi-pioneer-provider':
         specifier: 0.2.3-20260622.0
         version: 0.2.3-20260622.0
@@ -36,8 +36,8 @@ importers:
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
       '@cad0p/pi-tree-navigator':
-        specifier: 0.1.2-20260913.0
-        version: 0.1.2-20260913.0
+        specifier: 0.1.2-20260913.1
+        version: 0.1.2-20260913.1
       '@getpipher/vision':
         specifier: ^0.5.3
         version: 0.5.3
@@ -80,8 +80,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.0'
 
-  '@cad0p/pi-napkin@0.7.2-20260824.0':
-    resolution: {integrity: sha512-+87HIlF1BlGFqh+QNI7CLUEI4kYv8KiWauzJ5jNn6d8B6XW54aLOuxo3e8iIUvyXeePz48lHdpkr1DoTfCOaZw==}
+  '@cad0p/pi-napkin@0.7.3-20260913.0':
+    resolution: {integrity: sha512-7CIFIYaY6JxitzPNjAsP5sJNUq/rcO9AeRqVyikxNBxlmE1lbdfbWBRYJXj1erY6obM4gZWLdZxGw6+mdrwFCg==}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.74.0'
       '@earendil-works/pi-tui': '>=0.74.0'
@@ -118,8 +118,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.80.4'
       '@earendil-works/pi-tui': '>=0.80.4'
 
-  '@cad0p/pi-tree-navigator@0.1.2-20260913.0':
-    resolution: {integrity: sha512-keS+0HfTLW7g7h5Ts8ufctPsIi8YAoz+kfjP36bcwep5aFtjwMhzQJWEXPp0gUpbswkcX/y0MIEtz27GVdfkHQ==}
+  '@cad0p/pi-tree-navigator@0.1.2-20260913.1':
+    resolution: {integrity: sha512-haXFAFtCvwZ2ShV+nogssB6hutLz8zK9/mVkfFDAtO2jJ3QNck3NHFInYWMTdRZyDIWdEl/YnpliamEduB/iGw==}
     peerDependencies:
       '@earendil-works/pi-agent-core': '>=0.81.0'
       '@earendil-works/pi-coding-agent': '>=0.81.0'
@@ -542,7 +542,7 @@ snapshots:
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0': {}
 
-  '@cad0p/pi-napkin@0.7.2-20260824.0(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-napkin@0.7.3-20260913.0(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/napkin': 0.14.0-20260820.1
       '@sinclair/typebox': 0.34.52
@@ -565,7 +565,7 @@ snapshots:
 
   '@cad0p/pi-timestamps@0.2.0-20260813.0': {}
 
-  '@cad0p/pi-tree-navigator@0.1.2-20260913.0': {}
+  '@cad0p/pi-tree-navigator@0.1.2-20260913.1': {}
 
   '@cad0p/unbash-walker@0.1.0-20260904.0':
     dependencies:
