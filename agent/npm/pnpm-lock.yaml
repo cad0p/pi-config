@@ -36,8 +36,8 @@ importers:
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
       '@cad0p/pi-tree-navigator':
-        specifier: 0.1.2-20260907.0
-        version: 0.1.2-20260907.0
+        specifier: 0.1.2-20260913.0
+        version: 0.1.2-20260913.0
       '@getpipher/vision':
         specifier: ^0.5.3
         version: 0.5.3
@@ -118,8 +118,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.80.4'
       '@earendil-works/pi-tui': '>=0.80.4'
 
-  '@cad0p/pi-tree-navigator@0.1.2-20260907.0':
-    resolution: {integrity: sha512-8PRILEXAzPPM7gfTeNjEZbJ/AKEFnYnxFuB2qGQT1LRAJBi6HveGbG5s2ctxXbW3+hzDYbqtfTA6777bsJ4Tdw==}
+  '@cad0p/pi-tree-navigator@0.1.2-20260913.0':
+    resolution: {integrity: sha512-keS+0HfTLW7g7h5Ts8ufctPsIi8YAoz+kfjP36bcwep5aFtjwMhzQJWEXPp0gUpbswkcX/y0MIEtz27GVdfkHQ==}
     peerDependencies:
       '@earendil-works/pi-agent-core': '>=0.81.0'
       '@earendil-works/pi-coding-agent': '>=0.81.0'
@@ -565,7 +565,7 @@ snapshots:
 
   '@cad0p/pi-timestamps@0.2.0-20260813.0': {}
 
-  '@cad0p/pi-tree-navigator@0.1.2-20260907.0': {}
+  '@cad0p/pi-tree-navigator@0.1.2-20260913.0': {}
 
   '@cad0p/unbash-walker@0.1.0-20260904.0':
     dependencies:
