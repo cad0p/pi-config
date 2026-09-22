@@ -30,14 +30,14 @@ importers:
         specifier: 0.2.0-20260908.1
         version: 0.2.0-20260908.1
       '@cad0p/pi-subagents-tintinweb':
-        specifier: 0.14.2-20260814.3
-        version: 0.14.2-20260814.3
+        specifier: 0.14.2-20260922.0
+        version: 0.14.2-20260922.0
       '@cad0p/pi-timestamps':
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
       '@cad0p/pi-tree-navigator':
-        specifier: 0.2.0-20260917.2
-        version: 0.2.0-20260917.2
+        specifier: 0.2.0-20260921.0
+        version: 0.2.0-20260921.0
       '@getpipher/vision':
         specifier: ^0.5.3
         version: 0.5.3
@@ -45,8 +45,8 @@ importers:
         specifier: ^0.0.1
         version: 0.0.1
       pi-context-view:
-        specifier: ^0.5.2
-        version: 0.5.2
+        specifier: ^0.6.0
+        version: 0.6.0
       pi-mcp-adapter:
         specifier: ^2.32.1
         version: 2.32.1
@@ -104,8 +104,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/pi-subagents-tintinweb@0.14.2-20260814.3':
-    resolution: {integrity: sha512-P+I26m7NQVxLaABS3lYZhLT8UOqCbumBLktuhvdzJX4g8Npx6iaYJ3evkaD682tgjcJY0dwADCO4KYHsmh7Vcw==}
+  '@cad0p/pi-subagents-tintinweb@0.14.2-20260922.0':
+    resolution: {integrity: sha512-3lVOGPXu5n86FXmMerdWqkknKfi1GPHO5o1ci5PExnzt/zeBbmamS+0PAa2QlXdIUe4W68/ABFbR4jwGGGzzTg==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '>=0.80.0'
@@ -118,8 +118,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.80.4'
       '@earendil-works/pi-tui': '>=0.80.4'
 
-  '@cad0p/pi-tree-navigator@0.2.0-20260917.2':
-    resolution: {integrity: sha512-E01EzT8w0xXQnXnPP3t08xidF/AeqoPo+wAVdaZa59yr4mPy3tprxBR0NrBdX2RL8/qjdKyV0NpcYfqY/hLRFw==}
+  '@cad0p/pi-tree-navigator@0.2.0-20260921.0':
+    resolution: {integrity: sha512-MStI9osiW2QNQsbektTgerbjkuzfurbWApLmiel4OBAG31Qqi438/RCrmO/45i77KWPPobVdHkNrlqQ6SBDeKg==}
     peerDependencies:
       '@earendil-works/pi-agent-core': '>=0.81.0'
       '@earendil-works/pi-coding-agent': '>=0.81.0'
@@ -398,8 +398,8 @@ packages:
     resolution: {integrity: sha512-ojmeN0qd+y0jszEtoY48r0Peq5dwMEkIlCOu6Q5f41lfkswXuKtYrhgoTpLnyIcHm24Uhqx+5Tqm2InSwLhE6Q==}
     engines: {node: '>=8'}
 
-  pi-context-view@0.5.2:
-    resolution: {integrity: sha512-qDsLmtN4yIr7cB4SncYZnSON0zCQi77ejRcyva2hE1a3Vk9IbWC1pqEBr9naCZivkusDFbbcqHV7Mu+7tNdqJQ==}
+  pi-context-view@0.6.0:
+    resolution: {integrity: sha512-Ngo1m+3lzyi4AE1WxYW2MRKOAYdzvL3XcZSmJg27fqAlJPuDM3Rnp+rqheFBe3ElX+wsK4xZuv1CaZb+FrFKRA==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '*'
@@ -558,7 +558,7 @@ snapshots:
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/pi-subagents-tintinweb@0.14.2-20260814.3':
+  '@cad0p/pi-subagents-tintinweb@0.14.2-20260922.0':
     dependencies:
       '@sinclair/typebox': 0.34.52
       croner: 10.0.1
@@ -566,7 +566,7 @@ snapshots:
 
   '@cad0p/pi-timestamps@0.2.0-20260813.0': {}
 
-  '@cad0p/pi-tree-navigator@0.2.0-20260917.2': {}
+  '@cad0p/pi-tree-navigator@0.2.0-20260921.0': {}
 
   '@cad0p/unbash-walker@0.1.0-20260904.0':
     dependencies:
@@ -770,7 +770,7 @@ snapshots:
 
   path-key@3.1.1: {}
 
-  pi-context-view@0.5.2: {}
+  pi-context-view@0.6.0: {}
 
   pi-mcp-adapter@2.32.1:
     dependencies:
