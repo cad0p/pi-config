@@ -25,3 +25,4 @@ agent/bin/
 agent/npm/node_modules/
 agent/steering/node_modules/
 agent/pi-fallback-alias-models.json
+agent/crashes.json
