@@ -1,16 +1,20 @@
 {
-  "lastChangelogVersion": "0.87.0",
+  "lastChangelogVersion": "0.87.1",
   "defaultProvider": "opencode-go-4",
   "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "max",
-  "npmCommand": ["pnpm"],
+  "npmCommand": [
+    "pnpm"
+  ],
   "steeringMode": "all",
   "doubleEscapeAction": "tree",
   "treeFilterMode": "no-tools",
   "packages": [
     {
       "source": "npm:@cad0p/pi-heartbeat@next",
-      "skills": ["-skills/pi-heartbeat/SKILL.md"]
+      "skills": [
+        "-skills/pi-heartbeat/SKILL.md"
+      ]
     },
     {
       "source": "npm:pi-shipit",
@@ -25,33 +29,49 @@
         "+extensions/distill/index.ts",
         "+extensions/napkin-context/index.ts"
       ],
-      "skills": ["-skills/napkin/SKILL.md"]
+      "skills": [
+        "-skills/napkin/SKILL.md"
+      ]
     },
     {
       "source": "npm:@cad0p/pi-pioneer-provider@next",
-      "extensions": ["-index.ts"]
+      "extensions": [
+        "-index.ts"
+      ]
     },
     "npm:@cad0p/pi-subagents-tintinweb@next",
     {
       "source": "npm:pi-mcp-adapter@v2.32.1",
-      "skills": ["-skills/mcp-scripting/SKILL.md"]
+      "skills": [
+        "-skills/mcp-scripting/SKILL.md"
+      ]
     },
     "npm:@cad0p/pi-fallback-provider@next",
     {
       "source": "npm:@cad0p/pi-steering@next",
-      "extensions": ["+src/index.ts"],
-      "skills": ["+skills/steering-authoring/SKILL.md"]
+      "extensions": [
+        "+src/index.ts"
+      ],
+      "skills": [
+        "+skills/steering-authoring/SKILL.md"
+      ]
     },
     "npm:@cad0p/pi-timestamps@next",
     {
       "source": "npm:@cad0p/pi-provider-umans@next",
-      "extensions": ["-web-search.ts", "-index.ts"]
+      "extensions": [
+        "-web-search.ts",
+        "-index.ts"
+      ]
     },
     "npm:@cad0p/pi-bash-timeout@next",
     "npm:@cad0p/pi-tree-navigator@next",
     {
       "source": "npm:@getpipher/vision",
-      "extensions": ["-extensions/paste.ts", "-extensions/vision.ts"]
+      "extensions": [
+        "-extensions/paste.ts",
+        "-extensions/vision.ts"
+      ]
     },
     "npm:pi-context-view"
   ],
