@@ -62,7 +62,8 @@
     "opencode-go-2/deepseek-v4.1-flash",
     "opencode-go-3/deepseek-v4.1-flash",
     "opencode-go-4/deepseek-v4.1-flash",
-    "opencode-go-5/deepseek-v4.1-flash"
+    "opencode-go-5/deepseek-v4.1-flash",
+    "opencode-go-6/deepseek-v4.1-flash"
   ],
   "defaultProjectTrust": "always",
   "compaction": {
