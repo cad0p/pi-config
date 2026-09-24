@@ -1,6 +1,6 @@
 {
   "lastChangelogVersion": "0.87.1",
-  "defaultProvider": "opencode-go-5",
+  "defaultProvider": "opencode-go-6",
   "defaultModel": "deepseek-v4.1-flash",
   "defaultThinkingLevel": "max",
   "npmCommand": ["pnpm"],
