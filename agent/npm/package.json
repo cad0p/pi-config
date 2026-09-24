@@ -11,7 +11,7 @@
     "@cad0p/pi-steering": "0.2.0-20260908.1",
     "@cad0p/pi-subagents-tintinweb": "0.14.2-20260922.0",
     "@cad0p/pi-timestamps": "0.2.0-20260813.0",
-    "@cad0p/pi-tree-navigator": "0.2.0-20260921.0",
+    "@cad0p/pi-tree-navigator": "0.2.0-20260923.0",
     "@getpipher/vision": "^0.5.3",
     "@marcfargas/pi-heartbeat": "^0.0.1",
     "pi-context-view": "^0.6.0",
