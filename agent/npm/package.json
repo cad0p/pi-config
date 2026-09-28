@@ -14,6 +14,7 @@
     "@cad0p/pi-tree-navigator": "0.2.0-20260923.0",
     "@getpipher/vision": "^0.5.3",
     "@marcfargas/pi-heartbeat": "^0.0.1",
+    "mitsupi": "github:mitsuhiko/agent-stuff",
     "pi-context-view": "^0.6.0",
     "pi-mcp-adapter": "^2.32.1",
     "pi-shipit": "^1.0.1"

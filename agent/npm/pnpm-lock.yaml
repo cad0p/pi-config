@@ -44,6 +44,9 @@ importers:
       '@marcfargas/pi-heartbeat':
         specifier: ^0.0.1
         version: 0.0.1
+      mitsupi:
+        specifier: github:mitsuhiko/agent-stuff
+        version: https://codeload.github.com/mitsuhiko/agent-stuff/tar.gz/0865c849befd2021490679f96a8dee58c84ac857
       pi-context-view:
         specifier: ^0.6.0
         version: 0.6.0
@@ -299,6 +302,10 @@ packages:
     resolution: {integrity: sha512-N+MeXYoqr3pOgn8xfyRPREN7gHakLYjhsHhWGT3fWAiL4IkAt0iDw14QiiEm2bE30c5XX5q0FtAA3CK5f9/BUg==}
     engines: {node: '>=12'}
 
+  diff@8.0.4:
+    resolution: {integrity: sha512-DPi0FmjiSU5EvQV0++GFDOJ9ASQUVFh5kD+OzOnYdi7n3Wpm9hWWGfB/O2blfHcMVTL5WkQXSnRiK9makhrcnw==}
+    engines: {node: '>=0.3.1'}
+
   esprima@4.0.1:
     resolution: {integrity: sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==}
     engines: {node: '>=4'}
@@ -384,6 +391,15 @@ packages:
 
   minisearch@7.2.0:
     resolution: {integrity: sha512-dqT2XBYUOZOiC5t2HRnwADjhNS2cecp9u+TJRiJ1Qp/f5qjkeT5APcGPjHw+bz89Ms8Jp+cG4AlE+QZ/QnDglg==}
+
+  mitsupi@https://codeload.github.com/mitsuhiko/agent-stuff/tar.gz/0865c849befd2021490679f96a8dee58c84ac857:
+    resolution: {gitHosted: true, integrity: sha512-4uNpf2WuvEY5DzVa87/Hte76lxc5FFU9eQkIBjsU1/1d5KE3b7717TCTfvouu8YB5rcuqB6erxGAA9z23Rqs8A==, tarball: https://codeload.github.com/mitsuhiko/agent-stuff/tar.gz/0865c849befd2021490679f96a8dee58c84ac857}
+    version: 1.6.0
+    peerDependencies:
+      '@earendil-works/pi-ai': '*'
+      '@earendil-works/pi-coding-agent': '*'
+      '@earendil-works/pi-tui': '*'
+      typebox: '*'
 
   nanoid@5.1.16:
     resolution: {integrity: sha512-kVrnsrJqMR8+oLJnGEmSWw9BivK5mt7H3FZatVRjrc5wGqFYuBxX1yG7+A7Gi5AefkX6t/oCkizcQgpu0cY1dQ==}
@@ -694,6 +710,8 @@ snapshots:
 
   define-lazy-prop@3.0.0: {}
 
+  diff@8.0.4: {}
+
   esprima@4.0.1: {}
 
   eventsource-parser@3.1.0: {}
@@ -758,6 +776,10 @@ snapshots:
   kind-of@6.0.3: {}
 
   minisearch@7.2.0: {}
+
+  mitsupi@https://codeload.github.com/mitsuhiko/agent-stuff/tar.gz/0865c849befd2021490679f96a8dee58c84ac857:
+    dependencies:
+      diff: 8.0.4
 
   nanoid@5.1.16: {}
 
