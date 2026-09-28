@@ -53,7 +53,14 @@
       "source": "npm:@getpipher/vision",
       "extensions": ["-extensions/paste.ts", "-extensions/vision.ts"]
     },
-    "npm:pi-context-view"
+    "npm:pi-context-view",
+    {
+      "source": "npm:mitsupi",
+      "extensions": ["extensions/notify.ts", "extensions/session-breakdown.ts"],
+      "skills": [],
+      "prompts": [],
+      "themes": []
+    }
   ],
   "theme": "light/dark",
   "externalEditor": "nvim",
