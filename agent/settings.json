@@ -56,7 +56,7 @@
     "npm:pi-context-view",
     {
       "source": "npm:mitsupi",
-      "extensions": ["extensions/notify.ts", "extensions/session-breakdown.ts"],
+      "extensions": ["extensions/session-breakdown.ts"],
       "skills": [],
       "prompts": [],
       "themes": []
