@@ -3,14 +3,13 @@
 agent/auth.json
 agent/models-store.json
 agent/umans-concurrency.json
+agent/mcp-auth.json
 
 # --- Local state / caches ---
 agent/.npmrc
 agent/**/.npmrc
 *.npmrc
 .env*
-agent/mcp-cache.json
-agent/mcp-onboarding.json
 agent/commandcode-models.json
 agent/vision-audit.log
 

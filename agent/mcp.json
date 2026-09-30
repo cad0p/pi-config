@@ -2,9 +2,13 @@
   "mcpServers": {
     "parallel-search": {
       "url": "https://search.parallel.ai/mcp",
-      "auth": "bearer",
-      "bearerTokenStore": true,
-      "directTools": ["web_search", "web_fetch"]
+      "headers": {
+        "Authorization": "!echo Bearer $(security find-generic-password -s parallel-search-api -a pi -w)"
+      },
+      "toolExposure": {
+        "web_search": "direct",
+        "web_fetch": "direct"
+      }
     }
   }
 }
