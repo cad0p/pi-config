@@ -5,10 +5,7 @@
       "headers": {
         "Authorization": "!echo Bearer $(security find-generic-password -s parallel-search-api -a pi -w)"
       },
-      "toolExposure": {
-        "web_search": "direct",
-        "web_fetch": "direct"
-      }
+      "exposure": "deferred"
     }
   }
 }

@@ -19,7 +19,7 @@ importers:
         version: 0.0.1-20260814.0
       '@cad0p/pi-napkin':
         specifier: 0.7.3-20260913.0
-        version: 0.7.3-20260913.0(@sinclair/typebox@0.34.52)
+        version: 0.7.3-20260913.0
       '@cad0p/pi-pioneer-provider':
         specifier: 0.2.3-20260622.0
         version: 0.2.3-20260622.0
@@ -30,8 +30,8 @@ importers:
         specifier: 0.2.0-20260908.1
         version: 0.2.0-20260908.1
       '@cad0p/pi-subagents-tintinweb':
-        specifier: 0.14.2-20260922.0
-        version: 0.14.2-20260922.0
+        specifier: 0.14.2-20260930.1
+        version: 0.14.2-20260930.1
       '@cad0p/pi-timestamps':
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
@@ -104,13 +104,14 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/pi-subagents-tintinweb@0.14.2-20260922.0':
-    resolution: {integrity: sha512-3lVOGPXu5n86FXmMerdWqkknKfi1GPHO5o1ci5PExnzt/zeBbmamS+0PAa2QlXdIUe4W68/ABFbR4jwGGGzzTg==}
+  '@cad0p/pi-subagents-tintinweb@0.14.2-20260930.1':
+    resolution: {integrity: sha512-SRRSgq8GTn+Qc5K69q+IvMP/13q+V7tAuTJbdYIZrFRzfLOLpd1yxCP6tBIPfI7+68ojQGzAcJtoKdBVrNxB1A==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '>=0.80.0'
       '@earendil-works/pi-coding-agent': '>=0.80.0'
       '@earendil-works/pi-tui': '>=0.80.0'
+      '@sinclair/typebox': '*'
 
   '@cad0p/pi-timestamps@0.2.0-20260813.0':
     resolution: {integrity: sha512-AFud9rxd7RRg7IQ/Kv37fNPlN512Gz5IFnXlI4PK8Aib2S1n82vHgl9N0i3LTScU5+xK0QfLFSS7iXEtgSOXbw==}
@@ -141,9 +142,6 @@ packages:
     resolution: {integrity: sha512-V4wKjK5pzU9gplLyD5A6sb73hCTsmQY3mCGWiTz8ZlYl6SmFxt8FIL7WSlD7yxXjXJg8P+FPS65xNiwTVHECbg==}
     peerDependencies:
       '@mariozechner/pi-coding-agent': '>=0.50.0'
-
-  '@sinclair/typebox@0.34.52':
-    resolution: {integrity: sha512-XiMQh7qqVlxZzcVD+kkGMNGMzcTrDMLWI7S4x7z1MkCkbDPrekpZXEUK0eZqZFMuHQg2a2DZOcDIh9o5v3Gonw==}
 
   argparse@1.0.10:
     resolution: {integrity: sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==}
@@ -285,10 +283,9 @@ snapshots:
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0': {}
 
-  '@cad0p/pi-napkin@0.7.3-20260913.0(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-napkin@0.7.3-20260913.0':
     dependencies:
       '@cad0p/napkin': 0.14.0-20260820.1
-      '@sinclair/typebox': 0.34.52
 
   '@cad0p/pi-pioneer-provider@0.2.3-20260622.0': {}
 
@@ -300,9 +297,8 @@ snapshots:
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/pi-subagents-tintinweb@0.14.2-20260922.0':
+  '@cad0p/pi-subagents-tintinweb@0.14.2-20260930.1':
     dependencies:
-      '@sinclair/typebox': 0.34.52
       croner: 10.0.1
       nanoid: 5.1.16
 
@@ -317,8 +313,6 @@ snapshots:
   '@getpipher/vision@0.5.3': {}
 
   '@marcfargas/pi-heartbeat@0.0.1': {}
-
-  '@sinclair/typebox@0.34.52': {}
 
   argparse@1.0.10:
     dependencies:
