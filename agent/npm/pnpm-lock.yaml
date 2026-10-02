@@ -30,14 +30,14 @@ importers:
         specifier: 0.2.0-20260908.1
         version: 0.2.0-20260908.1
       '@cad0p/pi-subagents-tintinweb':
-        specifier: 0.14.2-20260930.1
-        version: 0.14.2-20260930.1
+        specifier: 0.14.2-20261001.0
+        version: 0.14.2-20261001.0
       '@cad0p/pi-timestamps':
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
       '@cad0p/pi-tree-navigator':
-        specifier: 0.2.0-20260923.0
-        version: 0.2.0-20260923.0
+        specifier: 0.2.0-20261001.1
+        version: 0.2.0-20261001.1
       '@getpipher/vision':
         specifier: ^0.5.3
         version: 0.5.3
@@ -104,8 +104,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/pi-subagents-tintinweb@0.14.2-20260930.1':
-    resolution: {integrity: sha512-SRRSgq8GTn+Qc5K69q+IvMP/13q+V7tAuTJbdYIZrFRzfLOLpd1yxCP6tBIPfI7+68ojQGzAcJtoKdBVrNxB1A==}
+  '@cad0p/pi-subagents-tintinweb@0.14.2-20261001.0':
+    resolution: {integrity: sha512-E7vluS2hrYopuRsT5VpJq8SjZMVg219aOai6c5flH+m70JCCMlovFdFl9C0Bqu/LWeO6IOMmPbwx9RTZ/JosRw==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '>=0.80.0'
@@ -119,8 +119,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.80.4'
       '@earendil-works/pi-tui': '>=0.80.4'
 
-  '@cad0p/pi-tree-navigator@0.2.0-20260923.0':
-    resolution: {integrity: sha512-nar88N0HhUGTbPUT66uOwRs7PbGUmDgamY5VQ6gNVu1WhxXwXRY+/KnmvZdzgznsYeFcYy2k2qfKHLQVT7+E0Q==}
+  '@cad0p/pi-tree-navigator@0.2.0-20261001.1':
+    resolution: {integrity: sha512-c//ho3UmmTTRKI3+824afzSbq5lQhFvsiLcFfxHX5LRCpyLpya4iYZLipOxdr/PxNMsVGsNZzNGYXfh2CvDhOw==}
     peerDependencies:
       '@earendil-works/pi-agent-core': '>=0.81.0'
       '@earendil-works/pi-coding-agent': '>=0.81.0'
@@ -297,14 +297,14 @@ snapshots:
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/pi-subagents-tintinweb@0.14.2-20260930.1':
+  '@cad0p/pi-subagents-tintinweb@0.14.2-20261001.0':
     dependencies:
       croner: 10.0.1
       nanoid: 5.1.16
 
   '@cad0p/pi-timestamps@0.2.0-20260813.0': {}
 
-  '@cad0p/pi-tree-navigator@0.2.0-20260923.0': {}
+  '@cad0p/pi-tree-navigator@0.2.0-20261001.1': {}
 
   '@cad0p/unbash-walker@0.1.0-20260904.0':
     dependencies:
