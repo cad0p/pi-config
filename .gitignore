@@ -19,6 +19,7 @@ agent/sessions/
 # --- Local clones & binaries ---
 agent/git/
 agent/bin/
+agent/install/
 
 # --- Dependencies (pnpm install output) ---
 agent/npm/node_modules/

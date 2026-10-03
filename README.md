@@ -28,9 +28,9 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
 
 - [mise](https://mise.jdx.dev/) for tooling version management
 - [Node](https://nodejs.org/) `>=22.19.0` (the floor pi itself requires): `mise use -g node@lts`
-- [pnpm](https://pnpm.io) — pi and steering workspaces are pnpm-managed: `mise use -g pnpm@11`
+- [pnpm](https://pnpm.io) — extensions and steering workspace are pnpm-managed: `mise use -g pnpm@11`
 - [neovim](https://neovim.io) — external editor for pi's Ctrl+G drafts: `mise use -g neovim@latest`
-- [pi](https://pi.dev): `pnpm add -g --ignore-scripts @earendil-works/pi-coding-agent`)
+- [pi](https://pi.dev): managed install with pinned dependencies — `curl -fsSL https://pi.dev/install.sh | sh`. Installs to `~/.pi/agent/install` (gitignored) with the launcher at `~/.pi/agent/bin/pi`, and updates with `pi update`.
 
 ## Usage on a new machine
 
@@ -87,7 +87,7 @@ The vault will have the same structure internally: `~/personal/github/<vault>/op
 
 ## Security
 
-Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-auth.json` (MCP OAuth), `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list.
+Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-auth.json` (MCP OAuth), `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/`, `agent/install/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list.
 
 ## License
 
