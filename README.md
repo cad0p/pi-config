@@ -43,6 +43,21 @@ git clone https://github.com/cad0p/pi-config.git ~/.pi # replace your pi config
 pi update --all # install PierPi config
 ```
 
+### Migrating an existing machine that installs pi globally with pnpm/yarn/bun
+
+The pi.dev installer only auto-migrates global npm installs. On a machine where pi is a global pnpm package, remove it first, then run the installer:
+
+```bash
+cd ~/.pi && git pull # .gitignore must already contain agent/install/
+pnpm remove -g @earendil-works/pi-coding-agent
+curl -fsSL https://pi.dev/install.sh | sh # interactive; accept the default "Install Pi"
+command -v pi # → ~/.pi/agent/bin/pi (already first on PATH)
+pi --version
+pi update --self # → pi is already up to date
+```
+
+Only pi itself moves to `~/.pi/agent/install`; extensions (`agent/npm`) and the steering workspace stay pnpm-managed. Old release dirs are never pruned by pi (keep `current-version` plus the previous one for rollback, delete older `agent/install/releases/<version>` dirs manually when disk matters).
+
 Run pi to log in with your model provider
 
 ```bash
