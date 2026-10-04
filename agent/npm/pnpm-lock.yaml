@@ -18,8 +18,8 @@ importers:
         specifier: 0.0.1-20260814.0
         version: 0.0.1-20260814.0
       '@cad0p/pi-napkin':
-        specifier: 0.7.3-20260913.0
-        version: 0.7.3-20260913.0
+        specifier: 0.7.3-20261004.0
+        version: 0.7.3-20261004.0
       '@cad0p/pi-pioneer-provider':
         specifier: 0.2.3-20260622.0
         version: 0.2.3-20260622.0
@@ -80,8 +80,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.0'
 
-  '@cad0p/pi-napkin@0.7.3-20260913.0':
-    resolution: {integrity: sha512-7CIFIYaY6JxitzPNjAsP5sJNUq/rcO9AeRqVyikxNBxlmE1lbdfbWBRYJXj1erY6obM4gZWLdZxGw6+mdrwFCg==}
+  '@cad0p/pi-napkin@0.7.3-20261004.0':
+    resolution: {integrity: sha512-vhSaTbOgEOxtiL80ltUnF7vnCwkPS8ZmB3iAdEOHQ2UrbvmtPlXhNlkLK/OFFxdPlmu6HSsbrr01mruROKBWTg==}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.74.0'
       '@earendil-works/pi-tui': '>=0.74.0'
@@ -283,7 +283,7 @@ snapshots:
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0': {}
 
-  '@cad0p/pi-napkin@0.7.3-20260913.0':
+  '@cad0p/pi-napkin@0.7.3-20261004.0':
     dependencies:
       '@cad0p/napkin': 0.14.0-20260820.1
 
