@@ -77,11 +77,12 @@ cd ~/.pi && pi "let's explore what my pi config can do, and what I can set up"
 ## LLM model/provider recommendation
 
 - Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (10$/month)
-- Model: deepseek-v4-flash
+- Model: deepseek-v4.1-flash
 - Thinking: max
 
-Other sensible choice (Opencode Go or also [CommandCode GOAT plan](https://commandcode.ai/docs/plans/goat)):
+Other sensible choice:
 
+- Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (10$/month)
 - Model: glm-5.3-flash
 - Thinking: high
 
