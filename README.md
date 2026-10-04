@@ -40,6 +40,7 @@ Assuming all prerequisites are installed:
 mkdir ~/.pi # if you've never used pi
 cp -r ~/.pi ~/.pi.bak # backup your pi config
 git clone https://github.com/cad0p/pi-config.git ~/.pi # replace your pi config
+echo 'export PATH="$PATH:$HOME/.pi/agent/bin"' >> ~/.zshrc # pi launcher on PATH
 pi update --all # install PierPi config
 ```
 
