@@ -52,7 +52,7 @@ The pi.dev installer only auto-migrates global npm installs. On a machine where 
 cd ~/.pi && git pull # .gitignore must already contain agent/install/
 pnpm remove -g @earendil-works/pi-coding-agent
 curl -fsSL https://pi.dev/install.sh | sh # interactive; accept the default "Install Pi"
-command -v pi # → ~/.pi/agent/bin/pi (already first on PATH)
+command -v pi # → ~/.pi/agent/bin/pi; if empty, add ~/.pi/agent/bin to your shell profile and verify in a fresh terminal — an installer run from inside a pi session can't detect the gap because pi injects the dir into its own PATH
 pi --version
 pi update --self # → pi is already up to date
 ```
