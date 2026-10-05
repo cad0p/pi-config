@@ -1,3 +1,5 @@
 {
-  "tui.altScreen.search": "ctrl+alt+f"
+  "tui.altScreen.search": "ctrl+alt+f",
+  "tui.altScreen.top": ["ctrl+home", "alt+home"],
+  "tui.altScreen.bottom": ["ctrl+end", "alt+end"]
 }
