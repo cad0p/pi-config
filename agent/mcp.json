@@ -3,7 +3,7 @@
     "parallel-search": {
       "url": "https://search.parallel.ai/mcp",
       "headers": {
-        "Authorization": "!echo Bearer $(security find-generic-password -s parallel-search-api -a pi -w)"
+        "Authorization": "Bearer ${PARALLEL_SEARCH_TOKEN}"
       },
       "exposure": "deferred"
     },
@@ -11,7 +11,7 @@
       "command": "~/.local/bin/uvx",
       "args": ["mcp-proxy-for-aws-cli@latest", "https://aws-mcp.us-east-1.api.aws/mcp"],
       "env": {
-        "AWS_MCP_PROXY_PROFILES": "pc"
+        "AWS_MCP_PROXY_PROFILES": "${AWS_MCP_PROXY_PROFILES}"
       },
       "timeout": 120,
       "description": "AWS MCP Server via the SigV4 proxy",

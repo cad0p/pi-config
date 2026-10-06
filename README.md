@@ -22,7 +22,7 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
 - `agent/agents/` — my subagent types
 - `agent/subagents.json` — my subagent extension [pi-subagents-tintinweb](https://github.com/cad0p/pi-subagents-tintinweb) settings
 - `agent/models.json` — the custom models I imported
-- `agent/mcp.json` — my MCP servers, read by pi's built-in MCP support (parallel search)
+- `agent/mcp.json` — my MCP servers, read by pi's built-in MCP support (parallel search, AWS via the SigV4 proxy). Personal values are env-indirected: set `PARALLEL_SEARCH_TOKEN` and `AWS_MCP_PROXY_PROFILES` to use them.
 - `agent/vision.json` — my model vision handoff settings
 
 ## Requirements
@@ -108,7 +108,7 @@ The vault will have the same structure internally: `~/personal/github/<vault>/op
 
 ## Security
 
-Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-auth.json` (MCP OAuth), `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/`, `agent/install/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list.
+Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-auth.json` (MCP OAuth), `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/`, `agent/install/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list. MCP credentials are env-indirected rather than committed: `PARALLEL_SEARCH_TOKEN` and `AWS_MCP_PROXY_PROFILES` are read from the environment (see `agent/mcp.json`).
 
 ## License
 
