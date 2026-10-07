@@ -11,7 +11,7 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
 - `agent/settings.json` — the pi settings: my extensions, skills, and pi configs
 - `agent/steering/` — global [pi-steering](https://github.com/cad0p/pi-steering) TS config with tests
 - `agent/prompts/` — prompt templates (slash commands that prefill a parameterized prompt)
-- `agent/extensions/` — one-off local extensions loaded directly by pi (e.g. `git-editor-env.ts` forces `GIT_EDITOR=true` for agent shells so git never pops a GUI editor mid-run)
+- `agent/extensions/` — one-off local extensions loaded directly by pi (`git-editor-env.ts` forces `GIT_EDITOR=true` for agent shells so git never pops a GUI editor mid-run; `parallel-search.ts` registers Parallel's web-search MCP with an optional key — `PARALLEL_SEARCH_TOKEN` authenticates, its absence falls back to the free anonymous tier)
 - `agent/npm/` — where extensions live and where supply-chain policies on `minReleaseAge` are defined, installed with pnpm. Notable examples:
   - [pi-napkin](https://github.com/cad0p/pi-napkin) — a human/agent shared, always updated Obsidian vault, knowledge base you control and can read
   - [pi-tree-navigator](https://github.com/cad0p/pi-tree-navigator) — giving the agent access to pi's tree session structure, so work gets collapsed in summaries and the context window feels infinite
@@ -22,7 +22,7 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
 - `agent/agents/` — my subagent types
 - `agent/subagents.json` — my subagent extension [pi-subagents-tintinweb](https://github.com/cad0p/pi-subagents-tintinweb) settings
 - `agent/models.json` — the custom models I imported
-- `agent/mcp.json` — my MCP servers, read by pi's built-in MCP support (parallel search, AWS via the SigV4 proxy). Personal values are env-indirected: set `PARALLEL_SEARCH_TOKEN` and `AWS_MCP_PROXY_PROFILES` to use them.
+- `agent/mcp.json` — my MCP servers, read by pi's built-in MCP support (AWS via the SigV4 proxy). `AWS_MCP_PROXY_PROFILES` is env-indirected.
 - `agent/vision.json` — my model vision handoff settings
 
 ## Requirements
@@ -108,7 +108,7 @@ The vault will have the same structure internally: `~/personal/github/<vault>/op
 
 ## Security
 
-Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-auth.json` (MCP OAuth), `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/`, `agent/install/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list. MCP credentials are env-indirected rather than committed: `PARALLEL_SEARCH_TOKEN` and `AWS_MCP_PROXY_PROFILES` are read from the environment (see `agent/mcp.json`).
+Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-auth.json` (MCP OAuth), `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/`, `agent/install/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list. MCP credentials are env-indirected rather than committed: `PARALLEL_SEARCH_TOKEN` (optional, read by `agent/extensions/parallel-search.ts`; without it the server connects anonymously) and `AWS_MCP_PROXY_PROFILES` (read from the environment by `agent/mcp.json`).
 
 ## License
 
