@@ -1,14 +1,3 @@
 {
-  "mcpServers": {
-    "aws-mcp": {
-      "command": "~/.local/bin/uvx",
-      "args": ["mcp-proxy-for-aws-cli@latest", "https://aws-mcp.us-east-1.api.aws/mcp"],
-      "env": {
-        "AWS_MCP_PROXY_PROFILES": "${AWS_MCP_PROXY_PROFILES}"
-      },
-      "timeout": 120,
-      "description": "AWS MCP Server via the SigV4 proxy",
-      "exposure": "deferred"
-    }
-  }
+  "mcpServers": {}
 }
