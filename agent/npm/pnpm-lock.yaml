@@ -12,8 +12,8 @@ importers:
         specifier: 0.1.0-20260630.1
         version: 0.1.0-20260630.1
       '@cad0p/pi-fallback-provider':
-        specifier: 0.2.0-20261006.0
-        version: 0.2.0-20261006.0
+        specifier: 0.2.0-20261009.0
+        version: 0.2.0-20261009.0
       '@cad0p/pi-heartbeat':
         specifier: 0.0.1-20260814.0
         version: 0.0.1-20260814.0
@@ -36,8 +36,8 @@ importers:
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
       '@cad0p/pi-tree-navigator':
-        specifier: 0.2.0-20261008.0
-        version: 0.2.0-20261008.0
+        specifier: 0.2.0-20261009.0
+        version: 0.2.0-20261009.0
       '@getpipher/vision':
         specifier: ^0.5.3
         version: 0.5.3
@@ -70,8 +70,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.74.0'
       typebox: ^1.0.0
 
-  '@cad0p/pi-fallback-provider@0.2.0-20261006.0':
-    resolution: {integrity: sha512-xy8/ZKNp5REZ1De6eIs1lFS7reY3c2o8qzuK69M2auX8poUccFPsty2MYxjCNY1nTXvE8PB7ojp9Sh/GiHhaIw==}
+  '@cad0p/pi-fallback-provider@0.2.0-20261009.0':
+    resolution: {integrity: sha512-RZRu7izMT999/gcEJquKKC7PsEzGNGzEinKft13hpv+Lq5l5GtyPgWnNNtfEokJ2BVNdW3QpDaWLRhTsuZmUvw==}
     engines: {node: '>=22.19.0'}
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0':
@@ -119,12 +119,12 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.80.4'
       '@earendil-works/pi-tui': '>=0.80.4'
 
-  '@cad0p/pi-tree-navigator@0.2.0-20261008.0':
-    resolution: {integrity: sha512-gZ89I5z0wVeWEnZejYtDhF812jl5XHakovrp2aQyvsgMPsvntB4wieAtJmsMlOATAV3U/r1TA8DIRw4kL9gsPA==}
+  '@cad0p/pi-tree-navigator@0.2.0-20261009.0':
+    resolution: {integrity: sha512-crXXctogv92M+e800L5GKHLFzWyzVgJP8DNiNiZVVgzhYCASzWrppw/7ANxhdMcySs+Qu5lcxgXEwi17+wVO+g==}
     peerDependencies:
-      '@earendil-works/pi-agent-core': '>=0.81.0'
-      '@earendil-works/pi-coding-agent': '>=0.81.0'
-      '@earendil-works/pi-tui': '>=0.81.0'
+      '@earendil-works/pi-agent-core': '>=0.87.0'
+      '@earendil-works/pi-coding-agent': '>=0.87.0'
+      '@earendil-works/pi-tui': '>=0.87.0'
       typebox: ^1.0.0
 
   '@cad0p/unbash-walker@0.1.0-20260904.0':
@@ -279,7 +279,7 @@ snapshots:
 
   '@cad0p/pi-bash-timeout@0.1.0-20260630.1': {}
 
-  '@cad0p/pi-fallback-provider@0.2.0-20261006.0': {}
+  '@cad0p/pi-fallback-provider@0.2.0-20261009.0': {}
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0': {}
 
@@ -304,7 +304,7 @@ snapshots:
 
   '@cad0p/pi-timestamps@0.2.0-20260813.0': {}
 
-  '@cad0p/pi-tree-navigator@0.2.0-20261008.0': {}
+  '@cad0p/pi-tree-navigator@0.2.0-20261009.0': {}
 
   '@cad0p/unbash-walker@0.1.0-20260904.0':
     dependencies:
