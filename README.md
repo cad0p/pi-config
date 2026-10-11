@@ -88,6 +88,13 @@ Other sensible choice:
 - Model: glm-5.3-flash
 - Thinking: high
 
+Both offer Zero Data Retention. See their [Privacy Policy](https://opencode.ai/docs/en/go/#privacy) for model-by-model details.
+
+### LLM provider settings
+
+For OpenCode Go, the settings are under Settings -> Privacy.
+To use Deepseek models, it is mandatory to enable "Global" Regions, and strongly recommended to disable "Allow free/paid endpoints that train on request data".
+
 ## Folder structure recommendation
 
 Choose a name for your napkin vault `<vault>`, then make a folder at `~/personal/github/<vault>` and `napkin init` there.
