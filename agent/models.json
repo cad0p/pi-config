@@ -295,6 +295,9 @@
             "max": null
           },
           "contextWindow": 400000
+        },
+        "step-5-preview-free": {
+          "contextWindow": 400000
         }
       }
     },
@@ -376,6 +379,13 @@
             "xhigh": null,
             "max": "max"
           },
+          "contextWindow": 400000
+        }
+      }
+    },
+    "xai": {
+      "modelOverrides": {
+        "grok-4.7": {
           "contextWindow": 400000
         }
       }

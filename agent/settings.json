@@ -94,7 +94,21 @@
     "opencode-go-11/deepseek-v4.1-flash",
     "opencode-go-12/deepseek-v4.1-flash",
     "opencode-go-13/deepseek-v4.1-flash",
-    "opencode-go-14/deepseek-v4.1-flash"
+    "opencode-go-14/deepseek-v4.1-flash",
+    "opencode-go/step-5-preview-free",
+    "opencode-go-2/step-5-preview-free",
+    "opencode-go-3/step-5-preview-free",
+    "opencode-go-4/step-5-preview-free",
+    "opencode-go-5/step-5-preview-free",
+    "opencode-go-6/step-5-preview-free",
+    "opencode-go-7/step-5-preview-free",
+    "opencode-go-8/step-5-preview-free",
+    "opencode-go-9/step-5-preview-free",
+    "opencode-go-10/step-5-preview-free",
+    "opencode-go-11/step-5-preview-free",
+    "opencode-go-12/step-5-preview-free",
+    "opencode-go-13/step-5-preview-free",
+    "opencode-go-14/step-5-preview-free"
   ],
   "defaultProjectTrust": "always",
   "compaction": {
@@ -105,5 +119,9 @@
   "hideThinkingBlock": true,
   "terminal": {
     "showTerminalProgress": false
+  },
+  "modelThinkingLevels": {
+    "opencode-go/deepseek-v4.1-flash": "max",
+    "opencode-go/step-5-preview-free": "high"
   }
 }
