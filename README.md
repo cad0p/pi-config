@@ -81,6 +81,7 @@ cd ~/.pi && pi "let's explore what my pi config can do, and what I can set up"
 - Provider: [OpenCode Go](https://opencode.ai/go?ref=BMABGJ1Q7N) (10$/month)
 - Model: deepseek-v4.1-flash
 - Thinking: max
+- Effective $/Mtok: 0.025/0.1/0.0005
 
 Other sensible choice:
 
@@ -89,6 +90,9 @@ Other sensible choice:
 - Thinking: high
 
 Both offer Zero Data Retention. See their [Privacy Policy](https://opencode.ai/docs/en/go/#privacy) for model-by-model details.
+
+DeepSeek V4.1 Flash / V4 Pro / V4 Flash / V4 Flash Vision Exp: Peak hours are 01:00-04:00 and 06:00-10:00 UTC, Monday through Friday; all other hours, including weekends, are Off-Peak. See more [Usage Details](https://opencode.ai/docs/go/#usage-limits).
+
 
 ### LLM provider settings
 
