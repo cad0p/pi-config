@@ -115,7 +115,7 @@ The vault will have the same structure internally: `~/personal/github/<vault>/op
 
 ## Web UI recommendation
 
-- [@cad0p/pi-web-agegr](https://github.com/cad0p/pi-web-agegr): `pnpm -g install @cad0p/pi-web-agegr`, then `pi-web`
+- We're all waiting on Mario's [pi-mobile](https://x.com/badlogicgames/status/2109413968552820840?s=20) built on Pi Durable..
 
 ## Security
 
