@@ -15,6 +15,7 @@
     "@getpipher/vision": "^0.5.3",
     "@marcfargas/pi-heartbeat": "^0.0.1",
     "mitsupi": "github:mitsuhiko/agent-stuff",
+    "pi-claude-bridge": "^0.9.3",
     "pi-context-view": "^0.7.0",
     "pi-shipit": "^1.0.1"
   }

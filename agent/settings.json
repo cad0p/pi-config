@@ -1,7 +1,7 @@
 {
   "lastChangelogVersion": "1.2.0",
-  "defaultProvider": "opencode-go-6",
-  "defaultModel": "deepseek-v4.1-flash",
+  "defaultProvider": "claude-bridge",
+  "defaultModel": "claude-opus-5-5",
   "defaultThinkingLevel": "max",
   "npmCommand": [
     "pnpm"
@@ -76,11 +76,13 @@
       "skills": [],
       "prompts": [],
       "themes": []
-    }
+    },
+    "npm:pi-claude-bridge"
   ],
   "theme": "light/dark",
   "externalEditor": "nvim",
   "enabledModels": [
+    "claude-bridge/claude-opus-5-5",
     "opencode-go/deepseek-v4.1-flash",
     "opencode-go-2/deepseek-v4.1-flash",
     "opencode-go-3/deepseek-v4.1-flash",
@@ -122,6 +124,7 @@
   },
   "modelThinkingLevels": {
     "opencode-go/deepseek-v4.1-flash": "max",
-    "opencode-go/step-5-preview-free": "high"
+    "opencode-go/step-5-preview-free": "high",
+    "claude-bridge/claude-opus-5-5": "medium"
   }
 }

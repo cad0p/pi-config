@@ -7,6 +7,9 @@ minimumReleaseAgeExclude:
 # git: -> npm:@...@next install switch.
 publicHoistPattern:
   - '@cad0p/*'
+  - '@anthropic-ai/*'
+  - 'cc-session-io'
+  - 'typebox'
 allowBuilds:
   '@google/genai': true
   protobufjs: true
