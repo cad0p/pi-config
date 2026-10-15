@@ -1,6 +1,6 @@
 ---
 display_name: Smart Agent
-description: "Expensive agent to use for tasks where the general-purpose agent has demonstrated poor performance."
+description: "Escalation only — do not pick first. Use after general-purpose has demonstrated poor performance on the task."
 run_in_background: true
 tools: "*"
 prompt_mode: append

@@ -30,8 +30,8 @@ importers:
         specifier: 0.2.0-20260908.1
         version: 0.2.0-20260908.1(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
       '@cad0p/pi-subagents-tintinweb':
-        specifier: 0.14.2-20261006.5
-        version: 0.14.2-20261006.5(@earendil-works/pi-ai@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.2.0)(@sinclair/typebox@0.34.52)
+        specifier: 0.14.2-20261015.0
+        version: 0.14.2-20261015.0(@earendil-works/pi-ai@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.2.0)(@sinclair/typebox@0.34.52)
       '@cad0p/pi-timestamps':
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.2.0)
@@ -268,8 +268,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/pi-subagents-tintinweb@0.14.2-20261006.5':
-    resolution: {integrity: sha512-lBX3yPrItyZ6TROGUIaCNpjAGYOc3mVwA8rBGQmLU+dbzVw0GtEaDg35ZUMV8Ltn4oh9sMXU79i023TdKKi3Ag==}
+  '@cad0p/pi-subagents-tintinweb@0.14.2-20261015.0':
+    resolution: {integrity: sha512-k1sTXMknWip+xPW1peCkWwtLxpJZGV7e9kiE2HwE29E6Bm144mlGew8pKRpJRZ5N8YlhNQkFkX/gkGHHBwJN5A==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '>=1.0.4'
@@ -1889,7 +1889,7 @@ snapshots:
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/pi-subagents-tintinweb@0.14.2-20261006.5(@earendil-works/pi-ai@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.2.0)(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-subagents-tintinweb@0.14.2-20261015.0(@earendil-works/pi-ai@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.2.0)(@sinclair/typebox@0.34.52)':
     dependencies:
       '@earendil-works/pi-ai': 1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7)
       '@earendil-works/pi-coding-agent': 1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7)
