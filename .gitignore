@@ -12,6 +12,8 @@ agent/**/.npmrc
 .env*
 agent/commandcode-models.json
 agent/vision-audit.log
+agent/claude-bridge-sessions.json
+/in-flight.txt
 
 # --- Session history (contains private conversations) ---
 agent/sessions/
