@@ -118,13 +118,14 @@
   },
   "showCacheMissNotices": true,
   "tuiMode": "fullscreen",
-  "hideThinkingBlock": true,
+  "hideThinkingBlock": false,
   "terminal": {
     "showTerminalProgress": false
   },
   "modelThinkingLevels": {
     "opencode-go/deepseek-v4.1-flash": "max",
     "opencode-go/step-5-preview-free": "high",
-    "claude-bridge/claude-opus-5-5": "medium"
+    "claude-bridge/claude-opus-5-5": "medium",
+    "claude-bridge/claude-haiku-5-5": "xhigh"
   }
 }
