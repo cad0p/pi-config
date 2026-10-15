@@ -1,6 +1,6 @@
 ---
 display_name: Smart Agent
-description: "Escalation only — do not pick first. Use after general-purpose has demonstrated poor performance on the task."
+description: "Escalation only — do not pick first. Use after general-purpose has demonstrated poor performance on the task, verified by facts."
 run_in_background: true
 tools: "*"
 prompt_mode: append
