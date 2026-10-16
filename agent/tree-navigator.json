@@ -1,3 +1,8 @@
 {
-  "rewindHintAtPercent": "90"
+  "rewindHintReserveTokens": 40000,
+  "modelOverrides": {
+    "opencode-go/deepseek-v4.1-flash": {
+      "rewindHintReserveTokens": 50000
+    }
+  }
 }

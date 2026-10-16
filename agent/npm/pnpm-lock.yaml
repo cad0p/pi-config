@@ -39,8 +39,8 @@ importers:
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.2.0)
       '@cad0p/pi-tree-navigator':
-        specifier: 0.2.0-20261015.0
-        version: 0.2.0-20261015.0(@earendil-works/pi-agent-core@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(typebox@1.3.37)
+        specifier: 0.2.0-20261015.2
+        version: 0.2.0-20261015.2(@earendil-works/pi-agent-core@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(typebox@1.3.37)
       '@getpipher/vision':
         specifier: ^0.5.3
         version: 0.5.3(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(typebox@1.3.37)
@@ -269,8 +269,8 @@ packages:
       '@earendil-works/pi-coding-agent': '>=0.80.4'
       '@earendil-works/pi-tui': '>=0.80.4'
 
-  '@cad0p/pi-tree-navigator@0.2.0-20261015.0':
-    resolution: {integrity: sha512-K4IrbNZDa3l8vCs8wXmAcu/gyZ+cND4PkwemEBClbEBGcYzz6iPZxYJfi8nSouLJDLpM8vqC8TeHclctuR8m6A==}
+  '@cad0p/pi-tree-navigator@0.2.0-20261015.2':
+    resolution: {integrity: sha512-K1oWRGZkm2S38ZzFetG7k0L3S4W8JJnu0h6rlbv0xKq7f/HCWQY/BGkzv32Y1+6lV8o8yhTXNC4T9aQQnNPbJQ==}
     peerDependencies:
       '@earendil-works/pi-agent-core': '>=0.87.0'
       '@earendil-works/pi-coding-agent': '>=0.87.0'
@@ -1452,7 +1452,7 @@ snapshots:
       '@earendil-works/pi-coding-agent': 1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7)
       '@earendil-works/pi-tui': 1.2.0
 
-  '@cad0p/pi-tree-navigator@0.2.0-20261015.0(@earendil-works/pi-agent-core@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(typebox@1.3.37)':
+  '@cad0p/pi-tree-navigator@0.2.0-20261015.2(@earendil-works/pi-agent-core@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(typebox@1.3.37)':
     dependencies:
       '@earendil-works/pi-agent-core': 1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7)
       '@earendil-works/pi-coding-agent': 1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7)
