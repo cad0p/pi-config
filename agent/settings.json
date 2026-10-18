@@ -129,5 +129,12 @@
   },
   "warnings": {
     "anthropicExtraUsage": false
+  },
+  "defaultTools": [
+    "+codemode"
+  ],
+  "codemode": {
+    "mode": "only",
+    "inlineBudget": 4700
   }
 }
