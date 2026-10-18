@@ -19,6 +19,7 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
   - [pi-steering](https://github.com/cad0p/pi-steering) — instead of polluting your AGENTS.md, deterministic rules on bash tool usage, so the AGENT only sees the steering instruction when it was about to make a mistake
   - [pi-heartbeat](https://github.com/cad0p/pi-heartbeat) — timers for agents, so they can monitor CI or other events for long-running tasks
   - [pi-fallback-provider](https://github.com/cad0p/pi-fallback-provider) — automatic fallback to another model in `/scoped-models` when the agent stops working because of provider issues
+- `agent/checks/codemode-budget/` — CI check (`.github/workflows/codemode-budget.yml`) that every tool stays inlined in the `codemode.mode: "only"` description; fails when a tool outgrows `codemode.inlineBudget` or a tool in `required-tools.json` stops registering. Runs offline: `node agent/checks/codemode-budget/check.mjs`
 - `agent/agents/` — my subagent types
 - `agent/subagents.json` — my subagent extension [pi-subagents-tintinweb](https://github.com/cad0p/pi-subagents-tintinweb) settings
 - `agent/models.json` — the custom models I imported
