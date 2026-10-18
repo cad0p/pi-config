@@ -8,9 +8,12 @@
 //   2. committed settings (`mode: "only"`)     → the tools inlined in codemode
 // Payloads are captured by capture-payload.ts before any HTTP call.
 //
-// required-tools.json lists the tools that must exist; a missing one means an
-// extension failed to load (otherwise the check would pass on built-ins alone).
-// Tools declared but not listed there must still be inlined.
+// The expected tools come from pi itself, so a broken install can't pass on
+// the built-in tools alone:
+//   - extensions that fail to load make pi exit 1 → no payload → check fails
+//   - configured packages that aren't installed are skipped silently by pi, so
+//     `pi list` must show an install path under every configured package
+// See https://github.com/cad0p/pi-config/issues/13
 //
 // Env: PI_BIN (default "pi"), PI_CODING_AGENT_DIR, CODEMODE_CHECK_MODEL.
 import { spawnSync } from "node:child_process";
@@ -27,7 +30,7 @@ const model = process.env.CODEMODE_CHECK_MODEL ?? "anthropic/claude-haiku-5-5";
 const NOT_INLINABLE = new Set(["codemode", "tool_search"]);
 const isPlaceholder = (name) => name.startsWith("__pi_");
 
-const required = JSON.parse(readFileSync(join(here, "required-tools.json"), "utf8"));
+const piEnv = { ...process.env, PI_CODING_AGENT_DIR: agentDir, PI_OFFLINE: "1" };
 const settings = JSON.parse(readFileSync(join(agentDir, "settings.json"), "utf8"));
 const budget = settings.codemode?.inlineBudget ?? 3000;
 
@@ -42,13 +45,38 @@ function capture(label, projectSettings) {
 		"-e", join(here, "capture-payload.ts"), "-p", "ok"];
 	const res = spawnSync(piBin, args, {
 		cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"], timeout: 120_000,
-		env: { ...process.env, PI_CODING_AGENT_DIR: agentDir, PI_OFFLINE: "1", CODEMODE_CHECK_DUMP: dump },
+		env: { ...piEnv, CODEMODE_CHECK_DUMP: dump },
 	});
 	if (!existsSync(dump)) {
 		console.error(`✗ [${label}] pi produced no payload (exit ${res.status})\n${res.stderr}\n${res.stdout}`);
 		process.exit(2);
 	}
 	return JSON.parse(readFileSync(dump, "utf8"));
+}
+
+// `pi list` prints each configured package as "  <source>", followed by
+// "    <install path>" only when the package is installed.
+function uninstalledPackages() {
+	const res = spawnSync(piBin, ["list"], { encoding: "utf8", env: piEnv, timeout: 60_000 });
+	if (res.status !== 0) {
+		console.error(`✗ pi list failed (exit ${res.status})\n${res.stderr}`);
+		process.exit(2);
+	}
+	const missing = [];
+	let pending = null;
+	for (const line of res.stdout.split("\n")) {
+		if (/^ {2}\S/.test(line)) {
+			if (pending) missing.push(pending);
+			pending = line.trim().split(" ")[0];
+		} else if (/^ {4}\S/.test(line)) {
+			pending = null;
+		} else if (pending && !line.startsWith(" ")) {
+			missing.push(pending);
+			pending = null;
+		}
+	}
+	if (pending) missing.push(pending);
+	return missing;
 }
 
 const toolNames = (payload) => (payload.tools ?? []).map((t) => t.name);
@@ -62,14 +90,11 @@ const onlyDeclared = toolNames(onlyPayload);
 const codemode = (onlyPayload.tools ?? []).find((t) => t.name === "codemode");
 
 let failed = false;
-const expectedSet = new Set(expected.map(norm));
-const absent = required.filter((n) => !expectedSet.has(norm(n)));
-if (absent.length) {
-	console.error(`✗ required tools not registered (extension failed to load?): ${absent.join(", ")}`);
+const notInstalled = uninstalledPackages();
+if (notInstalled.length) {
+	console.error(`✗ configured packages not installed (their tools are missing): ${notInstalled.join(", ")}`);
 	failed = true;
 }
-const unlisted = expected.filter((n) => !required.some((r) => norm(r) === norm(n)));
-if (unlisted.length) console.log(`note: declared but not in required-tools.json: ${unlisted.join(", ")}`);
 if (!codemode) {
 	console.error("✗ codemode is not active with the committed settings (need defaultTools: [\"+codemode\"])");
 	process.exit(1);
