@@ -1,0 +1,39 @@
+name: codemode budget
+
+# Every tool must stay inlined in the `codemode.mode: "only"` description.
+# See agent/checks/codemode-budget/check.mjs and issue #11.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Pin pi to the version the committed config was last run with.
+      - name: Install pi
+        run: npm install -g "@earendil-works/pi-coding-agent@$(jq -r .lastChangelogVersion agent/settings.json)"
+
+      # autoInstallPeers=false matches the setting pi writes into the lockfile.
+      - name: Install extensions
+        working-directory: agent/npm
+        run: pnpm install --frozen-lockfile --config.auto-install-peers=false
+
+      - name: Check codemode inline budget
+        run: node agent/checks/codemode-budget/check.mjs

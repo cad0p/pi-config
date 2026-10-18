@@ -8,6 +8,10 @@
 //   2. committed settings (`mode: "only"`)     → the tools inlined in codemode
 // Payloads are captured by capture-payload.ts before any HTTP call.
 //
+// required-tools.json lists the tools that must exist; a missing one means an
+// extension failed to load (otherwise the check would pass on built-ins alone).
+// Tools declared but not listed there must still be inlined.
+//
 // Env: PI_BIN (default "pi"), PI_CODING_AGENT_DIR, CODEMODE_CHECK_MODEL.
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, existsSync } from "node:fs";
@@ -23,6 +27,7 @@ const model = process.env.CODEMODE_CHECK_MODEL ?? "anthropic/claude-haiku-5-5";
 const NOT_INLINABLE = new Set(["codemode", "tool_search"]);
 const isPlaceholder = (name) => name.startsWith("__pi_");
 
+const required = JSON.parse(readFileSync(join(here, "required-tools.json"), "utf8"));
 const settings = JSON.parse(readFileSync(join(agentDir, "settings.json"), "utf8"));
 const budget = settings.codemode?.inlineBudget ?? 3000;
 
@@ -57,6 +62,14 @@ const onlyDeclared = toolNames(onlyPayload);
 const codemode = (onlyPayload.tools ?? []).find((t) => t.name === "codemode");
 
 let failed = false;
+const expectedSet = new Set(expected.map(norm));
+const absent = required.filter((n) => !expectedSet.has(norm(n)));
+if (absent.length) {
+	console.error(`✗ required tools not registered (extension failed to load?): ${absent.join(", ")}`);
+	failed = true;
+}
+const unlisted = expected.filter((n) => !required.some((r) => norm(r) === norm(n)));
+if (unlisted.length) console.log(`note: declared but not in required-tools.json: ${unlisted.join(", ")}`);
 if (!codemode) {
 	console.error("✗ codemode is not active with the committed settings (need defaultTools: [\"+codemode\"])");
 	process.exit(1);
