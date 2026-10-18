@@ -199,7 +199,7 @@
         }
       }
     },
-    "claude-bridge": {
+    "anthropic": {
       "modelOverrides": {
         "claude-opus-5-5": {
           "contextWindow": 300000
