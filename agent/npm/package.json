@@ -15,7 +15,7 @@
     "@cad0p/pi-tree-navigator": "0.2.0-20261015.2",
     "@getpipher/vision": "^0.5.3",
     "mitsupi": "github:mitsuhiko/agent-stuff",
-    "pi-context-view": "^0.7.1",
+    "pi-context-view": "^0.7.2",
     "pi-shipit": "^1.0.1"
   }
 }
