@@ -126,5 +126,8 @@
     "opencode-go/step-5-preview-free": "high",
     "anthropic/claude-opus-5-5": "medium",
     "anthropic/claude-haiku-5-5": "xhigh"
+  },
+  "warnings": {
+    "anthropicExtraUsage": false
   }
 }
