@@ -1,5 +1,5 @@
 ---
-display_name: Smart Agent
+display_name: Escalation Agent
 description: "Escalation only — do not pick first. Use after general-purpose has demonstrated poor performance on the task, verified by facts. Only exception: design work."
 run_in_background: true
 tools: "*"
