@@ -15,8 +15,8 @@ importers:
         specifier: 0.1.5-20261020.7
         version: 0.1.5-20261020.7(@earendil-works/pi-ai@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
       '@cad0p/pi-fallback-provider':
-        specifier: 0.2.0-20261009.1
-        version: 0.2.0-20261009.1
+        specifier: 0.2.0-20261020.1
+        version: 0.2.0-20261020.1
       '@cad0p/pi-heartbeat':
         specifier: 0.0.1-20260814.0
         version: 0.0.1-20260814.0(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
@@ -166,8 +166,8 @@ packages:
       '@earendil-works/pi-ai': '*'
       '@earendil-works/pi-coding-agent': '*'
 
-  '@cad0p/pi-fallback-provider@0.2.0-20261009.1':
-    resolution: {integrity: sha512-q8qgwfKqpcwA+puAMwntzQnifMIrbLQQ91l1xOfi1f5QcDV+WtcAxYGGIdwtMbey5THfDyFhj0lf5rEZosjD7g==}
+  '@cad0p/pi-fallback-provider@0.2.0-20261020.1':
+    resolution: {integrity: sha512-/WQN2L9Z+C/l1NVXRZnQd2YB6FliM7S12j8SC84p8GC4bm3bmZj56bFhJMXFxr3mk7VVJc+eQBsg4+ltPdwJ2w==}
     engines: {node: '>=22.19.0'}
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0':
@@ -1301,7 +1301,7 @@ snapshots:
       '@earendil-works/pi-ai': 1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7)
       '@earendil-works/pi-coding-agent': 1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7)
 
-  '@cad0p/pi-fallback-provider@0.2.0-20261009.1': {}
+  '@cad0p/pi-fallback-provider@0.2.0-20261020.1': {}
 
   '@cad0p/pi-heartbeat@0.0.1-20260814.0(@earendil-works/pi-coding-agent@1.2.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))':
     dependencies:

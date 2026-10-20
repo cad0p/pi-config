@@ -82,7 +82,7 @@
   "theme": "light/dark",
   "externalEditor": "nvim",
   "enabledModels": [
-    "anthropic/claude-opus-5-5",
+    "anthropic/claude-opus-5-5:medium",
     "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017-flex:max"
   ],
   "defaultProjectTrust": "always",
@@ -94,13 +94,6 @@
   "hideThinkingBlock": false,
   "terminal": {
     "showTerminalProgress": false
-  },
-  "modelThinkingLevels": {
-    "opencode-go/deepseek-v4.1-flash": "max",
-    "deepinfra/deepseek-ai/DeepSeek-V4.1-Flash-1017-flex": "max",
-    "opencode-go/step-5-preview-free": "high",
-    "anthropic/claude-opus-5-5": "medium",
-    "anthropic/claude-haiku-5-5": "xhigh"
   },
   "warnings": {
     "anthropicExtraUsage": false
