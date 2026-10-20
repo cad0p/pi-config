@@ -29,3 +29,4 @@ agent/steering/node_modules/
 agent/pi-fallback-alias-models.json
 agent/crashes.json
 agent/claude-bridge-diag.log
+agent/cache/deepinfra-models.json

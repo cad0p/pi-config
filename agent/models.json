@@ -179,6 +179,13 @@
         }
       }
     },
+    "deepinfra": {
+      "modelOverrides": {
+        "deepseek-ai/DeepSeek-V4.1-Flash-1017": {
+          "contextWindow": 400000
+        }
+      }
+    },
     "openrouter": {
       "modelOverrides": {
         "deepseek/deepseek-v4-flash": {
