@@ -8,5 +8,7 @@
   "resultPreviewMode": "markdown",
   "resultPreviewExpanded": true,
   "failurePreviewMaxChars": 65536,
-  "disableDefaultAgents": true
+  "disableDefaultAgents": true,
+  "reportUsage": true,
+  "showCost": true
 }
