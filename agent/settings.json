@@ -76,6 +76,12 @@
       "skills": [],
       "prompts": [],
       "themes": []
+    },
+    {
+      "source": "./patches/local-patches",
+      "extensions": [
+        "extensions/autopatch.ts"
+      ]
     }
   ],
   "theme": "light/dark",
