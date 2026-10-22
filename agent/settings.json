@@ -82,7 +82,8 @@
   "externalEditor": "nvim",
   "enabledModels": [
     "anthropic/claude-opus-5-5:medium",
-    "opencode-go/deepseek-v4.1-flash:max"
+    "opencode-go/deepseek-v4.1-flash:max",
+    "opencode-go-2/deepseek-v4.1-flash:max"
   ],
   "defaultProjectTrust": "always",
   "compaction": {
