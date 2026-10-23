@@ -11,7 +11,7 @@ This repo is the actual config directory pi reads on my machines. `git clone` th
 - `agent/settings.json` — the pi settings: my extensions, skills, and pi configs
 - `agent/steering/` — global [pi-steering](https://github.com/cad0p/pi-steering) TS config with tests
 - `agent/prompts/` — prompt templates (slash commands that prefill a parameterized prompt)
-- `agent/extensions/` — one-off local extensions loaded directly by pi (`git-editor-env.ts` forces `GIT_EDITOR=true` for agent shells so git never pops a GUI editor mid-run; `parallel-search.ts` registers Parallel's web-search MCP with an optional key — `PARALLEL_SEARCH_TOKEN` authenticates, its absence falls back to the free anonymous tier)
+- `agent/extensions/` — one-off local extensions loaded directly by pi (`git-editor-env.ts` forces `GIT_EDITOR=true` for agent shells so git never pops a GUI editor mid-run; `parallel-search.ts` registers Parallel's web-search MCP with an optional key — `PARALLEL_SEARCH_TOKEN` authenticates, its absence falls back to the free anonymous tier; `codemode-workers.ts` raises `PI_CODEMODE_MAX_WORKERS` to 6 so in-process subagents holding long scripts don't starve the parent session, see [pi#11350](https://github.com/earendil-works/pi/issues/11350))
 - `agent/npm/` — where extensions live and where supply-chain policies on `minReleaseAge` are defined, installed with pnpm. Notable examples:
   - [pi-napkin](https://github.com/cad0p/pi-napkin) — a human/agent shared, always updated Obsidian vault, knowledge base you control and can read
   - [pi-tree-navigator](https://github.com/cad0p/pi-tree-navigator) — giving the agent access to pi's tree session structure, so work gets collapsed in summaries and the context window feels infinite
