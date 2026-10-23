@@ -6,11 +6,17 @@ each version into `~/.pi/agent/install/releases/<version>/`, so anything we chan
 
 ## Layout
 
-- `apply.sh` — the runner. `apply.sh` reconciles, `--status` reports, `--dry-run` previews, `-q` is for startup.
+- `apply.sh` — the runner. `apply.sh` reconciles, `--status` reports, `--dry-run` previews, `-q` is for startup, `--all` widens the scope (see below).
 - `lib.sh` — helpers the runner and patch files share (state probe, backup, syntax check).
 - `NNNN-<name>.patch.sh` — one patch per file, with the upstream link and a removal condition.
 - `local-patches/` — a local pi package whose extension runs `apply.sh -q` at `session_start`
   and registers `/patches`.
+
+## Scope
+
+By default the runner only touches the **active release** — the one `install/current-version` points at, i.e. the code pi will actually run. Old releases left on disk are not modified: patching them would only change code that cannot execute, and if you ever roll back by editing `current-version`, that release becomes active and the next session patches it then.
+
+`--all` reconciles every installed release. Use it to audit, or to pre-patch a rollback target before switching to it.
 
 ## How it works
 
@@ -35,7 +41,8 @@ when it did — after an upgrade you get one session with unpatched warming and 
 instead of a silent regression. Check state any time with:
 
 ```sh
-~/.pi/agent/patches/apply.sh --status
+~/.pi/agent/patches/apply.sh --status        # active release
+~/.pi/agent/patches/apply.sh --status --all  # every installed release
 ```
 
 ## Active patches

@@ -1,6 +1,7 @@
 #!/bin/sh
 # Apply every local patch under this directory to the installed pi releases.
-#   apply.sh              reconcile all installed releases (idempotent)
+#   apply.sh              reconcile the active release (idempotent)
+#   apply.sh --all        reconcile every installed release, active or not
 #   apply.sh --dry-run    report what would change, touch nothing
 #   apply.sh --quiet      only problems + a one-line summary (used at startup)
 #   apply.sh --status     report state only, no writes
@@ -10,12 +11,14 @@ set -u
 
 MODE=apply
 QUIET=0
+ALL=0
 for arg in "$@"; do
   case "$arg" in
     --dry-run) MODE=dry ;;
     --status)  MODE=status ;;
+    --all)     ALL=1 ;;
     --quiet|-q) QUIET=1 ;;
-    -h|--help) sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help) sed -n '2,8p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) printf 'unknown option: %s\n' "$arg" >&2; exit 2 ;;
   esac
 done
@@ -23,6 +26,18 @@ done
 say() { [ "$QUIET" = 1 ] || printf '%s\n' "$*"; }
 
 ACTIVE=$(active_version)
+# Default scope: the release the launcher will actually run. Patching old releases only
+# mutates code that cannot execute; if you ever roll back, that release becomes active and
+# the next session patches it then. --all exists for the explicit case (auditing, or
+# pre-patching a rollback target before switching).
+if [ "$ALL" = 1 ]; then
+  RELEASES=$RELEASES_GLOB
+elif [ -n "$ACTIVE" ]; then
+  RELEASES="${PI_AGENT_DIR}/install/releases/${ACTIVE}/${PKG_REL}"
+else
+  printf 'pi-patches: no current-version file, falling back to every installed release\n' >&2
+  RELEASES=$RELEASES_GLOB
+fi
 failures=0
 applied=0
 need_restart=0
@@ -43,7 +58,7 @@ for patch in $PATCHES; do
   say "== $PATCH_ID — $PATCH_TITLE"
   say "   upstream: $PATCH_UPSTREAM"
   touched=0
-  for pkg in $RELEASES_GLOB; do
+  for pkg in $RELEASES; do
     [ -d "$pkg" ] || continue
     version=$(jq -r .version "$pkg/package.json" 2>/dev/null || echo '?')
     marker=""; [ "$version" = "$ACTIVE" ] && marker=" (active)"

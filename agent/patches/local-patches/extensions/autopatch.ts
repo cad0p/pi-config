@@ -40,10 +40,14 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("patches", {
-		description: "Show, apply or dry-run the local pi source patches",
+		description: "Local pi source patches: apply (default), or args: status | dry | all",
 		handler: async (args, ctx) => {
-			const arg = (args ?? "").trim();
-			const flags = arg === "dry" || arg === "--dry-run" ? ["--dry-run"] : arg === "status" ? ["--status"] : [];
+			const flags: string[] = [];
+			for (const word of (args ?? "").trim().split(/\s+/).filter(Boolean)) {
+				if (word === "status") flags.push("--status");
+				else if (word === "dry" || word === "--dry-run") flags.push("--dry-run");
+				else if (word === "all") flags.push("--all");
+			}
 			const { ok, out } = await apply(flags);
 			ctx.ui.notify(out, ok ? "info" : "error");
 		},
