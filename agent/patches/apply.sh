@@ -31,9 +31,15 @@ PATCHES=$(ls -1 "${0%/*}"/*.patch.sh 2>/dev/null | sort)
 [ -n "$PATCHES" ] || { say "no patches in ${0%/*}"; exit 0; }
 
 for patch in $PATCHES; do
-  ( . "$patch" ) >/dev/null 2>&1 || true
+  # Reset the contract before each file so one patch can never inherit another's state.
+  PATCH_ID= PATCH_TITLE= PATCH_UPSTREAM= PATCH_REMOVE_WHEN= PATCH_FILES=
+  UNPATCHED_RE= PATCHED_RE= PATCH_PERL=
   # shellcheck disable=SC1090
-  . "$patch"
+  . "$patch" || { printf 'pi-patches: cannot source %s\n' "$patch" >&2; failures=$((failures + 1)); continue; }
+  if [ -z "$PATCH_ID" ] || [ -z "$PATCH_FILES" ] || [ -z "$UNPATCHED_RE" ] || [ -z "$PATCH_PERL" ]; then
+    printf 'pi-patches: %s is missing PATCH_ID/PATCH_FILES/UNPATCHED_RE/PATCH_PERL\n' "${patch##*/}" >&2
+    failures=$((failures + 1)); continue
+  fi
   say "== $PATCH_ID — $PATCH_TITLE"
   say "   upstream: $PATCH_UPSTREAM"
   touched=0
