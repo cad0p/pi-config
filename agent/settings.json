@@ -2,7 +2,7 @@
   "lastChangelogVersion": "1.4.0",
   "defaultProvider": "anthropic",
   "defaultModel": "claude-opus-5-5",
-  "defaultThinkingLevel": "medium",
+  "defaultThinkingLevel": "high",
   "npmCommand": [
     "pnpm"
   ],
@@ -87,7 +87,7 @@
   "theme": "light/dark",
   "externalEditor": "nvim",
   "enabledModels": [
-    "anthropic/claude-opus-5-5:medium",
+    "anthropic/claude-opus-5-5:high",
     "opencode-go/deepseek-v4.1-flash:max",
     "opencode-go-2/deepseek-v4.1-flash:max"
   ],
