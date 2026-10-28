@@ -1,8 +1,0 @@
-{
-  "name": "pi-local-patches",
-  "private": true,
-  "keywords": ["pi-package"],
-  "pi": {
-    "extensions": ["./extensions/autopatch.ts"]
-  }
-}
