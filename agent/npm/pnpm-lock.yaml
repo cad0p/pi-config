@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@cad0p/pi-background-work':
-        specifier: 0.0.1-20261028.1
-        version: 0.0.1-20261028.1
+        specifier: 0.0.1-20261028.2
+        version: 0.0.1-20261028.2
       '@cad0p/pi-bash-timeout':
         specifier: 0.1.0-20260630.1
         version: 0.1.0-20260630.1(typebox@1.3.37)
@@ -156,8 +156,8 @@ packages:
     resolution: {integrity: sha512-Bg935bDgqlwIntJF4JTdZ9qUHigleAjP7upQve4CWUiMRx1DjaFx1UMRgwLLmi7N/+VFYUxmDuei2GdgatRw6w==}
     hasBin: true
 
-  '@cad0p/pi-background-work@0.0.1-20261028.1':
-    resolution: {integrity: sha512-xu5W6lQ9q9ln4/FF6Xe84SSZMnj4nT6lX1PMuW9Wh4AEC2oTuaR99Ehkk9mxnk4kEvwxp1Xis4YyBOw+RO6w2w==}
+  '@cad0p/pi-background-work@0.0.1-20261028.2':
+    resolution: {integrity: sha512-9aWiyX9KihIW8gzc1Qmu289UAmm3iq71X9Gi5nK6lQt5DbD4YGd5G5zV9jUDgcq9X2i/hBjsuUQ0qjexytbUng==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '*'
@@ -1215,7 +1215,7 @@ snapshots:
     optionalDependencies:
       glimpseui: 0.3.7
 
-  '@cad0p/pi-background-work@0.0.1-20261028.1': {}
+  '@cad0p/pi-background-work@0.0.1-20261028.2': {}
 
   '@cad0p/pi-bash-timeout@0.1.0-20260630.1(typebox@1.3.37)':
     dependencies:
@@ -1227,7 +1227,7 @@ snapshots:
 
   '@cad0p/pi-heartbeat@0.0.1-20261028.1':
     dependencies:
-      '@cad0p/pi-background-work': 0.0.1-20261028.1
+      '@cad0p/pi-background-work': 0.0.1-20261028.2
 
   '@cad0p/pi-napkin@0.7.3-20261012.0(@sinclair/typebox@0.34.52)':
     dependencies:
@@ -1246,7 +1246,7 @@ snapshots:
 
   '@cad0p/pi-subagents-tintinweb@0.22.0-20261028.11(@sinclair/typebox@0.34.52)':
     dependencies:
-      '@cad0p/pi-background-work': 0.0.1-20261028.1
+      '@cad0p/pi-background-work': 0.0.1-20261028.2
       '@sinclair/typebox': 0.34.52
       croner: 10.0.1
       nanoid: 5.1.16
