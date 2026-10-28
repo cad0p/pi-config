@@ -1,0 +1,7 @@
+[user]
+	name = pi sandbox
+	email = sandbox@aqta.local
+[init]
+	defaultBranch = main
+[safe]
+	directory = *

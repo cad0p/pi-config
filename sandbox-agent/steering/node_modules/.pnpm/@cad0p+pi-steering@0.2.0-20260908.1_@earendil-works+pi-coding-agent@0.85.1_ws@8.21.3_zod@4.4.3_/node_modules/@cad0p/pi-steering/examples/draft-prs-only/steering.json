@@ -1,0 +1,12 @@
+{
+  "rules": [
+    {
+      "name": "pr-create-must-be-draft",
+      "tool": "bash",
+      "field": "command",
+      "pattern": "^gh\\s+pr\\s+create\\b",
+      "unless": "--draft\\b",
+      "reason": "PRs must be created as drafts. Mark the PR ready for review only after a human has reviewed the diff. Use `gh pr ready <number>` to flip from draft to ready."
+    }
+  ]
+}

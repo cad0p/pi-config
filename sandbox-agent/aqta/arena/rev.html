@@ -1,0 +1,979 @@
+<!doctype html>
+<html lang="en-GB" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Seal · Outside review</title>
+<meta name="description" content="A reviewer outside Aqta checks a signed Seal record and countersigns a verdict with a credential from their own wallet. Every object verifies without Aqta.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="/brand/seal-crest.svg" type="image/svg+xml">
+<!-- Self-hosted yivi-frontend 1.0.5. Byte-identical to the unpkg build
+     (verified against the pinned sha384 before the swap); integrity kept so
+     any drift fails closed. Removes the one third-party fetch from the page:
+     no visitor IP goes to unpkg, and judging week does not depend on a CDN. -->
+<script src="/vendor-yivi-1.0.5.js"
+        integrity="sha384-ejDb9lSdPYXHoVuL18LT+MnTmbfTFLhiL/zIygKmIxua3spnEh/aOUQFJayghhD4"></script>
+<script>
+  // Theme before first paint. Day is the default, as on aqta.ai; Night and
+  // Auto only when chosen. Storage is a convenience and may be unavailable.
+  (function () {
+    var t = 'light';
+    try { t = localStorage.getItem('seal-review-theme') || 'light'; } catch (e) {}
+    if (t !== 'light' && t !== 'dark' && t !== 'auto') t = 'light';
+    document.documentElement.setAttribute('data-theme', t);
+  })();
+</script>
+<style>
+  /* The Seal desk, as on app.aqta.ai: ivory desk with a faint dot grid, paper
+     sheets with tape, navy ink, one cyan, a pen hand for margin notes. Text
+     cyan is the AA shade (#00697A); brand cyan #009FB7 is for marks only.
+     Fonts are self-hosted: no third-party fetch on this page. */
+  @font-face { font-family:"Plus Jakarta Sans"; src:url("/fonts/jakarta-latin-200-800-normal.woff2") format("woff2");
+               font-weight:200 800; font-style:normal; font-display:swap; }
+  @font-face { font-family:"JetBrains Mono"; src:url("/fonts/jetbrains-latin-100-800-normal.woff2") format("woff2");
+               font-weight:100 800; font-style:normal; font-display:swap; }
+  @font-face { font-family:"Nanum Pen Script"; src:url("/fonts/nanum-pen-latin-400-normal.woff2") format("woff2");
+               font-weight:400; font-style:normal; font-display:swap; }
+  :root {
+    --desk:#EEE9DE; --paper:#FCFAF5; --card:#FCFAF5; --card-2:#F6F2E9;
+    --ink:#0F1B2D; --ink-2:#394355; --graphite:#566070;
+    --rule:#D9D2C2; --rule-2:#E8E2D5;
+    --cyan:#00697A; --link:#006E96; --cyan-mark:#009FB7; --cyan-wash:#DCEDEF;
+    --ok:#1F6B45; --ok-wash:#E4EBDD; --bad:#B42318; --bad-wash:#F8E7E4;
+    --code-bg:#0F1B2D; --code-ink:#D7E0EA;
+    --tape:rgba(206,229,232,.9); --dots:rgba(15,27,45,.05);
+    --shadow:0 1px 0 rgba(15,27,45,.05), 0 16px 30px -20px rgba(15,27,45,.42);
+    --shadow-lg:0 1px 0 rgba(15,27,45,.05), 0 26px 44px -26px rgba(15,27,45,.5);
+    --dk-scribble:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 7' preserveAspectRatio='none'%3E%3Cpath d='M1 4.5 C 22 1.5, 44 6, 66 3.2 S 104 5.4, 119 2.4' fill='none' stroke='%23009FB7' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    --sans:"Plus Jakarta Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    --pen:"Nanum Pen Script","Segoe Print","Bradley Hand",cursive;
+    --mark-opacity:.07;
+    color-scheme:light;
+  }
+  :root[data-theme="dark"] {
+    --desk:#0D1420; --paper:#162131; --card:#162131; --card-2:#1A2638;
+    --ink:#E9EEF5; --ink-2:#B8C2D0; --graphite:#98A5B8;
+    --rule:#2C3A50; --rule-2:#223047;
+    --cyan:#5CC8DA; --link:#5CC8DA; --cyan-mark:#12AFC7; --cyan-wash:#123039;
+    --ok:#7FCB9D; --ok-wash:#1C2B25; --bad:#F2948A; --bad-wash:#3A1D1B;
+    --code-bg:#0A111B; --code-ink:#D7E0EA;
+    --tape:rgba(92,200,218,.2); --dots:rgba(255,255,255,.045);
+    --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 34px -20px rgba(0,0,0,.75);
+    --shadow-lg:0 1px 0 rgba(0,0,0,.3), 0 28px 46px -24px rgba(0,0,0,.8);
+    --dk-scribble:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 7' preserveAspectRatio='none'%3E%3Cpath d='M1 4.5 C 22 1.5, 44 6, 66 3.2 S 104 5.4, 119 2.4' fill='none' stroke='%2312AFC7' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+    --mark-opacity:.06;
+    color-scheme:dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="auto"] {
+      --desk:#0D1420; --paper:#162131; --card:#162131; --card-2:#1A2638;
+      --ink:#E9EEF5; --ink-2:#B8C2D0; --graphite:#98A5B8;
+      --rule:#2C3A50; --rule-2:#223047;
+      --cyan:#5CC8DA; --link:#5CC8DA; --cyan-mark:#12AFC7; --cyan-wash:#123039;
+      --ok:#7FCB9D; --ok-wash:#1C2B25; --bad:#F2948A; --bad-wash:#3A1D1B;
+      --code-bg:#0A111B; --code-ink:#D7E0EA;
+      --tape:rgba(92,200,218,.2); --dots:rgba(255,255,255,.045);
+      --shadow:0 1px 0 rgba(0,0,0,.3), 0 18px 34px -20px rgba(0,0,0,.75);
+      --shadow-lg:0 1px 0 rgba(0,0,0,.3), 0 28px 46px -24px rgba(0,0,0,.8);
+      --dk-scribble:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 7' preserveAspectRatio='none'%3E%3Cpath d='M1 4.5 C 22 1.5, 44 6, 66 3.2 S 104 5.4, 119 2.4' fill='none' stroke='%2312AFC7' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");
+      --mark-opacity:.06;
+      color-scheme:dark;
+    }
+  }
+
+  * { box-sizing:border-box; margin:0; }
+  html { -webkit-text-size-adjust:100%; background:var(--desk); overflow-x:clip; }
+  body { position:relative; isolation:isolate; background:var(--desk); color:var(--ink);
+         font:16px/1.6 var(--sans); -webkit-font-smoothing:antialiased;
+         min-height:100vh; overflow-x:hidden; }
+  /* The dot grid: fixed, below every piece of content. */
+  body::before { content:""; position:fixed; inset:0; pointer-events:none; z-index:-1;
+                 background:radial-gradient(var(--dots) 1px, transparent 1.3px) 0 0 / 22px 22px; }
+  a { color:var(--link); font-weight:600; text-decoration:underline wavy;
+      text-decoration-color:color-mix(in srgb, var(--cyan-mark) 55%, transparent);
+      text-decoration-thickness:1px; text-underline-offset:4px; }
+  a:hover, a:focus-visible { text-decoration-style:solid; text-decoration-color:var(--cyan-mark); }
+  :focus-visible { outline:2px solid var(--cyan); outline-offset:3px; border-radius:4px; }
+  code { font-family:var(--mono); font-size:.86em; background:var(--card-2);
+         border:1px dashed var(--rule); border-radius:4px; padding:.05em .3em;
+         overflow-wrap:anywhere; }
+  .skip { position:absolute; left:-999px; top:.5rem; background:var(--ink); color:var(--paper);
+          padding:.5rem .9rem; border-radius:6px; z-index:20; }
+  .skip:focus { left:1rem; }
+  .sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+  .pen { font-family:var(--pen); font-weight:400; color:var(--graphite); line-height:1.05; }
+
+  /* Header bar */
+  .bar { position:sticky; top:0; z-index:10; background:var(--desk);
+         border-bottom:1px dashed var(--rule); }
+  .bar-in { max-width:72rem; margin:0 auto; padding:.7rem 1rem; display:flex;
+            align-items:center; gap:.8rem; flex-wrap:wrap; }
+  @media (min-width:48rem) { .bar-in { padding:.85rem 2rem; } }
+  .brand { display:flex; align-items:center; gap:.6rem; color:var(--ink);
+           text-decoration:none; font-weight:800; }
+  .brand img { width:36px; height:36px; border-radius:50%; flex:0 0 auto; }
+  .brand .on-dark { display:none; }
+  :root[data-theme="dark"] .brand .on-light { display:none; }
+  :root[data-theme="dark"] .brand .on-dark { display:block; }
+  @media (prefers-color-scheme: dark) {
+    :root[data-theme="auto"] .brand .on-light { display:none; }
+    :root[data-theme="auto"] .brand .on-dark { display:block; }
+  }
+  .brand span { font-size:1.2rem; letter-spacing:-.02em; line-height:1.1; }
+  .brand small { display:block; font-weight:500; font-size:.76rem; color:var(--graphite); letter-spacing:0; }
+  .bar-nav { margin-left:auto; display:flex; align-items:center; gap:.2rem 1.1rem; flex-wrap:wrap; }
+  .bar-nav a { font-size:.92rem; color:var(--ink-2); text-decoration:none; font-weight:500; padding-block:6px;
+               background:var(--dk-scribble) no-repeat 0 100% / 0 7px; transition:background-size .28s ease, color .2s; }
+  .bar-nav a:hover, .bar-nav a:focus-visible { color:var(--ink); text-decoration:none; background-size:100% 7px; }
+  .theme-btn { background:transparent; border:1.5px dashed var(--rule); color:var(--ink-2);
+               border-radius:8px; padding:.3rem .75rem; font:600 .82rem var(--sans);
+               cursor:pointer; min-height:2rem; }
+  .theme-btn:hover { border-color:var(--cyan-mark); color:var(--ink); }
+  @media (max-width:30rem) { .bar-nav .hide-sm { display:none; } .bar-nav { gap:.2rem .8rem; } }
+
+  .wrap { max-width:72rem; margin:0 auto; padding:0 1rem; }
+  @media (min-width:48rem) { .wrap { padding:0 2rem; } }
+
+  /* Hero: bold, light, with the crest as a faint cropped corner mark. */
+  .hero { position:relative; overflow:hidden; border-bottom:1px dashed var(--rule); }
+  .hero-mark { position:absolute; right:-9rem; top:-4rem; width:30rem; height:30rem;
+               color:var(--ink); opacity:var(--mark-opacity); pointer-events:none; transform:rotate(-8deg); }
+  @media (max-width:48rem) { .hero-mark { right:-12rem; top:-2rem; width:22rem; height:22rem; } }
+  .hero-in { position:relative; padding:2.6rem 0 2.4rem; max-width:58rem; }
+  @media (min-width:48rem) { .hero-in { padding:4rem 0 3.4rem; } }
+  .status { display:inline-flex; align-items:baseline; gap:.55rem;
+            font-size:.84rem; color:var(--ink-2); background:var(--paper);
+            border:1px dashed var(--rule); border-radius:8px; padding:.3rem .8rem; margin-bottom:1.3rem;
+            transform:rotate(-.6deg); }
+  .status i { width:.5rem; height:.5rem; border-radius:999px; background:var(--cyan-mark); flex:0 0 auto; transform:translateY(-.05rem); }
+  h1 { font-size:clamp(2.1rem, 5.4vw, 3.6rem); line-height:1.08; letter-spacing:-.03em;
+       font-weight:800; margin-bottom:1rem; text-wrap:balance; }
+  .scrib { background:var(--dk-scribble) no-repeat 0 96% / 100% .22em; padding-bottom:.08em;
+           -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+  .lede { font-size:clamp(1.15rem, 2.2vw, 1.4rem); font-weight:650; line-height:1.35;
+          letter-spacing:-.01em; margin-bottom:.9rem; }
+  .lede em { font-style:normal; color:var(--cyan); }
+  .sub { color:var(--ink-2); font-size:1.02rem; max-width:40rem; margin-bottom:1.6rem; }
+  .sub strong { color:var(--ink); }
+  .addressed { margin:0 0 1.2rem; padding:.8rem 1rem; border-radius:4px;
+               border:1px dashed var(--cyan-mark); background:var(--cyan-wash);
+               font-size:.95rem; line-height:1.5; color:var(--ink); max-width:40rem; transform:rotate(-.4deg); }
+  .ctas { display:flex; flex-wrap:wrap; gap:.85rem; align-items:center; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
+         min-height:2.75rem; padding:.65rem 1.15rem; border-radius:10px;
+         font:600 .98rem var(--sans); text-decoration:none; cursor:pointer;
+         border:1.5px solid var(--ink); transition:transform .15s ease, box-shadow .15s ease, background .15s ease; }
+  .btn-primary { background:var(--ink); color:var(--paper); box-shadow:3px 3px 0 var(--cyan-mark); }
+  .btn-primary:hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--cyan-mark); text-decoration:none; }
+  .btn-secondary { background:transparent; color:var(--ink); }
+  .btn-secondary:hover { background:var(--paper); text-decoration:none; }
+  .cta-note { font-size:.88rem; color:var(--graphite); margin-top:.9rem; max-width:36rem; }
+  .fides { font-size:.88rem; color:var(--graphite); margin-top:1.3rem; }
+
+  /* Layout: content plus a sticky rail on wide screens. */
+  .layout { display:block; padding:2.6rem 0 3rem; }
+  @media (min-width:68rem) {
+    .layout { display:grid; grid-template-columns:minmax(0,1fr) 14rem; column-gap:3rem; align-items:start; }
+  }
+  .rail { display:none; }
+  @media (min-width:68rem) {
+    .rail { display:block; position:sticky; top:5.5rem; padding-left:1.1rem; border-left:1px dashed var(--rule); }
+  }
+  .rail-title { font:400 1.35rem/1 var(--pen); color:var(--graphite); margin-bottom:.6rem; }
+  .rail ol { list-style:none; padding:0; }
+  .rail a { display:block; padding:.3rem 0 .3rem .7rem; margin-left:-1.15rem;
+            border-left:2px solid transparent; color:var(--graphite); font-size:.88rem;
+            font-weight:500; text-decoration:none; line-height:1.35; }
+  .rail a:hover { color:var(--ink); }
+  .rail a[aria-current="true"] { color:var(--ink); font-weight:650; border-left-color:var(--cyan-mark); }
+
+  section { scroll-margin-top:5.5rem; }
+  h2 { font-size:clamp(1.45rem, 3vw, 1.9rem); line-height:1.15; letter-spacing:-.02em;
+       font-weight:800; margin-bottom:.6rem; text-wrap:balance; }
+  .section-lede { color:var(--ink-2); max-width:42rem; margin-bottom:1.4rem; }
+  .block { margin-bottom:3rem; }
+  .block + .block { border-top:1px dashed var(--rule); padding-top:2.6rem; }
+
+  /* Sheets: paper on the desk, a strip of tape, a slight hand-placed tilt. */
+  .sheet { background:var(--paper); border:1px solid var(--rule); box-shadow:var(--shadow); position:relative; }
+  .tape::before { content:""; position:absolute; top:-11px; left:50%; width:98px; height:22px; background:var(--tape);
+                  transform:translateX(-50%) rotate(-2.5deg); box-shadow:0 1px 0 rgba(15,27,45,.06); z-index:2; pointer-events:none; }
+  .tape.tape-l::before { left:3.2rem; transform:translateX(-50%) rotate(2deg); }
+
+  /* How it works: three issuers, then the review path. */
+  .issuers { display:grid; grid-template-columns:1fr; gap:.9rem; align-items:stretch; padding-top:.4rem; }
+  @media (min-width:44rem) { .issuers { grid-template-columns:1fr auto 1fr auto 1fr; gap:.6rem; } }
+  .issuer { padding:1.1rem 1.15rem 1rem; border-radius:3px; }
+  .issuer:nth-of-type(1) { transform:rotate(-.6deg); }
+  .issuer:nth-of-type(2) { transform:rotate(.45deg); }
+  .issuer:nth-of-type(3) { transform:rotate(-.3deg); }
+  .issuer .who { font-size:.86rem; font-weight:700; color:var(--cyan); margin-bottom:.15rem; }
+  .issuer .what { font-weight:700; font-size:1.02rem; }
+  .issuer .how { font-size:.88rem; color:var(--graphite); margin-top:.1rem; }
+  .issuer .obj { display:inline-block; margin-top:.6rem; font-family:var(--mono); font-size:.78rem;
+                 background:var(--cyan-wash); color:var(--ink); padding:.15rem .6rem;
+                 border-radius:46% 12% 38% 16% / 28% 40% 16% 30%; }
+  .neq { align-self:center; justify-self:center; position:relative; display:grid; place-items:center;
+         width:2.6rem; height:2.6rem; font:400 1.9rem/1 var(--pen); color:var(--graphite); }
+  .neq svg { position:absolute; inset:0; width:100%; height:100%; color:var(--cyan-mark); opacity:.8; }
+  .pack-strip { margin-top:1.1rem; background:var(--code-bg); color:var(--code-ink); border-radius:4px;
+                padding:.85rem 1.1rem; font-size:.95rem; text-align:center; transform:rotate(.2deg); }
+  .pack-strip b { color:#fff; }
+  .note { font-size:.95rem; color:var(--ink-2); margin-top:1.1rem; max-width:44rem; }
+  .note strong { color:var(--ink); }
+
+  .flow { list-style:none; padding:0; margin-top:2rem; display:grid; gap:.7rem;
+          grid-template-columns:1fr; counter-reset:fl; }
+  @media (min-width:52rem) { .flow { grid-template-columns:repeat(4, 1fr); } }
+  .flow li { position:relative; background:var(--paper); border:1px dashed var(--rule);
+             border-radius:4px; padding:.85rem 1rem .85rem 3rem; counter-increment:fl; }
+  .flow li::before { content:counter(fl); position:absolute; left:1rem; top:.9rem; width:1.4rem; height:1.4rem;
+                     border-radius:50%; border:1.5px solid var(--ink); color:var(--ink); font:400 1.15rem/1.25rem var(--pen);
+                     text-align:center; }
+  .flow b { display:block; font-size:.98rem; }
+  .flow span { font-size:.86rem; color:var(--graphite); }
+  .flow li.boundary { border-style:solid; border-left:3px solid var(--cyan-mark); }
+  .flow-key { font-size:.86rem; color:var(--graphite); margin-top:.6rem; }
+  .flow-key i { display:inline-block; width:1rem; height:.7rem; border-left:3px solid var(--cyan-mark);
+                vertical-align:middle; margin-right:.2rem; }
+
+  /* The four steps. */
+  .step { border-radius:3px; padding:1.4rem 1.2rem 1.1rem; margin-bottom:1.6rem;
+          transition:opacity .2s ease; }
+  @media (min-width:48rem) { .step { padding:1.6rem 1.7rem 1.2rem; } }
+  .step:nth-of-type(odd) { transform:rotate(-.25deg); }
+  .step:nth-of-type(even) { transform:rotate(.2deg); }
+  .step.locked { opacity:.55; box-shadow:none; border-style:dashed; }
+  .step.locked::before { opacity:.5; }
+  .step h3 { display:flex; align-items:center; gap:.65rem; flex-wrap:wrap;
+             font-size:1.18rem; font-weight:750; letter-spacing:-.01em; margin-bottom:.6rem; }
+  .step h3 .n { display:inline-flex; align-items:center; justify-content:center; width:1.9rem; height:1.9rem;
+                border-radius:50%; border:1.5px solid var(--ink); color:var(--ink);
+                font:400 1.35rem/1 var(--pen); flex:0 0 auto; }
+  .step.locked h3 .n { border-color:var(--graphite); color:var(--graphite); border-style:dashed; }
+  .waits { margin-left:auto; font-size:.8rem; font-weight:600; color:var(--graphite);
+           border:1px dashed var(--rule); border-radius:6px; padding:.1rem .6rem; white-space:nowrap; }
+  .step:not(.locked) .waits { display:none; }
+  .margin-note { display:flex; align-items:center; justify-content:flex-end; gap:.35rem;
+                 margin-top:.9rem; padding-top:.6rem; border-top:1px dashed var(--rule-2);
+                 font:400 1.3rem/1.1 var(--pen); color:var(--graphite); text-align:right; }
+  .margin-note span { transform:rotate(-1.5deg); }
+  .margin-note svg { flex:0 0 auto; width:26px; height:16px; color:var(--cyan-mark); }
+  .hint { font-size:.92rem; color:var(--ink-2); margin-top:.6rem; max-width:44rem; }
+  .hint.small { font-size:.86rem; color:var(--graphite); }
+  label.field { display:block; font-size:.92rem; font-weight:650; margin:.9rem 0 .35rem; }
+  textarea, input[type=text] { width:100%; background:var(--card-2); color:var(--ink);
+    border:1px solid var(--rule); border-radius:4px; padding:.7rem .8rem;
+    font-family:var(--mono); font-size:.85rem; }
+  input[type=text] { font-family:var(--sans); font-size:1rem; background:transparent;
+    border:0; border-bottom:1.5px dashed var(--cyan-mark); border-radius:0; padding:.55rem .1rem; }
+  textarea { min-height:7rem; resize:vertical; }
+  textarea:focus, input:focus { outline:2px solid var(--cyan); outline-offset:1px; }
+  .actions { display:flex; align-items:center; gap:.75rem; flex-wrap:wrap; margin-top:1rem; }
+  button { font-family:var(--sans); }
+  .step button:not(.ghost):not(.decline), .try button:not(.ghost) {
+           background:var(--ink); color:var(--paper); border:1.5px solid var(--ink);
+           border-radius:10px; min-height:2.75rem; padding:.55rem 1.15rem; font-weight:600; font-size:.95rem; cursor:pointer;
+           box-shadow:3px 3px 0 var(--cyan-mark); transition:transform .15s ease, box-shadow .15s ease; }
+  .step button:not(.ghost):not(.decline):hover { transform:translate(-1px,-1px); box-shadow:4px 4px 0 var(--cyan-mark); }
+  button.ghost { background:transparent; color:var(--ink); border:1.5px solid var(--ink); border-radius:10px;
+                 min-height:2.75rem; padding:.55rem 1.1rem; font-weight:600; font-size:.95rem; cursor:pointer; }
+  button.ghost:hover { background:var(--card-2); }
+  button.decline { background:transparent; color:var(--bad); border:1.5px solid var(--bad); border-radius:10px;
+                   min-height:2.75rem; padding:.55rem 1.2rem; font-weight:600; font-size:.95rem; cursor:pointer; }
+  button.decline:hover { background:var(--bad-wash); }
+  .ok { color:var(--ok); font-weight:650; } .bad { color:var(--bad); font-weight:650; }
+
+  .cred { margin-top:1rem; display:grid; gap:1rem; grid-template-columns:1fr; }
+  @media (min-width:52rem) { .cred { grid-template-columns:16rem 1fr; } }
+  .cred-box { background:var(--cyan-wash); border-radius:3px; padding:.85rem 1rem; transform:rotate(-1deg);
+              box-shadow:0 12px 22px -16px rgba(15,27,45,.55); align-self:start; }
+  .cred-box p { font-size:.9rem; font-weight:650; margin-bottom:.35rem; }
+  .cred-box ul { list-style:none; padding:0; font-size:.9rem; }
+  .cred-yes { color:var(--ok); font-weight:650; }
+  .cred-no { color:var(--graphite); }
+  .cred-text p { font-size:.9rem; color:var(--ink-2); margin-bottom:.6rem; }
+
+  /* Receipt card: verdict first, fields one click down. */
+  .receipt-card { position:relative; border:1px solid var(--rule); border-left:4px solid var(--cyan-mark);
+                  border-radius:3px; padding:1rem 1.15rem; margin-top:1rem; background:var(--card-2); }
+  .receipt-card .rc-eyebrow { font-size:.84rem; color:var(--graphite); margin-bottom:.3rem; }
+  .receipt-card .rc-verdict { font-size:1.9rem; font-weight:800; letter-spacing:-.02em; line-height:1.1; }
+  .receipt-card .rc-line { margin-top:.4rem; font-size:.98rem; overflow-wrap:anywhere; }
+  .receipt-card .rc-line b { font-family:var(--mono); font-weight:600; font-size:.86rem; }
+  .receipt-card .rc-meta { margin:.35rem 0 .2rem; font-size:.86rem; color:var(--graphite); overflow-wrap:anywhere; }
+  .receipt-card dl, .success-grid { display:grid; grid-template-columns:auto 1fr; gap:.2rem 1.1rem; font-size:.88rem; margin-top:.7rem; }
+  .receipt-card dt, .success-grid dt { color:var(--graphite); font-size:.84rem; font-weight:600; }
+  .receipt-card dd, .success-grid dd { color:var(--ink); word-break:break-all; }
+  details { margin-top:.7rem; }
+  details summary { font-size:.9rem; color:var(--link); cursor:pointer; font-weight:650; min-height:1.8rem; }
+  pre { background:var(--code-bg); color:var(--code-ink); border-radius:4px; padding:.8rem .9rem;
+        font:.76rem/1.5 var(--mono); overflow-x:auto; margin-top:.6rem; white-space:pre-wrap; word-break:break-all; }
+  #binding { background:var(--card-2); color:var(--ink); border:1px dashed var(--rule); }
+  .receipt-card.sealed { animation:sealring .6s ease; }
+  @keyframes sealring { 0% { box-shadow:0 0 0 0 rgba(0,159,183,.45); } 100% { box-shadow:0 0 0 14px rgba(0,159,183,0); } }
+  .stamp { position:absolute; top:10px; right:12px; width:44px; height:44px; transform:rotate(-8deg) scale(.6); opacity:0; }
+  .receipt-card.sealed .stamp { animation:stampin .45s cubic-bezier(.2,1.4,.4,1) .15s forwards; }
+  @keyframes stampin { to { opacity:1; transform:rotate(-8deg) scale(1); } }
+  @media (prefers-reduced-motion: reduce) {
+    .receipt-card.sealed, .receipt-card.sealed .stamp { animation:none; }
+    .receipt-card.sealed .stamp { opacity:1; transform:rotate(-8deg) scale(1); }
+    .step, .btn, .bar-nav a, .step button { transition:none; }
+  }
+
+  #yivi-web { margin-top:1rem; max-width:300px; }
+  #success { margin-top:1rem; border:1px solid var(--rule); border-left:4px solid var(--ok);
+             border-radius:3px; padding:1rem 1.15rem; background:var(--card-2); }
+  .success-title { color:var(--ok); font-weight:750; margin-bottom:.2rem; }
+  .checks { display:flex; flex-wrap:wrap; gap:.4rem 1.2rem; margin-top:.8rem; padding-top:.7rem;
+            border-top:1px dashed var(--rule); font-size:.9rem; color:var(--ink-2); }
+  .checks b { color:var(--ok); }
+
+  .pack-obj { display:grid; grid-template-columns:auto 1fr; gap:.1rem .7rem; padding:.7rem 0;
+              border-bottom:1px dashed var(--rule); font-size:.92rem; }
+  @media (min-width:44rem) { .pack-obj { grid-template-columns:auto 12rem 1fr; } }
+  .pack-obj:last-of-type { border-bottom:0; }
+  .pack-obj .file { font-family:var(--mono); font-size:.82rem; }
+  .pack-obj .claim { color:var(--ink-2); font-size:.88rem; grid-column:2 / -1; }
+  @media (min-width:44rem) { .pack-obj .claim { grid-column:auto; } }
+  .pack-obj .mark { color:var(--ok); font-weight:700; }
+  .pack-terminus { margin:1rem 0 .3rem; font-size:1rem; }
+  .independence { margin-top:.8rem; padding:.85rem 1rem; background:var(--cyan-wash);
+                  border-radius:3px; font-size:.92rem; transform:rotate(-.4deg); }
+
+  /* Proves / does not */
+  .proves { display:grid; gap:.9rem; padding:1.2rem 1.2rem 1rem; border-radius:3px; transform:rotate(-.2deg); }
+  @media (min-width:48rem) { .proves { padding:1.5rem 1.7rem 1.2rem; } }
+  .proves > div { display:grid; grid-template-columns:1fr; gap:.2rem; padding:.2rem 0 .9rem;
+                  border-bottom:1px dashed var(--rule); }
+  .proves > div:last-child { border-bottom:0; padding-bottom:0; }
+  @media (min-width:44rem) { .proves > div { grid-template-columns:8rem 1fr; gap:1.2rem; } }
+  .proves dt { font:400 1.45rem/1.1 var(--pen); }
+  .proves dt.yes { color:var(--ok); }
+  .proves dt.no { color:var(--bad); }
+  .proves dt.cr { color:var(--cyan); }
+  .proves dd { margin:0; font-size:.94rem; color:var(--ink-2); }
+
+  /* Break a seal, embedded on request only. */
+  .try { border-radius:3px; padding:1.4rem 1.2rem; transform:rotate(.25deg); }
+  @media (min-width:48rem) { .try { padding:1.6rem 1.7rem; } }
+  .try-frame { margin-top:1rem; border:1px solid var(--rule-2); border-radius:4px; overflow:hidden; background:#FBF8F1; }
+  .try-frame iframe { display:block; border:0; width:100%; height:640px; }
+
+  /* Next steps */
+  .doors { list-style:none; padding:0; display:grid; gap:1rem; grid-template-columns:1fr; }
+  @media (min-width:48rem) { .doors { grid-template-columns:1fr 1fr; } }
+  .doors li { background:var(--paper); border:1px solid var(--rule); border-radius:3px; padding:1rem 1.1rem;
+              font-size:.94rem; color:var(--ink-2); box-shadow:var(--shadow); }
+  .doors li:nth-child(1) { transform:rotate(-.4deg); }
+  .doors li:nth-child(2) { transform:rotate(.35deg); }
+  .doors li:nth-child(3) { transform:rotate(.25deg); }
+  .doors li:nth-child(4) { transform:rotate(-.3deg); }
+  .doors li b { display:block; color:var(--ink); font-size:1.02rem; margin-bottom:.2rem; }
+  .doors li.lead { border:1.5px solid var(--ink); }
+  .doors-note { font-size:.9rem; color:var(--graphite); margin-top:1.2rem; }
+
+  footer { border-top:1px dashed var(--rule); margin-top:1rem; }
+  .foot { display:flex; flex-wrap:wrap; justify-content:space-between; gap:.6rem 2rem; padding:1.4rem 0 2.4rem;
+          font-size:.86rem; color:var(--graphite); }
+  .foot a { font-weight:600; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="crest" viewBox="-50 -48 1122 1122"><g transform="translate(0 1024) scale(.1 -.1)"><path fill="currentColor" d="M4945 9843 c-140 -5 -377 -25 -472 -39 -54 -8 -118 -17 -142 -19 -24 -3 -47 -8 -52 -10 -4 -3 -27 -8 -51 -10 -37 -5 -208 -42 -273 -60 -11 -4 -31 -8 -45 -11 -297 -59 -811 -267 -1168 -472 -146 -84 -384 -239 -390 -254 -2 -4 -8 -8 -13 -8 -12 0 -135 -92 -259 -193 -261 -212 -545 -502 -738 -752 -34 -44 -72 -93 -85 -109 -86 -111 -297 -441 -297 -465 0 -6 -4 -11 -9 -11 -12 0 -191 -355 -255 -509 -80 -191 -198 -538 -220 -651 -3 -14 -12 -50 -20 -80 -28 -98 -74 -351 -96 -520 -154 -1216 177 -2427 932 -3407 44 -57 82 -103 85 -103 5 0 240 133 288 163 10 6 49 30 85 52 36 21 67 42 70 45 3 3 17 11 32 19 15 8 36 21 45 30 10 9 30 22 46 30 15 8 27 18 27 23 0 4 5 8 10 8 39 0 356 265 546 454 286 287 426 486 635 906 29 59 110 248 113 265 2 5 10 27 19 48 30 68 67 177 61 177 -4 0 -1 7 6 15 7 8 9 15 5 15 -4 0 -3 6 3 12 15 19 220 675 236 755 1 10 6 25 9 33 8 21 127 383 130 395 2 6 8 19 14 30 6 11 11 22 11 25 3 30 115 259 180 368 133 223 325 441 502 571 47 34 92 68 100 74 9 7 36 23 60 36 25 14 47 27 50 31 6 7 120 63 135 66 6 1 28 10 50 20 22 10 42 18 45 19 3 1 43 13 90 27 47 14 99 29 115 34 17 4 35 8 40 10 6 1 26 5 45 9 19 4 46 9 60 12 65 13 517 11 580 -3 36 -7 81 -15 100 -18 28 -3 140 -35 285 -80 51 -16 207 -88 365 -170 217 -112 445 -196 590 -219 127 -21 406 -89 435 -107 95 -59 137 -252 99 -455 -16 -86 -17 -90 -29 -120 -85 -216 -184 -318 -484 -501 -423 -259 -586 -406 -679 -614 -45 -101 -54 -123 -73 -197 -72 -280 -44 -517 131 -1113 84 -289 103 -352 106 -365 1 -5 15 -73 32 -150 89 -407 102 -776 41 -1135 -12 -69 -22 -132 -24 -140 -28 -183 -227 -686 -336 -850 -42 -63 -129 -201 -129 -205 0 -4 133 31 160 42 8 3 23 8 32 9 39 8 214 67 226 76 6 6 12 7 12 3 0 -4 7 -2 15 5 8 7 15 10 15 7 0 -8 196 72 299 121 19 10 35 15 35 14 1 -5 329 159 336 167 3 3 34 21 70 40 36 19 67 37 70 40 3 3 26 17 53 31 26 13 47 28 47 32 0 5 4 8 10 8 13 0 124 71 128 82 2 4 8 8 14 8 29 0 403 289 577 447 380 344 744 800 976 1224 69 127 195 386 195 401 0 8 4 18 9 24 20 20 167 414 154 414 -3 0 -1 6 5 12 9 12 57 165 65 213 2 11 7 27 10 35 11 30 70 306 82 390 81 554 82 940 0 1500 -24 163 -95 468 -149 635 -2 6 -4 12 -5 15 -2 14 -60 179 -72 205 -7 17 -13 32 -13 35 -5 25 -60 161 -67 166 -5 3 -9 12 -9 20 0 9 -16 50 -36 92 -21 42 -38 82 -40 89 -4 21 -221 423 -233 433 -3 3 -15 21 -25 40 -134 245 -558 769 -771 952 -22 19 -67 60 -100 92 -76 72 -311 262 -433 349 -550 393 -1213 677 -1857 796 -290 54 -750 96 -965 89 -30 -1 -86 -3 -125 -5z M5555 1724 c-22 -36 -50 -78 -63 -92 -12 -15 -35 -45 -50 -67 -15 -22 -30 -42 -33 -45 -3 -3 -30 -34 -60 -70 -141 -172 -386 -402 -583 -547 -56 -41 -108 -80 -117 -86 -8 -7 -26 -18 -40 -26 -13 -8 -64 -39 -114 -70 -103 -63 -372 -201 -392 -201 -55 0 73 -48 147 -55 8 -1 24 -4 35 -8 11 -3 36 -8 55 -11 19 -3 46 -8 60 -11 221 -50 432 -69 760 -69 351 0 603 21 606 50 0 5 4 16 7 24 66 160 97 535 62 760 -22 147 -117 433 -152 459 -4 3 -19 27 -32 54 -13 26 -28 47 -32 47 -5 0 -9 7 -9 15 0 28 -15 14 -55 -51z"/></g><circle cx="601.6" cy="423.9" r="22.7" fill="#009FB7"/><circle cx="511" cy="513" r="470" fill="none" stroke="currentColor" stroke-width="56"/><circle data-ring="1" cx="511" cy="513" r="540" fill="none" stroke="currentColor" stroke-width="18"/></symbol>
+</svg>
+<a class="skip" href="#review">Skip to the review</a>
+
+<header class="bar">
+  <div class="bar-in">
+    <a class="brand" href="https://aqta.ai/seal" aria-label="Seal by Aqta, aqta.ai">
+      <img class="on-light" src="/desk/seal-mark-on-light.png" alt="" width="36" height="36">
+      <img class="on-dark" src="/desk/seal-mark-on-dark.png" alt="" width="36" height="36">
+      <span>Seal<small>by Aqta</small></span>
+    </a>
+    <nav class="bar-nav" aria-label="Primary">
+      <a href="#review">Review</a>
+      <a class="hide-sm" href="https://app.aqta.ai/verify">Verify</a>
+      <a href="https://app.aqta.ai/break-the-seal">Break a seal</a>
+      <button type="button" class="theme-btn" id="theme-btn" aria-label="Theme: Day. Change theme">Day</button>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="hero">
+    <svg class="hero-mark" aria-hidden="true" focusable="false"><use href="#crest"/></svg>
+    <div class="wrap">
+      <div class="hero-in">
+        <p class="status" title="Receipt signing has run in production since April 2026. Reviewer countersigning is offered in pilots; the wallet presentation profile stays open until the EUDI community weighs in."><i aria-hidden="true"></i>Signing live since April 2026. Reviewer countersigning open for pilots.</p>
+        <h1>When an AI decision is challenged, <span class="scrib">who holds the evidence?</span></h1>
+        <p class="lede">Digital identity proves <em>who</em>. Seal proves <em>what happened</em>.</p>
+        <p class="sub"><strong>Today, the organisation under review controls the record used to explain itself.</strong>
+           Here, three separate parties each hold one piece, and no single party controls all three.
+           The evidence is built to survive even if Aqta disappears.</p>
+        <div class="ctas">
+          <a class="btn btn-primary" href="#review">Review a signed record</a>
+          <a class="btn btn-secondary" href="https://app.aqta.ai/break-the-seal">Break a seal</a>
+        </div>
+        <p class="cta-note">Breaking a seal: change one field in a real receipt and watch the signature fail. No account, 30 seconds.</p>
+        <p class="fides">A published <a href="https://fides.community/use-case/independent-review-of-ai-decision-evidence-lf3fYX/">FIDES use case</a>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="layout">
+      <div class="content">
+
+        <section class="block" id="how" aria-labelledby="how-h">
+          <h2 id="how-h">Three issuers, three verification paths</h2>
+          <p class="section-lede">No single party can create the complete evidence pack alone.</p>
+          <div class="issuers">
+            <div class="issuer sheet">
+              <p class="who">Seal</p>
+              <p class="what">Issues the receipt</p>
+              <p class="how">Against a published Ed25519 key</p>
+              <span class="obj">receipt.json</span>
+            </div>
+            <span class="neq" aria-label="separate from"><svg viewBox="0 0 42 42" aria-hidden="true" focusable="false"><path d="M21.4 3.1c9.6.3 17.6 7.7 17.3 17.6-.3 9.9-8.4 17.9-18.2 17.5C10.8 37.8 3.2 30.3 3.6 20.6 4 11.6 11.2 4.4 19.8 3.6c2.4-.2 4.6.3 6.2.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>&#8800;</span>
+            <div class="issuer sheet">
+              <p class="who">Yivi</p>
+              <p class="what">Issues the credential</p>
+              <p class="how">Held in the reviewer&rsquo;s own wallet</p>
+              <span class="obj">credential</span>
+            </div>
+            <span class="neq" aria-label="separate from"><svg viewBox="0 0 42 42" aria-hidden="true" focusable="false"><path d="M21.4 3.1c9.6.3 17.6 7.7 17.3 17.6-.3 9.9-8.4 17.9-18.2 17.5C10.8 37.8 3.2 30.3 3.6 20.6 4 11.6 11.2 4.4 19.8 3.6c2.4-.2 4.6.3 6.2.9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>&#8800;</span>
+            <div class="issuer sheet">
+              <p class="who">Reviewer</p>
+              <p class="what">Issues the verdict</p>
+              <p class="how">Bound to the evidence</p>
+              <span class="obj">signed verdict</span>
+            </div>
+          </div>
+          <p class="pack-strip"><b>One evidence pack</b>, three verification paths. Each object verifies without contacting Aqta.</p>
+          <p class="note"><strong>An open receipt format, a wallet-held credential and a verdict anyone
+             can check without Aqta:</strong> a reusable pattern, not a closed Aqta account workflow. The record
+             formats have two separately written reference implementations, TypeScript and Python, which agree on
+             all 67 conformance vectors. One implementation defines a format. Two that agree make it interoperable.</p>
+
+          <ol class="flow" aria-label="How a review happens">
+            <li><b>AI decides</b><span>In the operator&rsquo;s stack</span></li>
+            <li><b>Seal signs</b><span>The receipt</span></li>
+            <li class="boundary"><b>Credential presented</b><span>From the reviewer&rsquo;s own wallet</span></li>
+            <li class="boundary"><b>Verdict countersigned</b><span>Credential bound in, pack exports</span></li>
+          </ol>
+          <p class="flow-key"><i aria-hidden="true"></i>Across the trust boundary: the outside reviewer&rsquo;s side.</p>
+        </section>
+
+        <section class="block" id="review" aria-labelledby="review-h">
+          <h2 id="review-h">Review a signed record</h2>
+          <p class="section-lede">Four steps, in order. Each one unlocks the next. This is steps four and five of the
+             <a href="https://app.aqta.ai/demo">guided demo</a>.</p>
+
+          <section class="step sheet tape tape-l" id="s1" aria-labelledby="s1-h">
+            <h3 id="s1-h"><span class="n" aria-hidden="true">1</span><span>Evidence: the signed receipt</span></h3>
+            <p class="hint">A genuine receipt from the production gateway. It holds a hash of the request,
+               never its text: no prompt, no response, no customer data. Verify it yourself with
+               <code>npx aqta-verify-receipt</code>.</p>
+            <label class="field sr-only" for="receipt">Receipt JSON</label>
+            <textarea id="receipt" placeholder="Paste receipt JSON (receipt.json from an evidence pack, or a live sealed turn)"></textarea>
+            <div id="receipt-summary"></div>
+            <div class="actions">
+              <button type="button" id="b1">Use this receipt</button>
+              <button type="button" class="ghost" id="clearbox">Paste a different receipt</button>
+              <button type="button" class="ghost" id="loadsample" hidden>Back to the sample</button>
+            </div>
+            <p class="hint" id="h1" role="status" aria-live="polite"></p>
+            <p class="margin-note"><svg viewBox="0 0 26 16" aria-hidden="true" focusable="false"><path d="M1.5 9.2c4.6-1.1 10.4-1.7 20.6-.6M17.4 4.1c1.9 1.6 3.4 3 5 4.6-1.8 1.3-3.4 2.4-5.4 3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>a hash of the request, never its text</span></p>
+          </section>
+
+          <section class="step sheet tape tape-l locked" id="s2" aria-labelledby="s2-h" inert>
+            <h3 id="s2-h"><span class="n" aria-hidden="true">2</span><span>Docket: the question being asked</span><span class="waits">After step 1</span></h3>
+            <p class="hint">The question is hashed into what you sign, so the verdict can never drift from what was asked.</p>
+            <label class="field" for="question">Review question</label>
+            <input type="text" id="question" placeholder="e.g. Did this AI response clear under the policy in force when it ran?">
+            <div class="actions"><button type="button" id="b2">Open docket</button></div>
+            <p class="hint" id="h2" role="status" aria-live="polite"></p>
+            <p class="margin-note"><svg viewBox="0 0 26 16" aria-hidden="true" focusable="false"><path d="M1.5 9.2c4.6-1.1 10.4-1.7 20.6-.6M17.4 4.1c1.9 1.6 3.4 3 5 4.6-1.8 1.3-3.4 2.4-5.4 3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>fixed before anyone signs</span></p>
+          </section>
+
+          <section class="step sheet tape tape-l locked" id="s3" aria-labelledby="s3-h" inert>
+            <h3 id="s3-h"><span class="n" aria-hidden="true">3</span><span>Review and countersign</span><span class="waits">After step 2</span></h3>
+            <p class="hint">You sign a verdict bound to the receipt and the fixed question, using a credential
+               from your own wallet. The receipt is untouched: the verdict is a new artefact that references it.</p>
+            <div class="cred">
+              <div class="cred-box">
+                <p>The disclosed credential proves</p>
+                <ul>
+                  <li class="cred-yes">&#10003; control of a verified email address</li>
+                  <li class="cred-no">&#10007; not an employer</li>
+                  <li class="cred-no">&#10007; not reviewer authority</li>
+                </ul>
+              </div>
+              <div class="cred-text">
+                <p>The attribute you disclose is stored with your verdict, and anyone holding the docket link
+                   can read it without an account. That is deliberate: an anonymous verdict proves nothing.
+                   While countersigning is in pilot, disclose the sample email credential rather than anything
+                   you would not want stored. <a href="https://app.aqta.ai/privacy">What we keep and how to have it erased</a>.</p>
+                <p>Which credential establishes authority is the open question, and this wallet&rsquo;s own
+                   production scheme already carries two answers: <code>pbdf.signicat.kvkTradeRegister</code>,
+                   which discloses an organisation, its KVK number, a job title and whether the holder may act
+                   for it, and <code>pbdf.nuts.agb</code>, which proves a registered healthcare provider. Neither
+                   is wired in yet. We would rather test one with a reviewer who holds it than accept it untested.</p>
+              </div>
+            </div>
+            <div class="actions">
+              <button type="button" id="accept">Accept</button>
+              <button type="button" id="decline" class="decline">Decline</button>
+            </div>
+            <details id="binding-fold" hidden>
+              <summary>View the canonical binding text</summary>
+              <pre id="binding"></pre>
+            </details>
+            <div id="yivi-web" hidden></div>
+            <div id="success" hidden role="status" aria-live="polite"></div>
+            <p class="margin-note"><svg viewBox="0 0 26 16" aria-hidden="true" focusable="false"><path d="M1.5 9.2c4.6-1.1 10.4-1.7 20.6-.6M17.4 4.1c1.9 1.6 3.4 3 5 4.6-1.8 1.3-3.4 2.4-5.4 3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>your wallet, your signature</span></p>
+          </section>
+
+          <section class="step sheet tape tape-l locked" id="s4" aria-labelledby="s4-h" inert>
+            <h3 id="s4-h"><span class="n" aria-hidden="true">4</span><span>Export the evidence pack</span><span class="waits">After step 3</span></h3>
+            <div id="objects"></div>
+            <p class="pack-terminus" id="pack-terminus" hidden><strong>The evidence pack:</strong>
+               one file, three trust domains, verifiable without Aqta.</p>
+            <div class="independence" id="independence" hidden>
+              The receipt verifies against Seal&rsquo;s published key, the reviewer&rsquo;s signature against
+              the Yivi scheme&rsquo;s issuers. Neither needs the other&rsquo;s permission, and neither needs ours.
+            </div>
+            <p id="docket-recorded" class="hint" hidden></p>
+            <div class="actions"><button type="button" id="download">Download your review record (JSON)</button></div>
+            <p class="hint small">Verification is asymmetric today, and worth saying plainly. The receipt
+               verifies in any browser, or offline with <code>npx aqta-verify-receipt</code>. The
+               attribute-based signature verifies with irmago (CLI or server-side), because no browser
+               implementation of Idemix signature verification exists yet. Different tools, same property:
+               neither needs Aqta.</p>
+            <p class="margin-note"><svg viewBox="0 0 26 16" aria-hidden="true" focusable="false"><path d="M1.5 9.2c4.6-1.1 10.4-1.7 20.6-.6M17.4 4.1c1.9 1.6 3.4 3 5 4.6-1.8 1.3-3.4 2.4-5.4 3.7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span>three files, none of them needs us</span></p>
+          </section>
+        </section>
+
+        <section class="block" id="scope" aria-labelledby="scope-h">
+          <h2 id="scope-h">What this proves, and what it does not</h2>
+          <dl class="proves sheet">
+            <div><dt class="yes">Proves</dt><dd>Seal signed the stated record, its signed fields have not changed,
+              and a party holding a credential Aqta did not issue reviewed it and signed a verdict, at a time
+              attested by the Yivi timestamp service, a clock Aqta does not run.</dd></div>
+            <div><dt class="no">Does not prove</dt><dd>That the record matches the computation that actually ran.
+              A signature is an assertion by a key holder, not evidence of execution fidelity, so a countersigned
+              review certifies a review of the artefact. Closing that is <a href="https://aqta.ai/research">open research</a>.</dd></div>
+            <div><dt class="no">Does not prove</dt><dd>That no decision was left out. A decision never written down
+              leaves no trace, so a reviewer sees what they were shown and cannot conclude the rest was
+              irrelevant. Completeness is the hardest of these and we do not claim it.</dd></div>
+            <div><dt class="no">Does not prove</dt><dd>That the decision was correct, fair or free of discrimination.
+              None of that is in the artefact. This establishes what was decided and under which rules, which is
+              what lets someone competent argue about whether it should have been.</dd></div>
+            <div><dt class="cr">Credential</dt><dd>A verified email is a placeholder: it shows a reviewer is
+              identifiable, not qualified or free of conflict. Which credential establishes <em>authority</em> is the
+              open question, and we would rather work on it with people who issue credentials than guess.
+              Professional accreditation, an organisational role attestation, something EUDI-issued once it
+              exists: all plausible, none settled. If you work on credential schemes,
+              <a href="/cdn-cgi/l/email-protection#432b262f2f2c03223237226d222a"><span class="__cf_email__" data-cfemail="a7cfc2cbcbc8e7c6d6d3c689c6ce">[email&#160;protected]</span></a>.</dd></div>
+          </dl>
+        </section>
+
+        <section class="block" id="try" aria-labelledby="try-h">
+          <div class="try sheet tape">
+            <h2 id="try-h">Break a seal, live</h2>
+            <p class="section-lede" style="margin-bottom:0">Change one field in a real receipt and the signature fails.
+               Load it here, or <a href="https://app.aqta.ai/break-the-seal">open it full page</a>.</p>
+            <div class="actions"><button type="button" class="ghost" id="try-load" aria-controls="try-pane" aria-expanded="false">Load it on this page</button></div>
+            <div class="try-frame" id="try-pane" hidden>
+              <iframe id="card-frame" title="Break a seal, live" loading="lazy"></iframe>
+            </div>
+          </div>
+        </section>
+
+        <section class="block" id="next" aria-labelledby="next-h">
+          <h2 id="next-h">Next steps</h2>
+          <ul class="doors">
+            <li class="lead"><b>Pilot one workflow</b>Start with a free 30-minute evidence review, then a short
+                proof on one agreed workflow, reviewed with the person who would actually have to accept it:
+                your model-risk committee, safety board or clinical governance function, not a placeholder
+                reviewer. <a href="https://app.aqta.ai/pilots">Book an evidence review</a>.</li>
+            <li><b>Verify a receipt</b><code>npx aqta-verify-receipt</code>, or in the browser at
+                <a href="https://app.aqta.ai/verify">app.aqta.ai/verify</a>. Offline, no account.</li>
+            <li><b>See a control that operated</b>The <a href="https://app.aqta.ai/refusals">Refusal Ledger</a> holds
+                real production refusals, actions agents were not permitted to take, each signed before execution
+                and verifiable with the same command. A prevented action is evidence too.</li>
+            <li><b>Walk the full stack</b>The <a href="https://app.aqta.ai/demo">guided demo</a> goes from one API call
+                to evidence you verify on your own machine, in seven steps. This page is steps four and five.</li>
+          </ul>
+          <p class="doors-note">Research, including what is unsolved: <a href="https://aqta.ai/research">aqta.ai/research</a>
+             &middot; <a href="/cdn-cgi/l/email-protection#aec6cbc2c2c1eecfdfdacf80cfc7"><span class="__cf_email__" data-cfemail="e189848d8d8ea180909580cf8088">[email&#160;protected]</span></a></p>
+        </section>
+      </div>
+
+      <aside class="rail" aria-label="On this page">
+        <p class="rail-title">on this page</p>
+        <ol>
+          <li><a href="#how" data-t="how">How it works</a></li>
+          <li><a href="#s1" data-t="s1">1. The signed receipt</a></li>
+          <li><a href="#s2" data-t="s2">2. The docket question</a></li>
+          <li><a href="#s3" data-t="s3">3. Review and countersign</a></li>
+          <li><a href="#s4" data-t="s4">4. Export the pack</a></li>
+          <li><a href="#scope" data-t="scope">What it proves</a></li>
+          <li><a href="#try" data-t="try">Break a seal</a></li>
+          <li><a href="#next" data-t="next">Next steps</a></li>
+        </ol>
+      </aside>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <span>Seal: <a href="https://app.aqta.ai">app.aqta.ai</a>
+      &middot; receipt format: <a href="https://datatracker.ietf.org/doc/draft-chueayen-attestation-receipts/">IETF Internet-Draft</a>
+      &middot; a published <a href="https://fides.community/use-case/independent-review-of-ai-decision-evidence-lf3fYX/">FIDES use case</a></span>
+    <span><a href="https://app.aqta.ai/privacy">Privacy</a>
+      &middot; <a href="https://aqta.ai/terms">Terms</a>
+      &middot; <a href="/cdn-cgi/l/email-protection#95fdf0f9f9fad5f4e4e1f4bbf4fc"><span class="__cf_email__" data-cfemail="254d4049494a65445451440b444c">[email&#160;protected]</span></a>
+      &middot; &copy; 2026 Aqta</span>
+  </div>
+</footer>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// Theme control: Day, Night, Auto.
+(function () {
+  var btn = document.getElementById('theme-btn');
+  var order = ['light', 'dark', 'auto'], names = { light:'Day', dark:'Night', auto:'Auto' };
+  function paint() {
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    btn.textContent = names[t];
+    btn.setAttribute('aria-label', 'Theme: ' + names[t] + '. Change theme');
+  }
+  btn.addEventListener('click', function () {
+    var t = document.documentElement.getAttribute('data-theme') || 'light';
+    var n = order[(order.indexOf(t) + 1) % order.length];
+    document.documentElement.setAttribute('data-theme', n);
+    try { localStorage.setItem('seal-review-theme', n); } catch (e) {}
+    paint();
+  });
+  paint();
+})();
+
+// A real production receipt, so a first-time visitor can run the whole flow
+// without owning a gateway. Public data: hashes and a signature, no content.
+const SAMPLE_RECEIPT = {
+  "v": 1,
+  "attestation_id": "15b0b86b-83c7-4aa5-8d3b-4f214f576777",
+  "trace_id": "3fc560a6-4942-4092-b062-ca6caf1066b6",
+  "org_id": "ab451951-318a-4527-be74-7420f9c4356c",
+  "request_hash": "a084391cc5d6a4dc22fbe41903c94985f606767b0ff726ccc9d59b1c05014c13",
+  "model": "claude-haiku-4-5-20251001",
+  "outcome": "ALLOWED",
+  "policy_applied": [
+    "budget_guard",
+    "loop_guard",
+    "policy_exam_integrity_decision_v2"
+  ],
+  "cost_prevented_eur": 0,
+  "timestamp": "2026-08-18T00:20:02.512387+00:00",
+  "public_key": "9Y3Eiq6V8QjRDUM5nPqSwKIOPQaoEU4SbagfYFdvWa4",
+  "signature": "rDAIn9hZGXS7rYc4DeSYLmht0xEh9q8kroyiLSiM8FJ4EafaA1NpXZF0devcIjL6RaWZxhRlh9k9T21eRZm6DQ"
+};
+document.addEventListener('DOMContentLoaded', function () {
+  var SAMPLE_TEXT = JSON.stringify(SAMPLE_RECEIPT, null, 2);
+  var ta = document.getElementById('receipt');
+  var sum = document.getElementById('receipt-summary');
+  var loadBtn = document.getElementById('loadsample');
+  var pasteBtn = document.getElementById('clearbox');
+
+  // First paint: the genuine production receipt as a readable card, never a
+  // box of raw JSON. The JSON stays one click away, and pasting your own
+  // receipt is the explicit alternative path.
+  function showSample() {
+    window.__pendingReceiptText = SAMPLE_TEXT;
+    ta.hidden = true;
+    sum.innerHTML = summarize(SAMPLE_RECEIPT, SAMPLE_TEXT);
+    if (loadBtn) loadBtn.hidden = true;
+    if (pasteBtn) pasteBtn.hidden = false;
+  }
+  function showPaste() {
+    window.__pendingReceiptText = null;
+    sum.innerHTML = '';
+    ta.hidden = false;
+    ta.value = '';
+    ta.focus();
+    if (loadBtn) loadBtn.hidden = false;
+    if (pasteBtn) pasteBtn.hidden = true;
+  }
+  if (loadBtn) loadBtn.addEventListener('click', function (e) { e.preventDefault(); showSample(); });
+  if (pasteBtn) pasteBtn.addEventListener('click', function () { showPaste(); });
+  showSample();
+
+  // Addressed docket: ?r=<attestation_id> loads that production receipt from
+  // the public endpoint, ?q=<question> fixes the review question.
+  (function () {
+    var qs = new URLSearchParams(location.search);
+    var q = qs.get('q'), rid = qs.get('r');
+    if (q) {
+      var qi = document.getElementById('question');
+      if (qi) qi.value = q;
+    }
+    if (q || rid) markAddressed(q);
+    if (!rid) return;
+    fetch('/api/receipt/' + encodeURIComponent(rid))
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) {
+        if (!d) return;
+        var env = d.receipt || d.envelope || d;
+        if (!env || !env.signature) return;
+        var text = JSON.stringify(env, null, 2);
+        window.__pendingReceiptText = text;
+        ta.hidden = true;
+        sum.innerHTML = summarize(env, text);
+        if (loadBtn) loadBtn.hidden = false;
+      })
+      .catch(function () {});
+  })();
+
+  function markAddressed(q) {
+    var h = document.querySelector('h1');
+    if (!h || document.querySelector('.addressed')) return;
+    var el = document.createElement('p');
+    el.className = 'addressed';
+    el.innerHTML = '<strong>You have been sent this docket to review.</strong> ' +
+      (q ? 'The question is fixed below and hashed into whatever you sign. ' : '') +
+      'Load the receipt, then accept, decline, or record that the evidence is not enough to answer it.';
+    h.parentNode.insertBefore(el, h.nextSibling);
+  }
+});
+
+// Break a seal: the live card loads only when asked for.
+(function () {
+  var b = document.getElementById('try-load'), pane = document.getElementById('try-pane');
+  var fr = document.getElementById('card-frame');
+  if (!b) return;
+  b.addEventListener('click', function () {
+    if (!fr.src) fr.src = 'https://app.aqta.ai/api/mcp/card';
+    var open = pane.hidden;
+    pane.hidden = !open;
+    b.setAttribute('aria-expanded', String(open));
+    b.textContent = open ? 'Hide it' : 'Load it on this page';
+  });
+})();
+
+const S = { receiptText:null, question:null, decision:null, binding:null, ts:null, result:null };
+const unlock = id => { const el = document.getElementById(id); el.classList.remove('locked'); el.removeAttribute('inert'); };
+const $ = id => document.getElementById(id);
+
+const esc = (v) => String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function summarize(obj, rawText) {
+  const rows = [];
+  const pick = (label, ...keys) => {
+    for (const k of keys) if (obj[k] !== undefined && obj[k] !== null) { rows.push([label, esc(obj[k])]); return; }
+  };
+  pick('Outcome', 'outcome', 'status');
+  pick('Model', 'model');
+  pick('Time', 'timestamp');
+  pick('Policy', 'policy_applied', 'rules_applied', 'policy');
+  // Plain-language gloss for the built-in gateway policies. The signed id is
+  // shown untouched; this line only explains it.
+  const CUSTOM_GLOSS = 'the operator\'s own named policy, applied before the call';
+  const GLOSS = { pii_scan: 'personal-data scan: the call was stopped before the provider and the refusal signed',
+                  budget_guard: 'pre-call spend limit', loop_guard: 'runaway-loop suppression' };
+  const pols = Array.isArray(obj.policy_applied) ? obj.policy_applied : [];
+  const gl = pols.map(p => GLOSS[p] || (p.startsWith('policy_') ? CUSTOM_GLOSS : null)).filter(Boolean).join('; ');
+  if (gl) rows.push(['Meaning', esc(gl)]);
+  pick('Trace', 'trace_id');
+  // A receipt, not a log line: a verdict and two plain sentences; the field
+  // table and the raw JSON sit one click down.
+  const oc = String(obj.outcome || obj.status || '').toUpperCase();
+  const verdict = oc === 'ALLOWED' || oc === 'PASSED' ? 'Cleared'
+                : oc === 'BLOCKED' || oc === 'SUPPRESSED' ? 'Refused'
+                : (oc ? esc(oc) : 'Recorded');
+  const polText = pols.length ? esc(pols.join(', ')) : (obj.policy ? esc(obj.policy) : '');
+  const when = obj.timestamp ? esc(String(obj.timestamp).replace('T', ' ').replace(/\.\d+/, '').replace('+00:00', ' UTC')) : '';
+  const meta = [when ? 'Signed ' + when : '', obj.model ? esc(obj.model) : '', obj.trace_id ? 'trace ' + esc(String(obj.trace_id).slice(0, 8)) : ''].filter(Boolean).join(' · ');
+  return `
+    <div class="receipt-card">
+      <p class="rc-eyebrow">Signed record · Ed25519 signature ${obj.signature ? 'present' : 'missing'}</p>
+      <p class="rc-verdict">${verdict}</p>
+      ${polText ? `<p class="rc-line">under <b>${polText}</b>${gl ? ', ' + esc(gl) : ''}</p>` : ''}
+      ${meta ? `<p class="rc-meta">${meta}</p>` : ''}
+      <details><summary>All signed fields and the raw JSON</summary>
+        <dl>${rows.map(([k,v]) => `<dt>${k}</dt><dd>${v.slice(0,120)}</dd>`).join('')}
+          <dt>Signature</dt><dd>${obj.signature ? 'present, Ed25519' : 'missing'}</dd>
+        </dl>
+        <pre>${esc(rawText)}</pre>
+      </details>
+    </div>`;
+}
+
+$('b1').onclick = () => {
+  const t = (window.__pendingReceiptText || $('receipt').value).trim();
+  let parsed;
+  try { parsed = JSON.parse(t); } catch { $('h1').innerHTML = '<span class="bad">Not valid JSON.</span>'; return; }
+  S.receiptText = t;
+  $('h1').innerHTML = '<span class="ok">Receipt loaded.</span> Its SHA-256 is bound into the reviewer signature.';
+  $('receipt-summary').innerHTML = summarize(parsed, t);
+  var card = document.querySelector('.receipt-card');
+  if (card) {
+    card.insertAdjacentHTML('beforeend',
+      '<svg class="stamp" viewBox="0 0 44 44" aria-hidden="true">' +
+      '<circle cx="22" cy="22" r="20" fill="none" stroke="#009FB7" stroke-width="2.2" stroke-dasharray="4 2.6"/>' +
+      '<path d="M14 22.5l5.5 5.5L30 16.5" fill="none" stroke="#009FB7" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg>');
+    requestAnimationFrame(function(){ card.classList.add('sealed'); });
+  }
+  $('receipt').style.display = 'none';
+  unlock('s2');
+  $('question').focus();
+};
+
+$('b2').onclick = () => {
+  const q = $('question').value.trim();
+  if (!q) { $('h2').textContent = 'Write the question first: it is hashed into what you sign.'; $('question').focus(); return; }
+  $('h2').textContent = '';
+  S.question = q;
+  unlock('s3');
+  $('s3-h').setAttribute('tabindex', '-1');
+  $('s3-h').focus();
+};
+
+async function sign(decision) {
+  S.decision = decision;
+  const payload = { receiptText:S.receiptText, question:S.question, decision };
+  $('yivi-web').hidden = false;
+  const web = yivi.newWeb({
+    debugging: false,
+    element: '#yivi-web',
+    language: 'en',
+    session: {
+      url: '/api',
+      start: {
+        url: o => `${o.url}/session`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      },
+      mapping: {
+        sessionPtr: r => { S.binding = r.binding; S.ts = r.ts;
+          $('binding-fold').hidden = false; $('binding').textContent = r.binding;
+          return r.sessionPtr; },
+        sessionToken: r => r.token,
+        frontendRequest: r => r.frontendRequest,
+      },
+      result: { url: (o, { sessionToken }) => `${o.url}/result/${sessionToken}` },
+    },
+  });
+  try {
+    const result = await web.start();
+    S.result = result;
+    renderPack(result);
+    if (result && result.proofStatus === 'VALID') {
+      try {
+        const r = await fetch('/api/persist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            receipt_text: S.receiptText, question: S.question,
+            decision: S.decision, binding: S.binding, ts: S.ts, result,
+          }),
+        });
+        const d = await r.json();
+        if (r.ok && d.docket_id) {
+          S.docket = d;
+          const el = document.getElementById('docket-recorded');
+          if (el) {
+            el.hidden = false;
+            el.innerHTML = 'Verdict recorded. Durable record, no account needed to read it: ' +
+              '<a href="' + d.url + '">' + d.docket_id + '</a>';
+          }
+        }
+      } catch (e) { /* persistence failure never blocks the reviewer */ }
+    }
+  } catch (e) {
+    $('binding-fold').hidden = false; $('binding').textContent = 'Session cancelled or failed: ' + e;
+  }
+}
+$('accept').onclick = () => sign('ACCEPT');
+$('decline').onclick = () => sign('DECLINE');
+
+function renderPack(result) {
+  const who = esc((result.disclosed || []).flat().map(a => a.rawvalue).join(', '));
+  $('yivi-web').hidden = true;
+  $('success').hidden = false;
+  $('success').innerHTML = `
+    <p class="success-title">&#10003; Reviewer authenticated</p>
+    <dl class="success-grid">
+      <dt>Credential</dt><dd>Verified email &middot; ${who || 'reviewer'}</dd>
+      <dt>Signature</dt><dd>${result.proofStatus} (attribute-based, verified by irmago)</dd>
+      <dt>Binding</dt><dd>receipt hash &middot; question hash &middot; ${S.decision} &middot; timestamp</dd>
+    </dl>
+    <div class="checks">
+      <span>Receipt <b>&#10003;</b></span>
+      <span>Reviewer identity <b>&#10003;</b></span>
+      <span>Countersignature <b>&#10003;</b></span>
+    </div>`;
+  $('objects').innerHTML = `
+    <div class="pack-obj"><span class="mark">✓</span><span class="file">receipt.json</span>
+      <span class="claim">AI decision, signed by Seal. Verify offline against the published key.</span></div>
+    <div class="pack-obj"><span class="mark">✓</span><span class="file">reviewer-signature.json</span>
+      <span class="claim">Attribute-based signature by <strong>${who || 'reviewer'}</strong> over the binding,
+      ${result.proofStatus} at presentation (irmago). Carries the credential inside it.</span></div>
+    <div class="pack-obj"><span class="mark">✓</span><span class="file">binding.txt</span>
+      <span class="claim">receipt hash ‖ question hash ‖ ${S.decision} ‖ timestamp</span></div>`;
+  $('independence').hidden = false;
+  $('pack-terminus').hidden = false;
+  unlock('s4');
+}
+
+$('download').onclick = () => {
+  const pack = {
+    format: 'seal-wallet-review-spike-v0',
+    disposable_spike: true,
+    receipt: JSON.parse(S.receiptText),
+    docket_question: S.question,
+    binding_message: S.binding,
+    reviewer_signature: S.result.signature,
+    disclosed: S.result.disclosed,
+    proof_status_at_presentation: S.result.proofStatus,
+    docket: S.docket ? { id: S.docket.docket_id, url: S.docket.url } : null,
+    verify: {
+      receipt: 'npx aqta-verify-receipt receipt.json --key "$(curl -sL https://app.aqta.ai/security/pubkey.txt)"',
+      reviewer_signature: 'irma verify against binding (attribute-based signature; requires irmago, no browser implementation of Idemix exists)',
+      docket: S.docket ? 'GET ' + S.docket.url + ' (no account)' : 'not recorded',
+    },
+    timestamps: { binding: S.ts, exported: new Date().toISOString() },
+    verify: {
+      A: 'npx aqta-verify-receipt receipt.json --key <published key> (fully offline)',
+      BC: 'verify reviewer_signature as an IRMA attribute-based signature over binding_message using irmago; chain of trust is the Yivi scheme, not Aqta',
+    },
+  };
+  const blob = new Blob([JSON.stringify(pack, null, 2)], { type:'application/json' });
+  const a = Object.assign(document.createElement('a'), {
+    href: URL.createObjectURL(blob), download: 'seal-wallet-review-pack.json' });
+  a.click();
+};
+
+// Rail scroll-spy: mark the section the reader is actually in.
+(function () {
+  var links = [].slice.call(document.querySelectorAll('.rail a'));
+  if (!links.length || !('IntersectionObserver' in window)) return;
+  var byId = {};
+  links.forEach(function (a) { byId[a.getAttribute('data-t')] = a; });
+  var targets = links.map(function (a) { return document.getElementById(a.getAttribute('data-t')); }).filter(Boolean);
+  var io = new IntersectionObserver(function (entries) {
+    var visible = entries.filter(function (e) { return e.isIntersecting; })
+      .sort(function (a, b) { return a.boundingClientRect.top - b.boundingClientRect.top; });
+    if (!visible.length) return;
+    links.forEach(function (a) { a.removeAttribute('aria-current'); });
+    var id = visible[0].target.id;
+    if (byId[id]) byId[id].setAttribute('aria-current', 'true');
+  }, { rootMargin: '-12% 0px -70% 0px' });
+  targets.forEach(function (t) { io.observe(t); });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+0 verbose cli /usr/local/bin/node /usr/local/lib/node_modules/npm/bin/npm-cli.js
+1 info using npm@11.19.1
+2 info using node@v24.22.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/tmp/.npmrc
+5 silly config load:file:/sandbox-agent/.npmrc
+6 silly config load:file:/usr/local/etc/npmrc
+7 verbose title npm exec prettier@3 --parser babel --print-width 200 authpage.js
+8 verbose argv "exec" "--yes" "--" "prettier@3" "--parser" "babel" "--print-width" "200" "authpage.js"
+9 verbose logfile logs-max:10 dir:/sandbox-agent/.npm/_logs/2026-10-27T19_04_43_547Z-
+10 verbose logfile /sandbox-agent/.npm/_logs/2026-10-27T19_04_43_547Z-debug-0.log
+11 silly logfile done cleaning log files
+12 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+13 http fetch GET 200 https://registry.npmjs.org/prettier 227ms (cache miss)
+14 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+15 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+16 silly idealTree buildDeps
+17 silly fetch manifest prettier@3.9.10
+18 silly packumentCache full:https://registry.npmjs.org/prettier cache-miss
+19 http fetch GET 200 https://registry.npmjs.org/prettier 130ms (cache miss)
+20 silly packumentCache full:https://registry.npmjs.org/prettier set size:undefined disposed:false
+21 silly placeDep ROOT prettier@3.9.10 OK for:  want: 3.9.10
+22 silly reify moves {}
+23 silly audit bulk request { prettier: [ '3.9.10' ] }
+24 http cache prettier@https://registry.npmjs.org/prettier/-/prettier-3.9.10.tgz 0ms (cache hit)
+25 silly tarball no local data for prettier@https://registry.npmjs.org/prettier/-/prettier-3.9.10.tgz. Extracting by manifest.
+26 http fetch POST 200 https://registry.npmjs.org/-/npm/v1/security/advisories/bulk 261ms
+27 silly audit report {}
+28 http fetch GET 200 https://registry.npmjs.org/prettier/-/prettier-3.9.10.tgz 655ms (cache miss)
+29 verbose cwd /tmp
+30 verbose os Linux 7.1.12-2-20261017.20-sep-ARCH
+31 verbose node v24.22.1
+32 verbose npm  v11.19.1
+33 verbose exit 0
+34 info ok

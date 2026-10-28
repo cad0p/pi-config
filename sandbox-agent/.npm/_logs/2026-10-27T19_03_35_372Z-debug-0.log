@@ -1,0 +1,155 @@
+0 verbose cli /usr/local/bin/node /usr/local/bin/npm
+1 info using npm@11.19.1
+2 info using node@v24.22.1
+3 silly config load:file:/usr/local/lib/node_modules/npm/npmrc
+4 silly config load:file:/sandbox-agent/.npmrc
+5 silly config load:file:/usr/local/etc/npmrc
+6 verbose title npm install @cad0p/napkin
+7 verbose argv "install" "--global" "@cad0p/napkin"
+8 verbose logfile logs-max:10 dir:/sandbox-agent/.npm/_logs/2026-10-27T19_03_35_372Z-
+9 verbose logfile /sandbox-agent/.npm/_logs/2026-10-27T19_03_35_372Z-debug-0.log
+10 silly packumentCache heap:2348810240 maxSize:587202560 maxEntrySize:293601280
+11 silly logfile done cleaning log files
+12 silly idealTree buildDeps
+13 silly fetch manifest @cad0p/napkin@*
+14 silly packumentCache full:https://registry.npmjs.org/@cad0p%2fnapkin cache-miss
+15 http fetch GET 200 https://registry.npmjs.org/npm 380ms
+16 http fetch GET 200 https://registry.npmjs.org/@cad0p%2fnapkin 4614ms (cache miss)
+17 silly packumentCache full:https://registry.npmjs.org/@cad0p%2fnapkin set size:undefined disposed:false
+18 silly placeDep ROOT @cad0p/napkin@0.14.0 OK for:  want: *
+19 silly fetch manifest jexl@^2.3.0
+20 silly packumentCache full:https://registry.npmjs.org/jexl cache-miss
+21 silly fetch manifest jiti@^2.6.0
+22 silly packumentCache full:https://registry.npmjs.org/jiti cache-miss
+23 silly fetch manifest chalk@^5.6.2
+24 silly packumentCache full:https://registry.npmjs.org/chalk cache-miss
+25 silly fetch manifest ignore@^7.0.6
+26 silly packumentCache full:https://registry.npmjs.org/ignore cache-miss
+27 silly fetch manifest sql.js@^1.14.0
+28 silly packumentCache full:https://registry.npmjs.org/sql.js cache-miss
+29 silly fetch manifest js-yaml@^4.1.0
+30 silly packumentCache full:https://registry.npmjs.org/js-yaml cache-miss
+31 silly fetch manifest commander@^14.0.3
+32 silly packumentCache full:https://registry.npmjs.org/commander cache-miss
+33 silly fetch manifest minisearch@^7.2.0
+34 silly packumentCache full:https://registry.npmjs.org/minisearch cache-miss
+35 silly fetch manifest gray-matter@^4.0.3
+36 silly packumentCache full:https://registry.npmjs.org/gray-matter cache-miss
+37 http fetch GET 200 https://registry.npmjs.org/jiti 104ms (cache miss)
+38 silly packumentCache full:https://registry.npmjs.org/jiti set size:undefined disposed:false
+39 silly fetch manifest glimpseui@^0.3.7
+40 silly packumentCache full:https://registry.npmjs.org/glimpseui cache-miss
+41 http fetch GET 200 https://registry.npmjs.org/chalk 211ms (cache miss)
+42 silly packumentCache full:https://registry.npmjs.org/chalk set size:undefined disposed:false
+43 http fetch GET 200 https://registry.npmjs.org/ignore 217ms (cache miss)
+44 silly packumentCache full:https://registry.npmjs.org/ignore set size:undefined disposed:false
+45 http fetch GET 200 https://registry.npmjs.org/jexl 219ms (cache miss)
+46 silly packumentCache full:https://registry.npmjs.org/jexl set size:undefined disposed:false
+47 http fetch GET 200 https://registry.npmjs.org/gray-matter 221ms (cache miss)
+48 silly packumentCache full:https://registry.npmjs.org/gray-matter set size:undefined disposed:false
+49 http fetch GET 200 https://registry.npmjs.org/js-yaml 223ms (cache miss)
+50 silly packumentCache full:https://registry.npmjs.org/js-yaml set size:undefined disposed:false
+51 http fetch GET 200 https://registry.npmjs.org/minisearch 231ms (cache miss)
+52 silly packumentCache full:https://registry.npmjs.org/minisearch set size:undefined disposed:false
+53 http fetch GET 200 https://registry.npmjs.org/commander 234ms (cache miss)
+54 silly packumentCache full:https://registry.npmjs.org/commander set size:undefined disposed:false
+55 http fetch GET 200 https://registry.npmjs.org/glimpseui 195ms (cache miss)
+56 silly packumentCache full:https://registry.npmjs.org/glimpseui set size:undefined disposed:false
+57 http fetch GET 200 https://registry.npmjs.org/sql.js 341ms (cache miss)
+58 silly packumentCache full:https://registry.npmjs.org/sql.js set size:undefined disposed:false
+59 silly placeDep node_modules/@cad0p/napkin chalk@5.6.2 OK for: @cad0p/napkin@0.14.0 want: ^5.6.2
+60 silly placeDep node_modules/@cad0p/napkin commander@14.0.3 OK for: @cad0p/napkin@0.14.0 want: ^14.0.3
+61 silly placeDep node_modules/@cad0p/napkin glimpseui@0.3.7 OK for: @cad0p/napkin@0.14.0 want: ^0.3.7
+62 silly placeDep node_modules/@cad0p/napkin gray-matter@4.0.3 OK for: @cad0p/napkin@0.14.0 want: ^4.0.3
+63 silly placeDep node_modules/@cad0p/napkin ignore@7.0.14 OK for: @cad0p/napkin@0.14.0 want: ^7.0.6
+64 silly placeDep node_modules/@cad0p/napkin jexl@2.3.0 OK for: @cad0p/napkin@0.14.0 want: ^2.3.0
+65 silly placeDep node_modules/@cad0p/napkin jiti@2.7.0 OK for: @cad0p/napkin@0.14.0 want: ^2.6.0
+66 silly placeDep node_modules/@cad0p/napkin js-yaml@4.3.2 OK for: @cad0p/napkin@0.14.0 want: ^4.1.0
+67 silly placeDep node_modules/@cad0p/napkin minisearch@7.2.0 OK for: @cad0p/napkin@0.14.0 want: ^7.2.0
+68 silly placeDep node_modules/@cad0p/napkin sql.js@1.15.2 OK for: @cad0p/napkin@0.14.0 want: ^1.14.0
+69 silly fetch manifest js-yaml@^3.13.1
+70 silly packumentCache full:https://registry.npmjs.org/js-yaml cache-miss
+71 silly fetch manifest kind-of@^6.0.2
+72 silly packumentCache full:https://registry.npmjs.org/kind-of cache-miss
+73 silly fetch manifest section-matter@^1.0.0
+74 silly packumentCache full:https://registry.npmjs.org/section-matter cache-miss
+75 silly fetch manifest strip-bom-string@^1.0.0
+76 silly packumentCache full:https://registry.npmjs.org/strip-bom-string cache-miss
+77 silly fetch manifest @babel/runtime@^7.10.2
+78 silly packumentCache full:https://registry.npmjs.org/@babel%2fruntime cache-miss
+79 silly fetch manifest argparse@^2.0.1
+80 silly packumentCache full:https://registry.npmjs.org/argparse cache-miss
+81 http cache https://registry.npmjs.org/js-yaml 23ms (cache hit)
+82 silly packumentCache full:https://registry.npmjs.org/js-yaml set size:206246 disposed:false
+83 http fetch GET 200 https://registry.npmjs.org/strip-bom-string 67ms (cache miss)
+84 silly packumentCache full:https://registry.npmjs.org/strip-bom-string set size:undefined disposed:false
+85 http fetch GET 200 https://registry.npmjs.org/section-matter 68ms (cache miss)
+86 silly packumentCache full:https://registry.npmjs.org/section-matter set size:undefined disposed:false
+87 http fetch GET 200 https://registry.npmjs.org/argparse 77ms (cache miss)
+88 silly packumentCache full:https://registry.npmjs.org/argparse set size:undefined disposed:false
+89 http fetch GET 200 https://registry.npmjs.org/kind-of 81ms (cache miss)
+90 silly packumentCache full:https://registry.npmjs.org/kind-of set size:undefined disposed:false
+91 http fetch GET 200 https://registry.npmjs.org/@babel%2fruntime 205ms (cache miss)
+92 silly packumentCache full:https://registry.npmjs.org/@babel%2fruntime set size:undefined disposed:false
+93 silly placeDep node_modules/@cad0p/napkin/node_modules/gray-matter js-yaml@3.15.2 OK for: gray-matter@4.0.3 want: ^3.13.1
+94 silly placeDep node_modules/@cad0p/napkin kind-of@6.0.3 OK for: gray-matter@4.0.3 want: ^6.0.2
+95 silly placeDep node_modules/@cad0p/napkin section-matter@1.0.0 OK for: gray-matter@4.0.3 want: ^1.0.0
+96 silly placeDep node_modules/@cad0p/napkin strip-bom-string@1.0.0 OK for: gray-matter@4.0.3 want: ^1.0.0
+97 silly fetch manifest esprima@^4.0.0
+98 silly packumentCache full:https://registry.npmjs.org/esprima cache-miss
+99 silly fetch manifest argparse@^1.0.7
+100 silly packumentCache full:https://registry.npmjs.org/argparse cache-miss
+101 silly fetch manifest extend-shallow@^2.0.1
+102 silly packumentCache full:https://registry.npmjs.org/extend-shallow cache-miss
+103 http cache https://registry.npmjs.org/argparse 4ms (cache hit)
+104 silly packumentCache full:https://registry.npmjs.org/argparse set size:58651 disposed:false
+105 http fetch GET 200 https://registry.npmjs.org/extend-shallow 66ms (cache miss)
+106 silly packumentCache full:https://registry.npmjs.org/extend-shallow set size:undefined disposed:false
+107 http fetch GET 200 https://registry.npmjs.org/esprima 69ms (cache miss)
+108 silly packumentCache full:https://registry.npmjs.org/esprima set size:undefined disposed:false
+109 silly placeDep node_modules/@cad0p/napkin @babel/runtime@7.29.10 OK for: jexl@2.3.0 want: ^7.10.2
+110 silly placeDep node_modules/@cad0p/napkin argparse@2.0.1 OK for: js-yaml@4.3.2 want: ^2.0.1
+111 silly placeDep node_modules/@cad0p/napkin extend-shallow@2.0.1 OK for: section-matter@1.0.0 want: ^2.0.1
+112 silly fetch manifest is-extendable@^0.1.0
+113 silly packumentCache full:https://registry.npmjs.org/is-extendable cache-miss
+114 http fetch GET 200 https://registry.npmjs.org/is-extendable 51ms (cache miss)
+115 silly packumentCache full:https://registry.npmjs.org/is-extendable set size:undefined disposed:false
+116 silly placeDep node_modules/@cad0p/napkin is-extendable@0.1.1 OK for: extend-shallow@2.0.1 want: ^0.1.0
+117 silly placeDep node_modules/@cad0p/napkin/node_modules/gray-matter argparse@1.0.10 OK for: js-yaml@3.15.2 want: ^1.0.7
+118 silly placeDep node_modules/@cad0p/napkin esprima@4.0.1 OK for: js-yaml@3.15.2 want: ^4.0.0
+119 silly fetch manifest sprintf-js@~1.0.2
+120 silly packumentCache full:https://registry.npmjs.org/sprintf-js cache-miss
+121 http fetch GET 200 https://registry.npmjs.org/sprintf-js 47ms (cache miss)
+122 silly packumentCache full:https://registry.npmjs.org/sprintf-js set size:undefined disposed:false
+123 silly placeDep node_modules/@cad0p/napkin sprintf-js@1.0.3 OK for: argparse@1.0.10 want: ~1.0.2
+124 silly reify moves {}
+125 verbose stack Error: ENOENT: no such file or directory, mkdir '/usr/local/lib/node_modules/@cad0p'
+125 verbose stack     at async mkdir (node:internal/fs/promises:1571:10)
+125 verbose stack     at async /usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:624:20
+125 verbose stack     at async Promise.allSettled (index 0)
+125 verbose stack     at async #reifyPackages (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:353:11)
+125 verbose stack     at async Arborist.reify (/usr/local/lib/node_modules/npm/node_modules/@npmcli/arborist/lib/arborist/reify.js:139:7)
+125 verbose stack     at async Install.exec (/usr/local/lib/node_modules/npm/lib/commands/install.js:158:5)
+125 verbose stack     at async Npm.exec (/usr/local/lib/node_modules/npm/lib/npm.js:193:9)
+125 verbose stack     at async module.exports (/usr/local/lib/node_modules/npm/lib/cli/entry.js:67:5)
+126 error code ENOENT
+127 error syscall mkdir
+128 error path /usr/local/lib/node_modules/@cad0p
+129 error errno -2
+130 error enoent ENOENT: no such file or directory, mkdir '/usr/local/lib/node_modules/@cad0p'
+131 error enoent This is related to npm not being able to find a file.
+131 error enoent
+132 silly unfinished npm timer reify 1793127815609
+133 silly unfinished npm timer reify:createSparse 1793127821022
+134 verbose cwd /workspace
+135 verbose os Linux 7.1.12-2-20261017.20-sep-ARCH
+136 verbose node v24.22.1
+137 verbose npm  v11.19.1
+138 notice
+138 notice New major version of npm available! 11.19.1 -> 12.2.1
+138 notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+138 notice To update run: npm install -g npm@12.2.1
+138 notice  { force: true, Symbol(proc-log.meta): true }
+139 verbose exit -2
+140 verbose code -2
+141 error A complete log of this run can be found in: /sandbox-agent/.npm/_logs/2026-10-27T19_03_35_372Z-debug-0.log

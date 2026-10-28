@@ -1,0 +1,12 @@
+{
+  "rules": [
+    {
+      "name": "no-amend-in-personal",
+      "tool": "bash",
+      "field": "command",
+      "pattern": "^git\\b(?:\\s+-{1,2}[A-Za-z]\\S*(?:\\s+\\S+)?)*\\s+commit\\b.*--amend\\b",
+      "when": { "cwd": "^/home/[^/]+/projects/personal/" },
+      "reason": "In personal/shared repos, don't rewrite history. Create a new commit instead."
+    }
+  ]
+}

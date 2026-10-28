@@ -1,0 +1,11 @@
+{
+  "rewindHintReserveTokens": 40000,
+  "modelOverrides": {
+    "opencode-go/deepseek-v4.1-flash": {
+      "rewindHintReserveTokens": 50000
+    },
+    "anthropic/claude-haiku-5-5": {
+      "rewindHintReserveTokens": 30000
+    }
+  }
+}

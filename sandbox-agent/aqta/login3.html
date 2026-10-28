@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title>Sign In - Aqta</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      background: #ffffff;
+    }
+
+    /* Split screen layout */
+    .split-container {
+      display: flex;
+      width: 100%;
+      min-height: 100vh;
+    }
+
+    /* Left panel - dark gradient with messaging */
+    .left-panel {
+      display: none;
+      width: 50%;
+      min-height: 100vh;
+      background: linear-gradient(160deg, #0f1117 0%, #12141c 100%);
+      border-right: 1px solid rgba(255,255,255,0.06);
+      position: relative;
+      overflow: hidden;
+      flex-direction: column;
+    }
+
+    @media (min-width: 1024px) {
+      .left-panel {
+        display: flex;
+      }
+    }
+
+    /* Animated blobs */
+    @keyframes blob-pulse {
+      0%, 100% { opacity: 0.07; transform: scale(1) translate(0, 0); }
+      33%  { opacity: 0.12; transform: scale(1.05) translate(10px, -8px); }
+      66%  { opacity: 0.09; transform: scale(1.02) translate(-5px, 5px); }
+    }
+
+    .blob-blue {
+      position: absolute;
+      top: -160px;
+      left: -160px;
+      width: 520px;
+      height: 520px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(96,165,250,0.3) 0%, transparent 70%);
+      filter: blur(90px);
+      pointer-events: none;
+      animation: blob-pulse 22s ease-in-out infinite;
+    }
+
+    .blob-violet {
+      position: absolute;
+      bottom: -160px;
+      right: -96px;
+      width: 480px;
+      height: 480px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(139,92,246,0.25) 0%, transparent 70%);
+      filter: blur(90px);
+      pointer-events: none;
+      animation: blob-pulse 28s ease-in-out infinite 5s;
+    }
+
+    .left-content {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 40px 64px 40px 40px;
+    }
+
+    @keyframes fade-up {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up { animation: fade-up 0.55s cubic-bezier(0.16,1,0.3,1) both; }
+    .fade-d1 { animation-delay: 80ms; }
+    .fade-d2 { animation-delay: 160ms; }
+    .fade-d3 { animation-delay: 260ms; }
+    .fade-d4 { animation-delay: 380ms; }
+
+    .left-heading {
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      color: rgba(255,255,255,0.9);
+    }
+
+    .left-heading-muted {
+      color: rgba(255,255,255,0.45);
+    }
+
+    .left-description {
+      font-size: 14px;
+      line-height: 1.65;
+      margin-bottom: 32px;
+      color: rgba(255,255,255,0.4);
+      max-width: 26rem;
+    }
+
+    /* Receipt preview */
+    .receipt-preview {
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.3);
+      font-family: 'Courier New', monospace;
+      margin-bottom: 32px;
+    }
+
+    .receipt-header {
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .receipt-header-text {
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.35);
+    }
+
+    .receipt-badge {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.7);
+    }
+
+    .receipt-body {
+      padding: 12px 16px;
+    }
+
+    .receipt-row {
+      display: flex;
+      align-items: baseline;
+      gap: 16px;
+      margin-bottom: 6px;
+    }
+
+    .receipt-label {
+      width: 64px;
+      flex-shrink: 0;
+      font-size: 10px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .receipt-value {
+      font-size: 11px;
+      color: rgba(255,255,255,0.7);
+    }
+
+    .receipt-value-accent {
+      color: rgba(52,211,153,0.8);
+    }
+
+    .receipt-signature {
+      margin: 0 16px 12px;
+      border-radius: 8px;
+      padding: 12px;
+      background: rgba(0,0,0,0.4);
+    }
+
+    .receipt-sig-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      margin-bottom: 4px;
+      color: rgba(255,255,255,0.25);
+    }
+
+    .receipt-sig-value {
+      font-size: 10px;
+      word-break: break-all;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .receipt-footer {
+      padding: 8px 16px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 10px;
+      color: rgba(255,255,255,0.35);
+    }
+
+    .receipt-icon {
+      width: 12px;
+      height: 12px;
+    }
+
+    /* Trust badge */
+    .trust-badge {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .trust-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .trust-text {
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .left-footer {
+      position: relative;
+      z-index: 10;
+      padding: 0 64px 32px 40px;
+      font-size: 12px;
+      color: rgba(255,255,255,0.18);
+    }
+
+    /* Right panel - auth form */
+    .right-panel {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: #ffffff;
+    }
+
+    @media (min-width: 1024px) {
+      .right-panel {
+        width: 50%;
+        padding: 40px;
+      }
+    }
+
+    .container {
+      width: 100%;
+      max-width: 400px;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      margin-bottom: 16px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 32px 24px;
+      border: 1px solid #e5e7eb;
+    }
+
+    @media (min-width: 640px) {
+      .card {
+        padding: 40px 32px;
+      }
+    }
+
+    .progress-bar {
+      height: 2px;
+      border-radius: 9999px;
+      background: #e5e7eb;
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 9999px;
+      background: #9ca3af;
+      width: 50%;
+      transition: width 0.3s ease;
+    }
+
+    .card-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .card-subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+
+    #auth0-login-container {
+      margin-bottom: 24px;
+    }
+
+    /* Auth0 Lock overrides */
+    .auth0-lock.auth0-lock .auth0-lock-overlay {
+      display: none !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-center {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .auth0-lock.auth0-lock .auth0-lock-widget {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+      border: none !important;
+    }
+
+    .auth0-lock-header {
+      display: none !important;
+    }
+
+    .auth0-lock-name {
+      display: none !important;
+    }
+
+    .auth0-lock-form {
+      padding: 0 !important;
+    }
+
+    .auth0-lock-input-wrap {
+      margin-bottom: 16px;
+    }
+
+    .auth0-lock-input {
+      border: 1px solid #e5e7eb !important;
+      border-radius: 12px !important;
+      padding: 11px 16px !important;
+      font-size: 14px !important;
+      color: #111827 !important;
+      background: #f9fafb !important;
+      transition: all 0.2s ease !important;
+    }
+
+    .auth0-lock-input:focus {
+      border-color: #9ca3af !important;
+      background: #ffffff !important;
+      box-shadow: 0 0 0 3px rgba(156, 163, 175, 0.1) !important;
+      outline: none !important;
+    }
+
+    .auth0-lock-submit {
+      background: #374151 !important;
+      border: none !important;
+      border-radius: 12px !important;
+      padding: 11px 24px !important;
+      font-size: 14px !important;
+      font-weight: 500 !important;
+      color: #ffffff !important;
+      cursor: pointer !important;
+      transition: all 0.2s ease !important;
+      width: 100% !important;
+      margin-top: 8px !important;
+      height: 44px !important;
+    }
+
+    .auth0-lock-submit:hover {
+      background: #4b5563 !important;
+    }
+
+    .auth0-lock-submit:active {
+      transform: translateY(0) !important;
+    }
+
+    .auth0-lock-alternative {
+      margin-top: 16px !important;
+      padding-top: 16px !important;
+      border-top: 1px solid #e5e7eb !important;
+    }
+
+    .auth0-lock-alternative-link {
+      color: #374151 !important;
+      text-decoration: none !important;
+      font-weight: 500 !important;
+      font-size: 14px !important;
+    }
+
+    .auth0-lock-alternative-link:hover {
+      text-decoration: underline !important;
+    }
+
+    .auth0-lock-social-buttons-container {
+      margin-bottom: 20px !important;
+    }
+
+    .auth0-lock-social-button {
+      border: 1px solid #e5e7eb !important;
+      border-radius: 12px !important;
+      padding: 11px 16px !important;
+      margin-bottom: 10px !important;
+      background: #f9fafb !important;
+      transition: all 0.2s ease !important;
+      height: 44px !important;
+    }
+
+    .auth0-lock-social-button:hover {
+      background: #f3f4f6 !important;
+      border-color: #d1d5db !important;
+    }
+
+    .auth0-lock-social-button-text {
+      color: #111827 !important;
+      font-weight: 500 !important;
+      font-size: 14px !important;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      padding-top: 32px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .footer-text {
+      font-size: 14px;
+      color: #6b7280;
+      line-height: 1.6;
+    }
+
+    .footer-link {
+      color: #374151;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .footer-link:hover {
+      text-decoration: underline;
+    }
+
+    .footer-links {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-top: 12px;
+    }
+
+    .footer-links a {
+      color: #6b7280;
+    }
+  </style>
+</head>
+<body>
+  <div class="split-container">
+    <!-- Left panel - dark gradient with messaging -->
+    <div class="left-panel">
+      <div class="blob-blue"></div>
+      <div class="blob-violet"></div>
+
+      <div class="left-content">
+        <h1 class="left-heading fade-up fade-d1">
+          You have governance.<br>
+          <span class="left-heading-muted">Can you prove it?</span>
+        </h1>
+        <p class="left-description fade-up fade-d2">
+          Every AI decision, signed and chained at inference time. Ed25519 signatures. SHA-256 hash chain. EU AI Act evidence packages, ready to hand to your regulator.
+        </p>
+
+        <!-- Receipt preview -->
+        <div class="receipt-preview fade-up fade-d3">
+          <div class="receipt-header">
+            <span class="receipt-header-text">ATTESTATION RECEIPT · CALL #4817</span>
+            <span class="receipt-badge">● SIGNED</span>
+          </div>
+          <div class="receipt-body">
+            <div class="receipt-row">
+              <span class="receipt-label">policy</span>
+              <span class="receipt-value">eu-ai-act/art-9/v2.1</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">decision</span>
+              <span class="receipt-value receipt-value-accent">✓ ALLOWED</span>
+            </div>
+            <div class="receipt-row">
+              <span class="receipt-label">latency</span>
+              <span class="receipt-value">+3.2ms</span>
+            </div>
+          </div>
+          <div class="receipt-signature">
+            <div class="receipt-sig-label">ED25519 SIGNATURE</div>
+            <div class="receipt-sig-value">3VeKZpLq7mNx2bYwTfRs...f22a</div>
+          </div>
+          <div class="receipt-footer">
+            <svg class="receipt-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path>
+            </svg>
+            <span>Chained to 4,816 prior receipts</span>
+          </div>
+        </div>
+
+        <!-- Trust badge -->
+        <div class="trust-badge fade-up fade-d4">
+          <svg class="trust-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+          </svg>
+          <span class="trust-text">One proxy URL. Every call attested. EU AI Act ready.</span>
+        </div>
+      </div>
+
+      <div class="left-footer">
+        &copy; <script>document.write(new Date().getFullYear())</script> Aqta Technologies Ltd.
+      </div>
+    </div>
+
+    <!-- Right panel - auth form -->
+    <div class="right-panel">
+      <div class="container">
+        <div class="header">
+          <img src="https://aqta.ai/aqta-logo-hd.png" alt="Aqta" class="logo" />
+        </div>
+
+        <div class="card">
+          <div class="progress-bar">
+            <div class="progress-fill"></div>
+          </div>
+
+          <h1 class="card-title">Welcome back</h1>
+          <p class="card-subtitle">Sign in to access your dashboard</p>
+
+          <div id="auth0-login-container"></div>
+
+          <div class="footer">
+            <p class="footer-text">
+              <a href="https://aqta.ai/live-demo" class="footer-link">View demo</a>
+              <span style="color: #d1d5db; margin: 0 8px;">·</span>
+              <a href="https://aqta.ai/pricing" class="footer-link" style="color: #6b7280;">Pricing</a>
+            </p>
+            <p class="footer-links">
+              By continuing you agree to our
+              <a href="https://aqta.ai/terms">Terms</a>
+              <span style="margin: 0 4px;">·</span>
+              <a href="https://aqta.ai/privacy">Privacy</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.auth0.com/js/lock/11.30/lock.min.js"></script>
+  <script>
+    var lock = new Auth0Lock(
+      '@@config.clientID@@',
+      '@@config.auth0Domain@@',
+      {
+        container: 'auth0-login-container',
+        auth: {
+          redirectUrl: '@@config.callbackURL@@',
+          responseType: 'code',
+          params: {
+            scope: 'openid profile email'
+          }
+        },
+        theme: {
+          logo: 'https://aqta.ai/aqta-logo-hd.png',
+          primaryColor: '#374151'
+        },
+        languageDictionary: {
+          title: '',
+          emailInputPlaceholder: 'Email address',
+          passwordInputPlaceholder: 'Password'
+        },
+        allowSignUp: false,
+        allowForgotPassword: true,
+        rememberLastLogin: true,
+        socialButtonStyle: 'big',
+        additionalSignUpFields: []
+      }
+    );
+  </script>
+</body>
+</html>

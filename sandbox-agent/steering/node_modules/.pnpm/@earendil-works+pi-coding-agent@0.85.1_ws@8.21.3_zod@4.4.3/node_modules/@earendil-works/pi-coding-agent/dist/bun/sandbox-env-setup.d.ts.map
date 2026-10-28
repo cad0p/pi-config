@@ -1,0 +1,1 @@
+{"version":3,"file":"sandbox-env-setup.d.ts","sourceRoot":"","sources":["../../src/bun/sandbox-env-setup.ts"],"names":[],"mappings":"","sourcesContent":["import { restoreSandboxEnv } from \"./restore-sandbox-env.ts\";\n\n// Restore the environment before evaluating modules that read it at startup.\nrestoreSandboxEnv();\n"]}

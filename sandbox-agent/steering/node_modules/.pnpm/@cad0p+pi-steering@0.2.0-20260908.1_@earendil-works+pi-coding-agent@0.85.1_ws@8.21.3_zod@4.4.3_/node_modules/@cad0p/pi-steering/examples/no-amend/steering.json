@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "name": "no-amend",
+      "tool": "bash",
+      "field": "command",
+      "pattern": "^git\\b(?:\\s+-{1,2}[A-Za-z]\\S*(?:\\s+\\S+)?)*\\s+commit\\b.*--amend\\b",
+      "reason": "Don't rewrite history with --amend. Create a new commit instead. If you need to fix the last commit's message, do it in a follow-up commit — PR reviewers track diffs across pushes and amend confuses that."
+    }
+  ]
+}
