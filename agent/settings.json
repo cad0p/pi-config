@@ -91,7 +91,10 @@
     "anthropic/claude-opus-5-5:high",
     "opencode-go/deepseek-v4.1-flash:max",
     "opencode-go-2/deepseek-v4.1-flash:max",
-    "opencode-go-3/deepseek-v4.1-flash:max"
+    "opencode-go-3/deepseek-v4.1-flash:max",
+    "opencode-go/beam-free:max",
+    "opencode-go-2/beam-free:max",
+    "opencode-go-3/beam-free:max"
   ],
   "defaultProjectTrust": "always",
   "compaction": {
