@@ -2,20 +2,21 @@
   "name": "pi-extensions",
   "private": true,
   "dependencies": {
+    "@cad0p/pi-background-work": "0.0.1-20261028.1",
     "@cad0p/pi-bash-timeout": "0.1.0-20260630.1",
     "@cad0p/pi-deepinfra-provider": "0.1.5-20261020.7",
     "@cad0p/pi-fallback-provider": "0.2.0-20261020.1",
-    "@cad0p/pi-heartbeat": "0.0.1-20261026.1",
+    "@cad0p/pi-heartbeat": "0.0.1-20261028.0",
     "@cad0p/pi-napkin": "0.7.3-20261012.0",
     "@cad0p/pi-pioneer-provider": "0.2.3-20260622.0",
     "@cad0p/pi-provider-umans": "1.4.0-20260814.1",
     "@cad0p/pi-steering": "0.2.0-20260908.1",
-    "@cad0p/pi-subagents-tintinweb": "0.22.0-20261028.8",
+    "@cad0p/pi-subagents-tintinweb": "0.22.0-20261028.9",
     "@cad0p/pi-timestamps": "0.2.0-20260813.0",
     "@cad0p/pi-tree-navigator": "0.3.0-20261027.0",
     "@getpipher/vision": "^0.5.3",
     "mitsupi": "github:mitsuhiko/agent-stuff",
-    "pi-context-view": "^0.8.0",
+    "pi-context-view": "^0.8.1",
     "pi-shipit": "^1.0.1"
   }
 }

@@ -82,7 +82,8 @@
       "extensions": [
         "extensions/autopatch.ts"
       ]
-    }
+    },
+    "npm:@cad0p/pi-background-work@next"
   ],
   "theme": "light/dark",
   "externalEditor": "nvim",
