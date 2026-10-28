@@ -21,8 +21,8 @@ importers:
         specifier: 0.2.0-20261020.1
         version: 0.2.0-20261020.1
       '@cad0p/pi-heartbeat':
-        specifier: 0.0.1-20261028.1
-        version: 0.0.1-20261028.1
+        specifier: 0.0.1-20261028.2
+        version: 0.0.1-20261028.2
       '@cad0p/pi-napkin':
         specifier: 0.7.3-20261012.0
         version: 0.7.3-20261012.0(@sinclair/typebox@0.34.52)
@@ -36,8 +36,8 @@ importers:
         specifier: 0.2.0-20260908.1
         version: 0.2.0-20260908.1
       '@cad0p/pi-subagents-tintinweb':
-        specifier: 0.22.0-20261028.11
-        version: 0.22.0-20261028.11(@sinclair/typebox@0.34.52)
+        specifier: 0.22.0-20261028.12
+        version: 0.22.0-20261028.12(@sinclair/typebox@0.34.52)
       '@cad0p/pi-timestamps':
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
@@ -179,8 +179,8 @@ packages:
     resolution: {integrity: sha512-/WQN2L9Z+C/l1NVXRZnQd2YB6FliM7S12j8SC84p8GC4bm3bmZj56bFhJMXFxr3mk7VVJc+eQBsg4+ltPdwJ2w==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-heartbeat@0.0.1-20261028.1':
-    resolution: {integrity: sha512-IUzrTfsUT2J494VoUe3j6NKnhiTIJJ3ZNpASiTvi9ypPZ7ZsZqOh+Nh8N6pJt5d8wIt7CPte7mi2kHp9KFNUdA==}
+  '@cad0p/pi-heartbeat@0.0.1-20261028.2':
+    resolution: {integrity: sha512-nOKutgiDq3zM0QHP+Hp7R7sMC+O3108D7RNH1wEKmlAZqX7teMvF8+8wYDC73GeV+IsDWIqzUn3Ife/LOQEv4A==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.0'
@@ -209,8 +209,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/pi-subagents-tintinweb@0.22.0-20261028.11':
-    resolution: {integrity: sha512-Km+lS6a4jxlvmzN3Ddczjllh/6UwqM6/fsBlum9853pDR7OsSzsHW0YsqD/7bmiaihpNL8/tuXVuK8QTjRgmFQ==}
+  '@cad0p/pi-subagents-tintinweb@0.22.0-20261028.12':
+    resolution: {integrity: sha512-ey3mrqNNi0Vuu/lRDvHnDXFX9BfA7z+cP7E73/9VzsaN26vXLf1EJd1uS9AwJO0hFSn3UiSQb8TDMfEzIc1qKQ==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '>=1.4.0'
@@ -1225,7 +1225,7 @@ snapshots:
 
   '@cad0p/pi-fallback-provider@0.2.0-20261020.1': {}
 
-  '@cad0p/pi-heartbeat@0.0.1-20261028.1':
+  '@cad0p/pi-heartbeat@0.0.1-20261028.2':
     dependencies:
       '@cad0p/pi-background-work': 0.0.1-20261028.2
 
@@ -1244,7 +1244,7 @@ snapshots:
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/pi-subagents-tintinweb@0.22.0-20261028.11(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-subagents-tintinweb@0.22.0-20261028.12(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/pi-background-work': 0.0.1-20261028.2
       '@sinclair/typebox': 0.34.52
