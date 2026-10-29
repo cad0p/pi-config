@@ -36,8 +36,8 @@ importers:
         specifier: 0.2.0-20260908.1
         version: 0.2.0-20260908.1
       '@cad0p/pi-subagents-tintinweb':
-        specifier: 0.22.0-20261029.5
-        version: 0.22.0-20261029.5(@sinclair/typebox@0.34.52)
+        specifier: 0.22.0-20261029.6
+        version: 0.22.0-20261029.6(@sinclair/typebox@0.34.52)
       '@cad0p/pi-timestamps':
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0
@@ -209,8 +209,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/pi-subagents-tintinweb@0.22.0-20261029.5':
-    resolution: {integrity: sha512-/GQMBarMxnVR06AYhh2hMTJhhmBe84SkLwK4c008fHDctHDd87JeSSgFmF1OK6QOOrWg2HvSGYbpIQts9k3tQw==}
+  '@cad0p/pi-subagents-tintinweb@0.22.0-20261029.6':
+    resolution: {integrity: sha512-2GiOvx9dXCa1GGHFCyY4i+176yWo2w2ZAMdGXtjvbxeGJ5T/ANyMEIXGsNRPdSg8f3ukeul3lHe8pnL5lfYi4g==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '>=1.4.0'
@@ -1244,7 +1244,7 @@ snapshots:
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/pi-subagents-tintinweb@0.22.0-20261029.5(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-subagents-tintinweb@0.22.0-20261029.6(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/pi-background-work': 0.0.1-20261028.2
       '@sinclair/typebox': 0.34.52
