@@ -21,8 +21,8 @@ importers:
         specifier: 0.2.0-20261020.1
         version: 0.2.0-20261020.1
       '@cad0p/pi-heartbeat':
-        specifier: 0.0.1-20261029.0
-        version: 0.0.1-20261029.0
+        specifier: 0.0.1-20261029.1
+        version: 0.0.1-20261029.1
       '@cad0p/pi-napkin':
         specifier: 0.7.3-20261012.0
         version: 0.7.3-20261012.0(@sinclair/typebox@0.34.52)
@@ -179,8 +179,8 @@ packages:
     resolution: {integrity: sha512-/WQN2L9Z+C/l1NVXRZnQd2YB6FliM7S12j8SC84p8GC4bm3bmZj56bFhJMXFxr3mk7VVJc+eQBsg4+ltPdwJ2w==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-heartbeat@0.0.1-20261029.0':
-    resolution: {integrity: sha512-gR/1GpJtsxNQAbKK953fyPYj4EbLpMWV7ZF0rA0tnrz3i7csXUWa4nvzwDgstLVOkdxeSf0mSJqwZGrRdFthEA==}
+  '@cad0p/pi-heartbeat@0.0.1-20261029.1':
+    resolution: {integrity: sha512-tGnUaqMyh0cGyPU2FnhxrQkmIHMQw4J6sj/0QRYI054RA4FrEzFRzPZdEPGqAbbC0+7fvUixS7wk/H/bL+XNzA==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.0'
@@ -1225,7 +1225,7 @@ snapshots:
 
   '@cad0p/pi-fallback-provider@0.2.0-20261020.1': {}
 
-  '@cad0p/pi-heartbeat@0.0.1-20261029.0':
+  '@cad0p/pi-heartbeat@0.0.1-20261029.1':
     dependencies:
       '@cad0p/pi-background-work': 0.0.1-20261028.2
 
