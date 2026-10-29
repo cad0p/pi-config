@@ -11,7 +11,7 @@
     "@cad0p/pi-pioneer-provider": "0.2.3-20260622.0",
     "@cad0p/pi-provider-umans": "1.4.0-20260814.1",
     "@cad0p/pi-steering": "0.2.0-20260908.1",
-    "@cad0p/pi-subagents-tintinweb": "0.22.0-20261029.4",
+    "@cad0p/pi-subagents-tintinweb": "0.22.0-20261029.5",
     "@cad0p/pi-timestamps": "0.2.0-20260813.0",
     "@cad0p/pi-tree-navigator": "0.3.0-20261027.0",
     "@getpipher/vision": "^0.5.3",
