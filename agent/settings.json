@@ -92,7 +92,8 @@
     "opencode-go/deepseek-v4.1-flash:max",
     "opencode-go-2/deepseek-v4.1-flash:max",
     "opencode-go-3/deepseek-v4.1-flash:max",
-    "opencode-go-4/deepseek-v4.1-flash:max"
+    "opencode-go-4/deepseek-v4.1-flash:max",
+    "opencode-go-5/deepseek-v4.1-flash:max"
   ],
   "defaultProjectTrust": "always",
   "compaction": {
