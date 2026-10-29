@@ -59,6 +59,7 @@ declare global {
 	 */
 	interface PiSteeringPredicates {
 		isUnderAgentDir: PredicateShape<boolean>;
+		touchesAgentConfig: PredicateShape<boolean>;
 	}
 }
 
@@ -91,6 +92,51 @@ const agentDirPlugin = {
 	],
 };
 
+/**
+ * Agent-config guard — prevents the coding agent from mutating its own
+ * model-selection / guardrail config. Root cause of the 2026-10-28
+ * incident: an agent `sed`-ed general-purpose.md to
+ * `opencode-go-3/deepseek-v4-pro` for "stronger" review lenses and never
+ * restored the backup, burning the Go quota. Config changes go through
+ * the user, not through tool calls. Fail-closed: unknown cwd /
+ * unresolvable command → block.
+ */
+const PROTECTED_AGENT_CONFIG = /\.pi\/agent\/(agents(\/|$)|settings\.json)/;
+
+const agentConfigGuardPlugin = {
+	name: "agent-config-guard",
+	cliDescriptors: {
+		sed: {},
+		cp: {},
+		tee: {},
+		mv: {},
+		chmod: {},
+		chattr: {},
+		python: {},
+		python3: {},
+		perl: {},
+		awk: {},
+		node: {},
+		bash: {},
+		sh: {},
+	},
+	predicates: {
+		touchesAgentConfig: (
+			args: unknown,
+			ctx: { input?: { command?: string }; walkerState?: { cwd?: unknown } },
+		) => {
+			if (args !== true) return false;
+			const cmd =
+				typeof ctx?.input?.command === "string" ? ctx.input.command : "";
+			if (PROTECTED_AGENT_CONFIG.test(cmd)) return true;
+			const cwd = ctx?.walkerState?.cwd;
+			if (typeof cwd === "string" && /\/\.pi\/agent\/agents(\/|$)/.test(cwd))
+				return true;
+			return false;
+		},
+	},
+};
+
 export default defineConfig({
 	// Strict-at-test-time, resilient-at-runtime: `failOnWarnings: false`
 	// keeps rails live when the merger reports KNOWN-benign diagnostics
@@ -106,5 +152,46 @@ export default defineConfig({
 		napkinSteeringPlugin,
 		githubPlugin,
 		agentDirPlugin,
+		agentConfigGuardPlugin,
+	],
+	rules: [
+		{
+			name: "no-agent-config-edit",
+			tool: "edit",
+			field: "path",
+			pattern: /\.pi\/agent\/(agents\/|settings\.json)/,
+			reason:
+				"Do not edit agent definitions or settings.json — they control model selection and guardrails. Make the change manually or ask the user.",
+		},
+		{
+			name: "no-agent-config-write",
+			tool: "write",
+			field: "path",
+			pattern: /\.pi\/agent\/(agents\/|settings\.json)/,
+			reason:
+				"Do not overwrite agent definitions or settings.json — they control model selection and guardrails. Make the change manually or ask the user.",
+		},
+		{
+			name: "no-agent-config-bash-mutation",
+			tool: "bash",
+			command: [
+				"sed",
+				"cp",
+				"tee",
+				"mv",
+				"chmod",
+				"chattr",
+				"python",
+				"python3",
+				"perl",
+				"awk",
+				"node",
+				"bash",
+				"sh",
+			],
+			when: { touchesAgentConfig: true },
+			reason:
+				"Do not mutate agent definitions or settings.json via shell — they control model selection and guardrails. Make the change manually or ask the user.",
+		},
 	],
 });

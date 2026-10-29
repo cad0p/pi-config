@@ -163,6 +163,9 @@
         },
         "step-5-preview-free": {
           "contextWindow": 400000
+        },
+        "beam-free": {
+          "contextWindow": 400000
         }
       }
     },
