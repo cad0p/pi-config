@@ -6,8 +6,9 @@ prompt_mode: append
 extensions: true
 skills: true
 allowed_subagents: all
-model: anthropic/claude-haiku-5-5
+model: opencode-go/deepseek-v4.1-flash
+scoped_models: "opencode-go*/deepseek-v4.1-flash:max"
 # model: opencode-go-3/deepseek-v4-pro # DISABLED: burns opencode Go quota — do not use
 # model: opencode-go-2/deepseek-v4.1-flash # account 2: opencode-go quota exhausted 2026-09-17
-thinking: xhigh
+# thinking: xhigh
 ---
