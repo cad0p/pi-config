@@ -47,6 +47,7 @@ import githubPlugin from "@cad0p/pi-steering-github";
 // (same function references) and registers them itself — listing flags
 // alongside only produces duplicate-predicate warnings, which DISABLE
 // steering in strict mode (observed live). Single registration wins.
+import { devShmGuardPlugin, devShmRules } from "./dev-shm-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -153,6 +154,7 @@ export default defineConfig({
 		githubPlugin,
 		agentDirPlugin,
 		agentConfigGuardPlugin,
+		devShmGuardPlugin,
 	],
 	rules: [
 		{
@@ -193,5 +195,6 @@ export default defineConfig({
 			reason:
 				"Do not mutate agent definitions or settings.json via shell — they control model selection and guardrails. Make the change manually or ask the user.",
 		},
+		...devShmRules,
 	],
 });
