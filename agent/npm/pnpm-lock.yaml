@@ -36,8 +36,8 @@ importers:
         specifier: 0.2.0-20260908.1
         version: 0.2.0-20260908.1(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
       '@cad0p/pi-subagents-tintinweb':
-        specifier: 0.22.0-20261030.3
-        version: 0.22.0-20261030.3(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)
+        specifier: 0.22.0-20261030.4
+        version: 0.22.0-20261030.4(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)
       '@cad0p/pi-timestamps':
         specifier: 0.2.0-20260813.0
         version: 0.2.0-20260813.0(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)
@@ -215,8 +215,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/pi-subagents-tintinweb@0.22.0-20261030.3':
-    resolution: {integrity: sha512-vhvulfqjlM4WAsmMvm96z1xN9YLm8rmaqJKQH4+3od9lcodq3pkvhfoieliPPHD89OhEtZnn8Cfc9e+K2RRsWg==}
+  '@cad0p/pi-subagents-tintinweb@0.22.0-20261030.4':
+    resolution: {integrity: sha512-JeP2IB76PCdfznz0aNwnXdPXxbblUSU7ff3eEsvuOGMqUPp7Y6IrLg429//vK5I7s5xRNbBBphBIUjz4q4boRQ==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '>=1.4.0'
@@ -1363,7 +1363,7 @@ snapshots:
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/pi-subagents-tintinweb@0.22.0-20261030.3(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-subagents-tintinweb@0.22.0-20261030.4(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/pi-background-work': 0.0.2(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
       '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7)
