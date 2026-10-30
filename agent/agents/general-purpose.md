@@ -7,7 +7,7 @@ extensions: true
 skills: true
 allowed_subagents: all
 model: opencode-go/deepseek-v4.1-flash
-scoped_models: "opencode-go*/deepseek-v4.1-flash:max"
+scoped_models: "opencode-go*/deepseek-v4.1-flash:max,anthropic/claude-sonnet-5-5:medium"
 # model: opencode-go-3/deepseek-v4-pro # DISABLED: burns opencode Go quota — do not use
 # model: opencode-go-2/deepseek-v4.1-flash # account 2: opencode-go quota exhausted 2026-09-17
 # thinking: xhigh
