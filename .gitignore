@@ -13,6 +13,8 @@ agent/**/.npmrc
 agent/commandcode-models.json
 agent/vision-audit.log
 agent/claude-bridge-sessions.json
+# pi-usage token history (per-day token counts by provider/model)
+agent/pi-usage/
 /in-flight.txt
 
 # --- Session history (contains private conversations) ---
