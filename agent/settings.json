@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "1.4.0",
+  "lastChangelogVersion": "1.5.0",
   "defaultProvider": "anthropic",
   "defaultModel": "claude-opus-5-5",
   "defaultThinkingLevel": "high",
@@ -111,5 +111,13 @@
     "mode": "only",
     "inlineBudget": 4700
   },
-  "cacheWarming": "idle"
+  "cacheWarming": "idle",
+  "extensionChangelogVersions": {
+    "{\"source\":\"npm:@cad0p/pi-subagents-tintinweb@next\",\"scope\":\"user\"}": "0.22.0-20261030.6",
+    "{\"source\":\"npm:@cad0p/pi-fallback-provider@next\",\"scope\":\"user\"}": "0.2.0-20261020.1",
+    "{\"source\":\"npm:@cad0p/pi-steering@next\",\"scope\":\"user\"}": "0.2.0-20260908.1",
+    "{\"source\":\"npm:@cad0p/pi-bash-timeout@next\",\"scope\":\"user\"}": "0.1.0-20260630.1",
+    "{\"source\":\"npm:@cad0p/pi-tree-navigator@next\",\"scope\":\"user\"}": "0.3.0-20261027.0",
+    "{\"source\":\"npm:mitsupi\",\"scope\":\"user\"}": "1.6.0"
+  }
 }
