@@ -33,7 +33,9 @@
 // Layout: thin entry (this file) — all four plugins are shipped or
 // inline: git + rm (pi-steering core), napkin
 // (pi-napkin/steering), github (@cad0p/pi-steering-github: PR
-// issue-link + vault body-file policy). Tests: ./integration.test.ts
+// issue-link + vault body-file policy). Local guards: agent-config
+// (inline below), ./dev-shm-guard.ts, ./git-identity-guard.ts.
+// Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures).
 
 import { defineConfig } from "@cad0p/pi-steering";
@@ -48,6 +50,7 @@ import githubPlugin from "@cad0p/pi-steering-github";
 // alongside only produces duplicate-predicate warnings, which DISABLE
 // steering in strict mode (observed live). Single registration wins.
 import { devShmGuardPlugin, devShmRules } from "./dev-shm-guard.ts";
+import { gitIdentityGuardPlugin, gitIdentityRules } from "./git-identity-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -155,6 +158,7 @@ export default defineConfig({
 		agentDirPlugin,
 		agentConfigGuardPlugin,
 		devShmGuardPlugin,
+		gitIdentityGuardPlugin,
 	],
 	rules: [
 		{
@@ -196,5 +200,6 @@ export default defineConfig({
 				"Do not mutate agent definitions or settings.json via shell — they control model selection and guardrails. Make the change manually or ask the user.",
 		},
 		...devShmRules,
+		...gitIdentityRules,
 	],
 });

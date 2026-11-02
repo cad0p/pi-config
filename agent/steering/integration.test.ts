@@ -272,6 +272,7 @@ describe("global config — shape", () => {
 			"agent-dir",
 			"agent-config-guard",
 			"dev-shm-guard",
+			"git-identity-guard",
 		]);
 	});
 
