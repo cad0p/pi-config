@@ -16,6 +16,25 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 const run = promisify(execFile);
 const SCRIPT = fileURLToPath(new URL("../../apply.sh", import.meta.url));
+const REPO = fileURLToPath(new URL("../../../../", import.meta.url));
+const INCLUDE = "../.gitconfig";
+
+/**
+ * Wire the versioned repo-root .gitconfig (git filters) into this clone. Git never loads
+ * config from a clone by itself, so without this every machine needs a manual step.
+ * Idempotent; returns true only when it just added the include.
+ */
+async function ensureGitInclude(): Promise<boolean> {
+	try {
+		const { stdout } = await run("git", ["-C", REPO, "config", "--local", "--get-all", "include.path"]).catch(() => ({ stdout: "" }));
+		if (stdout.split("\n").includes(INCLUDE)) return false;
+		await run("git", ["-C", REPO, "rev-parse", "--git-dir"]);
+		await run("git", ["-C", REPO, "config", "--local", "--add", "include.path", INCLUDE]);
+		return true;
+	} catch {
+		return false; // not a git checkout — nothing to wire
+	}
+}
 
 async function apply(args: string[]): Promise<{ ok: boolean; out: string }> {
 	try {
@@ -29,6 +48,7 @@ async function apply(args: string[]): Promise<{ ok: boolean; out: string }> {
 
 export default function (pi: ExtensionAPI) {
 	pi.on("session_start", async (_event, ctx) => {
+		if (await ensureGitInclude()) ctx.ui.notify(`pi-config: wired ${INCLUDE} into git config (deviceId filter)`, "info");
 		const { ok, out } = await apply(["--quiet"]);
 		const patched = /restart pi to load them/.test(out);
 		if (!ok) {

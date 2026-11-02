@@ -120,7 +120,7 @@ The vault will have the same structure internally: `~/personal/github/<vault>/op
 
 ## Security
 
-Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-auth.json` (MCP OAuth), `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/`, `agent/install/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list. MCP credentials are env-indirected rather than committed: `PARALLEL_SEARCH_TOKEN` (optional, read by `agent/extensions/parallel-search.ts`; without it the server connects anonymously) and `AWS_MCP_PROXY_PROFILES` (read from the environment by `agent/mcp.json`).
+Secrets are never committed: `agent/auth.json` (provider OAuth), `agent/models-store.json`, `agent/umans-concurrency.json`, `agent/mcp-auth.json` (MCP OAuth), `agent/vision-audit.log`, `agent/sessions/` (private conversations), `agent/bin/`, `agent/install/` and `agent/git/` are all gitignored. `.gitignore` is the contract — if you fork this, keep that list. `agent/settings.json` is committed, but its per-installation `deviceId` (written on ChatGPT login) is stripped by a git clean filter defined in the versioned `.gitconfig`; the `local-patches` extension wires it in (`include.path = ../.gitconfig`) on the first pi start, or run `git -C ~/.pi config --add include.path ../.gitconfig` yourself. MCP credentials are env-indirected rather than committed: `PARALLEL_SEARCH_TOKEN` (optional, read by `agent/extensions/parallel-search.ts`; without it the server connects anonymously) and `AWS_MCP_PROXY_PROFILES` (read from the environment by `agent/mcp.json`).
 
 ## License
 

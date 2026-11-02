@@ -1,0 +1,13 @@
+# Repo-local git config, versioned. Git never loads this on its own (filters run commands, so
+# git refuses to take them from a clone); agent/patches/local-patches wires it in via
+# `include.path = ../.gitconfig` at pi session start. Manual equivalent:
+#   git -C ~/.pi config --add include.path ../.gitconfig
+
+# pi writes a per-installation UUID (deviceId) into agent/settings.json on ChatGPT login.
+# Strip it from commits so it is neither published nor shared between machines.
+# -j --indent 2 reproduces pi's own formatting byte for byte (no trailing newline).
+# required: if jq is missing, fail the add instead of committing the file unfiltered.
+[filter "strip-device-id"]
+	clean = jq -j --indent 2 'del(.deviceId)'
+	smudge = cat
+	required = true
