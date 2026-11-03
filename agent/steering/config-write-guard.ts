@@ -97,21 +97,21 @@
  */
 
 import { existsSync, realpathSync } from "node:fs";
-import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
-import * as piSteering from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
+import { snapshotHomeDir } from "./framework-support.ts";
 
 /**
  * `~` expands to the framework's PROCESS snapshot of the home directory
- * (lens round 4): a live `homedir()` follows whatever `HOME` a project
- * layer's timer left behind until the next load restores it. The
- * fallback only serves a framework without the accessor, which the
- * config's capability gate refuses anyway.
+ * (lens rounds 4-5), never a live read. For THIS guard that is a
+ * consistency measure, not an enforcement change: the protected-path match
+ * below is home-independent (it looks for `.pi/…` and
+ * `node_modules/@cad0p/pi-steering*` segments), so the verdict is the same
+ * under either home; a pinned row in config-write-guard.test.ts checks a
+ * `~/.pi/agent/steering/…` write with HOME moved is still refused.
  */
 function snapshotHome(): string {
-	const snap = (piSteering as unknown as Record<string, unknown>)["agentDirSnapshot"];
-	return typeof snap === "function" ? (snap as () => { homeDir: string })().homeDir : homedir();
+	return snapshotHomeDir();
 }
 
 declare global {

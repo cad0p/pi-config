@@ -56,7 +56,7 @@
 import * as piSteering from "@cad0p/pi-steering";
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
-import { assertLockedRulesSupport } from "./framework-support.ts";
+import { assertLockedRulesSupport, snapshotHomeDir } from "./framework-support.ts";
 import gitPlugin from "@cad0p/pi-steering/plugins/git";
 import rmPlugin from "@cad0p/pi-steering/plugins/rm";
 import napkinSteeringPlugin from "@cad0p/pi-napkin/steering";
@@ -100,7 +100,7 @@ declare global {
  * `no-main-commit` / `no-main-commit-github`.
  *
  * The home directory is the framework's PROCESS snapshot (taken at the
- * first steering load), not a fresh `homedir()`: this module is
+ * first steering read), never a live home read: this module is
  * re-evaluated on every load, so a fresh read followed whatever `HOME`
  * a project layer's timer left behind and moved the exemption with it
  * (lens round 4, red-team F1). Read after the capability gate below,
@@ -112,7 +112,7 @@ declare global {
 // message in `pi-steering list` and the session log.
 assertLockedRulesSupport(piSteering as unknown as Record<string, unknown>);
 
-const AGENT_DIR = join(piSteering.agentDirSnapshot().homeDir, ".pi");
+const AGENT_DIR = join(snapshotHomeDir(), ".pi");
 
 const agentDirPlugin = {
 	name: "agent-dir",
@@ -220,9 +220,11 @@ export default defineConfig({
 	// before any project code runs, and reuses it on every /reload, so a
 	// project layer cannot point PI_CODING_AGENT_DIR (or HOME) elsewhere
 	// to swap this layer out — not at import time and not later from a
-	// timer (a later change to either variable is restored and raised in
-	// chat, a HOME-only change included, and the agent-dir exemption
-	// above reads the snapshot home, not the live HOME).
+	// timer. Every rail here that derives a path from the home directory
+	// (the agent-dir exemption, the git-identity rail, the tripwire's `~`)
+	// reads the framework's process snapshot, never a live HOME, so a
+	// respelled, empty or relative HOME moves none of them; the framework's
+	// env check on top only restores the variable and warns (advisory).
 	//
 	// What the lock does NOT do: it binds what a project layer DECLARES.
 	// It does not stop the agent's own uid from editing this file or its

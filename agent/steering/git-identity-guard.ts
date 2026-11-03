@@ -30,8 +30,8 @@
  */
 
 import type { PredicateShape } from "@cad0p/pi-steering";
-import { homedir } from "node:os";
 import { join } from "node:path";
+import { snapshotHomeDir } from "./framework-support.ts";
 
 declare global {
 	interface PiSteeringPredicates {
@@ -40,7 +40,14 @@ declare global {
 	}
 }
 
-const HOME = homedir();
+// The real home: the framework's process snapshot, never a live
+// `homedir()` (lens round 5, trust F1: a project layer that respelled HOME
+// through a symlink, or emptied it, moved REAL_GLOBAL and disarmed this
+// rail). `env.get("HOME")` below is the COMMAND's environment (prefix
+// assignments, then the walker's chain, which the framework seeds from the
+// same snapshot), so `export HOME=/tmp/h && git config --global …` is
+// still judged by where that command writes.
+const HOME = snapshotHomeDir();
 const REAL_GLOBAL = new Set([join(HOME, ".gitconfig"), join(HOME, ".config", "git", "config")]);
 const REAL_SYSTEM = new Set(["/etc/gitconfig"]);
 

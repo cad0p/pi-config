@@ -25,6 +25,8 @@
  * error, and its message would not say what to install.
  */
 
+import * as piSteering from "@cad0p/pi-steering";
+
 /** What the config needs from the framework, in one line for the error. */
 export const LOCKED_RULES_REQUIREMENT =
 	"@cad0p/pi-steering with lockedRules, PredicateContext.rawCommand and agentDirSnapshot()";
@@ -44,6 +46,23 @@ export function assertLockedRulesSupport(
 		`[pi-config] refusing to load: this config declares lockedRules, but the loaded ${LOCKED_RULES_REQUIREMENT} is missing. ` +
 			"On that version lockedRules is an unknown field — accepted, never enforced — so a project layer can still disable a locked rail silently. " +
 			"Install the release that ships the lock before checking out this config, or check out the previous commit. " +
-			"Checked with: process.env.PI_CODING_AGENT_DIR + the layer's own imports.",
+			"Checked with: the framework this layer imports (the one next to the agent dir the framework resolved).",
 	);
+}
+
+/**
+ * The home directory every rail in this layer derives a path from: the
+ * framework's PROCESS snapshot, taken at the first steering read (lens
+ * round 5). No module of this layer reads `homedir()`, `process.env.HOME`,
+ * `USERPROFILE` or `PI_CODING_AGENT_DIR` itself; a source scan pins that
+ * (`live-home-scan.test.ts`). The layer is re-evaluated on every load, so
+ * a live read would follow whatever `HOME` a project layer left behind —
+ * respelled through a symlink, empty or relative — and move the rails
+ * with it. Runs the capability gate first, so an old framework fails with
+ * the gate's message, not a TypeError.
+ */
+export function snapshotHomeDir(): string {
+	const framework = piSteering as unknown as Record<string, unknown>;
+	assertLockedRulesSupport(framework);
+	return (framework["agentDirSnapshot"] as () => { homeDir: string })().homeDir;
 }

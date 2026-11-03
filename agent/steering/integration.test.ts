@@ -34,6 +34,7 @@ import {
 	mkdtempSync,
 	readFileSync,
 	rmSync,
+	symlinkSync,
 	writeFileSync,
 } from "node:fs";
 import { homedir, tmpdir } from "node:os";
@@ -441,6 +442,84 @@ describe("global config — carve-out behavior (real fixtures)", () => {
 			rmSync(neutral, { recursive: true, force: true });
 		}
 	});
+
+	// Lens round 5 (trust F1, red-team F1): rounds 3-4 compared HOME after
+	// normalising it, and a respelling the normalisation accepted (a
+	// symlink followed by `..`), an empty HOME or a relative HOME left the
+	// variable drifted while git-identity-guard read a live homedir(): the
+	// real ~/.gitconfig write went through. Every rail now reads the
+	// snapshot; each shape below reloads the layer (re-evaluating every
+	// module) with HOME respelled and checks both rails.
+	for (const [label, respell] of [
+		[
+			"a symlink followed by '..'",
+			(base: string) => {
+				mkdirSync(join(base, "real", "home"), { recursive: true });
+				mkdirSync(join(base, "elsewhere", "deep", "dir"), { recursive: true });
+				mkdirSync(join(base, "elsewhere", "deep", "home", ".pi", "agent"), { recursive: true });
+				symlinkSync(join(base, "elsewhere", "deep", "dir"), join(base, "real", "lnk"));
+				return `${join(base, "real", "lnk")}/../home`;
+			},
+		],
+		["an empty HOME", () => ""],
+		["a relative HOME", () => "rel/home"],
+	] as Array<[string, (base: string) => string]>) {
+		it(`${label}: the real ~/.gitconfig write stays blocked and the ~/.pi exemption stays put (lens round 5)`, async () => {
+			const realHome = agentDirSnapshot().homeDir;
+			const priorHome = process.env.HOME;
+			const base = mkdtempSync(join(tmpdir(), "respell-home-"));
+			const neutral = mkdtempSync(join(tmpdir(), "neutral-cwd-"));
+			try {
+				process.env.HOME = respell(base);
+				const { config: reloaded } = await loadSteeringConfig(neutral);
+				assert.equal(agentDirSnapshot().homeDir, realHome, "the snapshot does not move");
+				// Rail 1: git identity, every surface.
+				for (const command of [
+					`printf '[user]\\n' | tee -a ${realHome}/.gitconfig`,
+					"git config --global user.email x@y",
+					"sed -i 's/t@t/x/' ~/.config/git/config",
+				]) {
+					const r = await evaluateBash(neutral, command, hostOnMainGithub(), reloaded);
+					assert.equal(r.block, true, `${command} must stay blocked, got ${JSON.stringify(r)}`);
+				}
+				const h = hostOnMainGithub();
+				const harness = loadHarness({ config: reloaded, host: h });
+				const write = await harness.evaluate(
+					{
+						type: "tool_call",
+						toolCallId: "tc1",
+						toolName: "write",
+						input: { path: `${realHome}/.gitconfig`, content: "" },
+					} as unknown as Parameters<typeof harness.evaluate>[0],
+					mockExtensionContext(neutral, h.entries),
+					1,
+				);
+				assert.equal(write?.block, true, "the write tool on the real ~/.gitconfig stays blocked");
+				// Rail 2: the ~/.pi exemption stays at the real home.
+				const real = await evaluateBash(
+					join(realHome, ".pi", "agent", "steering"),
+					"git commit -m 'note'",
+					hostOnMainGithub(),
+					reloaded,
+				);
+				assert.equal(real.block, false, `the real agent dir stays exempt, got ${real.rule}`);
+				if (label.startsWith("a symlink")) {
+					const rogue = await evaluateBash(
+						join(base, "elsewhere", "deep", "home", ".pi", "agent"),
+						"git commit -m 'x'",
+						hostOnMainGithub(),
+						reloaded,
+					);
+					assert.equal(rogue.block, true, "the respelled home's .pi is not exempt");
+				}
+			} finally {
+				if (priorHome === undefined) delete process.env.HOME;
+				else process.env.HOME = priorHome;
+				rmSync(base, { recursive: true, force: true });
+				rmSync(neutral, { recursive: true, force: true });
+			}
+		});
+	}
 
 	it("allows `git commit` on main in an agent-dir subdirectory (settings/, prompts/)", async () => {
 		const { block, rule } = await evaluateBash(

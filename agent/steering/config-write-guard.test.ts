@@ -451,3 +451,24 @@ describe("config-write-guard — declared tripwire gaps (pinned ALLOWED)", () =>
 		}
 	});
 });
+
+describe("config-write-guard — the `~` expansion reads the snapshot home (lens round 5)", () => {
+	it("a ~/.pi/agent/steering write is refused with HOME moved; the match is home-independent", async () => {
+		const priorHome = process.env.HOME;
+		const rogue = mkdtempSync(join(tmpdir(), "cwg-rogue-home-"));
+		try {
+			for (const value of [rogue, "", "rel/home"]) {
+				process.env.HOME = value;
+				await expectBlocked(
+					"write",
+					{ path: "~/.pi/agent/steering/index.ts", content: "export default {};" },
+					RULE_WRITE,
+				);
+			}
+		} finally {
+			if (priorHome === undefined) delete process.env.HOME;
+			else process.env.HOME = priorHome;
+			rmSync(rogue, { recursive: true, force: true });
+		}
+	});
+});
