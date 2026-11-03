@@ -1,61 +1,90 @@
 // SPDX-License-Identifier: MIT
 /**
- * Config-write guard — agents do not write the configuration that
- * decides which rails a session loads.
+ * Config-write guard — a TRIPWIRE, not a boundary.
+ *
+ * WHAT IT IS FOR. It catches an agent that, honestly mistaken, sets out
+ * to write the configuration that decides which rails a session loads
+ * (a repo's `.pi/steering`, the global layer, the framework source)
+ * with the ordinary tools and the ordinary spellings, and tells it to
+ * go through the owner instead. It is NOT a security boundary: an agent
+ * running as the owner's uid can always rewrite its own configuration,
+ * and three lens rounds found writers and path shapes this text match
+ * does not see (round 1 R-F3; round 2 red-team F1-F4). The load-time
+ * lock (`lockedRules` in this layer) refuses a project layer's DISARM
+ * of a locked rail whatever wrote it; neither half keeps a determined
+ * agent from changing the global layer itself. Where the boundary could
+ * live (OS ownership, an integrity pin, or accepting the residual) is an
+ * owner question in the design note, Goldmine
+ * personal/github/pi-config/plans/2026-11-03-lock-global-rails.md.
  *
  * WHY (2026-11-03). Red-team F1 on the per-repo steering design: a
- * project layer's `disabledRules` is UNIONED with the global layer's, so
- * a repo whose `.pi/steering/index.ts` said
- * `{ disabledRules: ["agents-do-not-merge-directly"] }` deleted the
- * global merge guard with no collision, no prompt and no diagnostic.
- * Nothing stopped an agent from writing that file (the inline
- * agent-config guard covers only `~/.pi/agent/agents/**` and
- * `~/.pi/agent/settings.json`), and README "Security" says the project
- * layer is "arbitrary TypeScript executed at the first `session_start`".
- * The lens round-1 review added two more reachable targets: the GLOBAL
- * layer itself (one call, no trickery — it is the file that declares the
- * lock) and the installed framework source the lock is implemented in.
+ * project layer's `disabledRules` was UNIONED with the global layer's,
+ * so a repo whose `.pi/steering/index.ts` disabled
+ * `agents-do-not-merge-directly` deleted the global merge guard
+ * silently. The lock now refuses that disable at load time; this rule
+ * makes the honest version of the plant (an agent "fixing" a rail that
+ * annoys it) stop and ask.
  *
- * WHAT THIS COVERS (the test matrix pins every row):
- *   - any repo's project layer: `<repo>/.pi/steering/**`,
- *     `<repo>/.pi/steering.ts`, `<repo>/.pi/settings.json`;
- *   - the global layer: `<agentDir>/steering/**` under `.pi/agent`
- *     (default `~/.pi/agent/steering/`) and its `settings.json`;
- *   - the installed framework: the `@cad0p/pi-steering` package under
- *     any `node_modules` (its `src` and `dist` — the lock's own
- *     implementation, and rewriting the loader defeats every lock by
- *     definition).
- * Paths are NORMALISED before matching: `resolve` collapses repeated
- * separators and `.`/`..` segments, and the longest EXISTING prefix is
- * realpath'd, so `.pi//steering`, `.pi/./steering`, a symlinked `.pi`
- * directory and a symlinked repo root all land on the same canonical
- * path. Shell text is tokenised and canonicalised the same way, and the
- * token boundary is any shell delimiter (`>`, `|`, `;`, quotes, `=`,
- * brackets, whitespace), so `echo x >.pi/steering/index.ts` and
- * `tee .pi//steering/index.ts` are seen.
+ * WHAT IT CATCHES — exactly what the code below matches (the test file
+ * pins each row):
+ *   write / edit tools: the path, `~/`-expanded, made absolute against
+ *   the session cwd, `resolve`d (`//`, `.`, `..` collapse) and with
+ *   its longest EXISTING prefix realpath'd (a symlinked `.pi` or repo
+ *   root is followed), is protected when it contains
+ *     - `.pi/steering` (any file below), `.pi/steering.ts` or
+ *       `.pi/settings.json` — any repo's project layer and project
+ *       settings, and also `~/.pi/settings.json`;
+ *     - `.pi/agent/steering` (any file below) or
+ *       `.pi/agent/settings.json` — the global layer at the DEFAULT
+ *       agent dir, and pi's own settings (which declare the packages);
+ *     - `node_modules/@cad0p/pi-steering` or
+ *       `node_modules/@cad0p/pi-steering-<x>` (e.g. pi-steering-github),
+ *       in the npm layout or the pnpm store.
+ *   bash: the rule fires ONLY when one of the command's refs has a
+ *   basename in STEERING_CONFIG_WRITERS (46 names below); for `cat`,
+ *   `echo` and `printf` only when the text also has a `>`/`>>`
+ *   redirect or a `tee`. Then the full tool_call text
+ *   (`ctx.rawCommand`) is split on shell delimiters (whitespace, quotes,
+ *   `; | & < > ( ) { } [ ] , =`), and each token that CONTAINS `.pi` or
+ *   `pi-steering` is canonicalised as above (relative to the walker's
+ *   effective cwd, else the session cwd) and matched against the same
+ *   list.
  *
- * WHAT IT DOES NOT COVER (stated as part of the claim; the test file
- * pins each known gap):
- *   - a path built at runtime and split across a quote boundary or a
- *     variable (`f=".pi/steer""ing/index.ts"`), `eval`, an encoded
- *     path, or a script written elsewhere and then executed;
- *   - `git` operations that write these files from a tree/commit
- *     (`git checkout`, `git reset --hard`, `git apply`) when the
- *     command text carries no path;
- *   - a relocated `PI_CODING_AGENT_DIR` (the global-layer match is
- *     path-shaped, not resolved from the environment);
- *   - the pi package declaration in `<agentDir>/settings.json` and any
- *     other `~/.pi/agent/**` file outside the two patterns above;
- *   - the OWNER: this binds agent tool calls only, and any non-pi
- *     harness.
- * It is the anti-plant half. The load-time half (`lockedRules` in the
- * global layer, refusing a project-layer disarm of a locked rule) is
- * what closes the hole; this rule must never be the only defense.
+ * WHAT IT DOES NOT CATCH (each row pinned as ALLOWED in the test):
+ *   - a write by a program not in the writer list, or by no program at
+ *     all: `> file`, `: > file`, `jq … > file`, `yes | head > file`
+ *     (a redirect target is not a ref, and the basename filter runs
+ *     first) — red-team r2 F1;
+ *   - a relative target whose token does not itself contain `.pi`:
+ *     `cd ~/.pi/agent && echo x > steering/index.ts` (the `.pi`
+ *     substring prefilter skips the token before cwd resolution).
+ *     Conversely a `cd .pi/steering` in the same line trips the rule
+ *     whatever the write target is (the `cd` argument matches) — a
+ *     false positive, not coverage — red-team r2 F2;
+ *   - the flat global-layer form `<agentDir>/steering.ts` (the loader
+ *     uses it when the directory form is absent), a glob
+ *     (`rm -rf ~/.pi/agent/steer*`), and removing or moving a parent
+ *     (`rm -rf ~/.pi/agent`, `mv ~/.pi/agent …`) — red-team r2 F3;
+ *   - every other package the global layer imports
+ *     (`@cad0p/pi-napkin`, pi itself under `~/.pi/agent/install`) —
+ *     red-team r2 F4;
+ *   - `git` operations that write these files from a tree or a patch
+ *     with no protected path in the text (`git -C ~/.pi reset --hard`,
+ *     `git -C ~/.pi checkout <rev>`, `git -C ~/.pi apply x.patch`);
+ *   - a path built at runtime or split across a quote boundary
+ *     (`f=".pi/steer""ing/index.ts"`), `eval`, an encoded path, a
+ *     script written elsewhere and then executed;
+ *   - a relocated `PI_CODING_AGENT_DIR` (the match is path-shaped);
+ *   - any other `~/.pi/agent/**` file (sessions, auth, extensions);
+ *   - the OWNER, and any non-pi harness: it binds pi tool calls only.
+ * These are not bugs to be fixed one by one: the writer and path space
+ * is open, and closing it by enumeration is the claim three rounds
+ * disproved. Keep the claim at "tripwire".
  *
  * Maintenance flow this deliberately ALLOWS: a pi-config worktree
  * (`<worktree>/agent/steering/**`, no `.pi/` segment) stays writable,
  * so config work is authored in a branch/worktree and only the live,
- * session-loading paths are off-limits to agents.
+ * session-loading paths trip the rule.
  */
 
 import { existsSync, realpathSync } from "node:fs";
@@ -293,9 +322,12 @@ export const configWriteGuardPlugin = {
 			if (basename0 === "cat" || basename0 === "echo" || basename0 === "printf") {
 				if (!/>>?(?![>&])/.test(text) && !/\btee\b/.test(text)) return false;
 			}
-			// The walker resolves `cd .pi && cd steering` to the effective
-			// cwd, so a bare `index.ts` token still lands on the protected
-			// path. An unresolvable cwd falls back to the session cwd.
+			// Relative tokens resolve against the walker's effective cwd (an
+			// unresolvable cwd falls back to the session cwd). Only tokens
+			// that contain `.pi` or `pi-steering` reach this resolution
+			// (the prefilter in mentionsProtectedConfigPath), so a bare
+			// `index.ts` after `cd ~/.pi/agent/steering` is NOT seen — a
+			// declared tripwire gap (header, red-team r2 F2).
 			const walkerCwd = ctx?.walkerState?.cwd;
 			const cwd =
 				typeof walkerCwd === "string" && walkerCwd !== "unknown"

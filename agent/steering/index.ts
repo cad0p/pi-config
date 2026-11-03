@@ -38,12 +38,16 @@
 // ./merge-guard.ts (agents do not merge directly — the design's
 // P1-W1 step 1: one rule, one message, "merge through
 // tools/merge-pr.sh"), ./config-write-guard.ts (agents do not write
-// `.pi/steering/**` — the plant half of red-team F1, 2026-11-03).
+// `.pi/steering/**` — a TRIPWIRE for honest mistakes, not a boundary:
+// its header lists what it does not catch; the lock below is what refuses
+// a project layer's disarm, and neither stops this agent's uid from
+// rewriting this file — design note owner question 2).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures),
 // ./merge-guard.test.ts (the merge guard's positive/negative matrix),
-// ./config-write-guard.test.ts (the plant-path matrix) and
-// ./lockdown.test.ts (project-layer disables of a locked rail).
+// ./config-write-guard.test.ts (what the tripwire catches AND the gaps it
+// declares, both pinned) and ./lockdown.test.ts (project-layer disables
+// of a locked rail, the agent-dir hijack, granular drops).
 
 // Namespace import on purpose: the capability gate below must survive a
 // framework that lacks the flag (a NAMED import of `LOCKED_RULES_SUPPORTED`
@@ -198,9 +202,20 @@ export default defineConfig({
 	// predicate keys it names, its observers, its CLI descriptors and the
 	// plugins that provide them — a project plugin that re-declares
 	// `attemptsDirectMerge` would otherwise neuter the rule while its
-	// text stayed intact. An inner layer that trips an error-class
-	// diagnostic is dropped (innermost first, info-class
-	// `layer-dropped-on-error`) instead of leaving the session unsteered.
+	// text stayed intact. An error-class declaration in an inner layer is
+	// dropped on its own (`layer-part-dropped-on-error`: the plugin, rule,
+	// observer or exemption at fault; the rest of the repo's layer stays),
+	// and the whole inner layer only when no single drop clears it
+	// (`layer-dropped-on-error`). Both are printed and raised in chat.
+	// The framework resolves this layer's directory BEFORE any project
+	// code runs, so a project layer cannot point PI_CODING_AGENT_DIR (or
+	// HOME) elsewhere to swap this layer out.
+	//
+	// What the lock does NOT do: it binds what a project layer DECLARES.
+	// It does not stop the agent's own uid from editing this file or its
+	// imports, and a project layer is still code executed in the pi
+	// process (it could patch the loader in memory). See the design
+	// note's residuals.
 	//
 	// Locked here: every rule THIS layer declares — its own content, the
 	// merge guard first among them. Shipped git / rm / github rails stay

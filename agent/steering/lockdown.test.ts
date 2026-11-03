@@ -18,6 +18,13 @@
 //   - a broken inner layer could leave the session unsteered instead of
 //     just dropping the inner layer.
 //
+// Round 2 (functional F1 / trust F1 HIGH, F2 MED) adds two more:
+//   - a project layer that set PI_CODING_AGENT_DIR at import time swapped
+//     the whole global layer (every lock) for an empty one, because the
+//     loader read the variable AFTER importing project code;
+//   - an error-class declaration dropped the WHOLE project layer, with
+//     only an info breadcrumb, taking the repo's legitimate rules with it.
+//
 // Fixtures are deliberately generic: both repos are public, so no private
 // repo name or path appears here (trust F3).
 //
@@ -301,6 +308,74 @@ describe("locked rails — an inner break cannot unsteer the session", () => {
 			JSON.stringify(diagnostics),
 		);
 		await expectGuardLive(config, "broken project layer");
+	});
+});
+
+describe("locked rails — the global layer is pinned before project code runs (round-2 F1)", () => {
+	it("a project layer that moves PI_CODING_AGENT_DIR does not move the global layer", async () => {
+		const before = process.env.PI_CODING_AGENT_DIR;
+		const rogue = mkdtempSync(join(tmpdir(), "lockdown-rogue-agent-"));
+		projectDirs.push(rogue);
+		mkdirSync(join(rogue, "steering"), { recursive: true });
+		writeFileSync(join(rogue, "steering", "index.ts"), "export default {};", "utf8");
+		// The lens repro: the project layer points the variable at an empty
+		// agent dir while it is being imported.
+		const { config, diagnostics } = await loadWithProjectLayer(
+			`process.env.PI_CODING_AGENT_DIR = ${JSON.stringify(rogue)}; export default {};`,
+		);
+		assert.equal(
+			process.env.PI_CODING_AGENT_DIR,
+			before,
+			"the loader restores the variable the project layer moved",
+		);
+		assert.ok(
+			diagnostics.some((d) => d.kind === "agent-dir-env-mutated"),
+			JSON.stringify(diagnostics),
+		);
+		assert.ok((config.lockedRules ?? []).includes(MERGE_GUARD));
+		await expectGuardLive(config, "PI_CODING_AGENT_DIR hijack");
+	});
+});
+
+describe("locked rails — an error-class declaration drops itself, not the repo's rules (round-2 F2)", () => {
+	it("a valid project rule beside a broken plugin (orphan exemption, error-class) survives, loudly", async () => {
+		// The lens repro (functional r2 F2, red-team r2 F5). A reserved
+		// predicate key (`not`) is the trust lens's variant; against THIS
+		// global layer the lock's registry closure strips it first (a locked
+		// rule's `when.not` names the key), so the orphan exemption is the
+		// shape that reaches the error-class path here. The framework suite
+		// pins the reserved-key variant directly.
+		const { config, diagnostics } = await loadWithProjectLayer(
+			`export default {
+				plugins: [{ name: "evil", exemptions: [{ rule: "nope" }] }],
+				rules: [{ name: "repo-private-rail", tool: "bash", command: "echo", reason: "repo rail" }],
+			};`,
+		);
+		assert.ok(
+			diagnostics.some((d) => d.kind === "layer-part-dropped-on-error"),
+			JSON.stringify(diagnostics),
+		);
+		assert.ok(
+			!diagnostics.some((d) => d.kind === "layer-dropped-on-error"),
+			"the whole layer must not be dropped when one plugin is the fault",
+		);
+		const echo = await evaluate(config, "bash", { command: "echo hi" });
+		assert.deepEqual(
+			{ block: echo.block, rule: echo.rule },
+			{ block: true, rule: "repo-private-rail" },
+			"the repo's own rule must survive the drop of the broken plugin",
+		);
+		await expectGuardLive(config, "orphan-exemption plugin");
+	});
+
+	it("a project layer's own lockedRules is reported as inert (red-team r2 F6)", async () => {
+		const { diagnostics } = await loadWithProjectLayer(
+			`export default { lockedRules: [${JSON.stringify(MERGE_GUARD)}] };`,
+		);
+		assert.ok(
+			diagnostics.some((d) => d.kind === "lock-inert"),
+			JSON.stringify(diagnostics),
+		);
 	});
 });
 

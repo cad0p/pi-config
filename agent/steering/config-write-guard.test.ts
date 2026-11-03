@@ -296,20 +296,107 @@ describe("config-write-guard — bash writers", () => {
 		await expectAllowed("bash", { command: "sed -n '1,20p' agent/steering/index.ts" });
 	});
 
-	it("KNOWN GAP: a path built at runtime or split across a quote boundary is not seen", async () => {
-		// Stated as part of the claim (header): the guard matches shell TEXT.
-		// The load-time lock is what closes the hole; this rule is
-		// best-effort anti-plant.
+	it("covers <agentDir>/settings.json and the pi-steering-<x> packages (the table says so)", async () => {
+		// Red-team r2 F7: the round-1 header listed these as NOT covered.
+		await expectBlocked(
+			"bash",
+			{ command: "echo '{}' > /root/.pi/agent/settings.json" },
+			RULE_BASH,
+		);
+		await expectBlocked(
+			"write",
+			{
+				path: "/root/.pi/agent/npm/node_modules/@cad0p/pi-steering-github/dist/index.js",
+				content: "x",
+			},
+			RULE_WRITE,
+		);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// TRIPWIRE GAPS. The guard is a tripwire for honest mistakes, not a
+// boundary (header). Every row below is a writer or path shape it does
+// NOT see, pinned as ALLOWED so the header's "does not catch" table and
+// the code cannot drift apart. A row turning BLOCKED is fine only with
+// the header updated in the same commit; do not grow the writer list or
+// the path list to chase these one by one (three lens rounds showed the
+// space is open).
+// ---------------------------------------------------------------------------
+
+describe("config-write-guard — declared tripwire gaps (pinned ALLOWED)", () => {
+	const GLOBAL = "/root/.pi/agent";
+
+	it("a path built at runtime or split across a quote boundary", async () => {
 		await expectAllowed("bash", {
 			command: 'f=".pi/steer""ing/index.ts"; echo "export default {}" > "$f"',
 		});
-		// NOT a gap: the walker resolves `cd .pi && cd steering` to the
-		// effective cwd, so a bare `index.ts` token still lands on the
-		// protected path.
+	});
+
+	it("r2 F1: a redirect from an unlisted program, or from no program", async () => {
+		for (const command of [
+			`> ${GLOBAL}/steering/index.ts`,
+			`: > ${GLOBAL}/steering/index.ts`,
+			`jq -rn '"export default {}"' > ${GLOBAL}/steering/index.ts`,
+			`yes x | head -1 > ${GLOBAL}/steering/index.ts`,
+		]) {
+			await expectAllowed("bash", { command });
+		}
+	});
+
+	it("r2 F2: a relative target whose own token has no .pi segment", async () => {
+		await expectAllowed("bash", {
+			command: `cd ${GLOBAL} && echo x > steering/index.ts`,
+		});
+	});
+
+	it("r2 F2 (false positive, not coverage): a cd into .pi/steering trips the rule whatever the target", async () => {
+		// The verdict comes from the cd ARGUMENT token, so a harmless
+		// write elsewhere in the same line is refused. Pinned so nobody
+		// reads the block as "the walker resolves cd chains".
 		await expectBlocked(
 			"bash",
-			{ command: "cd .pi && cd steering && printf x > index.ts" },
+			{ command: "cd .pi && cd steering && printf x > /tmp/harmless.txt" },
 			RULE_BASH,
 		);
+	});
+
+	it("r2 F3: the flat global form, a glob, and removing or moving a parent", async () => {
+		await expectAllowed("write", {
+			path: `${GLOBAL}/steering.ts`,
+			content: "export default {};",
+		});
+		for (const command of [
+			`rm -rf ${GLOBAL}/steer*`,
+			`rm -rf ${GLOBAL}`,
+			`mv ${GLOBAL} /tmp/x`,
+		]) {
+			await expectAllowed("bash", { command });
+		}
+	});
+
+	it("r2 F4: other packages of the global layer's import graph, and pi itself", async () => {
+		await expectAllowed("bash", {
+			command: `sed -i '1s/a/b/' ${GLOBAL}/npm/node_modules/@cad0p/pi-napkin/dist/steering.js`,
+		});
+		await expectAllowed("bash", {
+			command: `sed -i 's/a/b/' ${GLOBAL}/install/releases/1.5.0/node_modules/@earendil-works/pi-coding-agent/dist/core/extensions/runner.js`,
+		});
+	});
+
+	it("git tree operations with no protected path in the text (trust r2 F5)", async () => {
+		// Another rail may still refuse one of these (`no-hard-reset`
+		// does); the pin is that THIS guard does not see them.
+		for (const command of [
+			"git -C /root/.pi reset --hard deadbeef",
+			"git -C /root/.pi checkout deadbeef",
+			"git -C /root/.pi apply /tmp/global.patch",
+		]) {
+			const verdict = await evaluate("bash", { command });
+			assert.ok(
+				![RULE_BASH, RULE_WRITE, RULE_EDIT].includes(verdict.rule ?? ""),
+				`expected the write guard not to see ${command}, got ${JSON.stringify(verdict)}`,
+			);
+		}
 	});
 });
