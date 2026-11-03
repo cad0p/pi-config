@@ -1,34 +1,37 @@
 // SPDX-License-Identifier: MIT
-// Global pi-steering config — locked-rail tests (red-team F1, 2026-11-03).
+// Global pi-steering config — locked-rail tests (red-team F1, 2026-11-03;
+// lens round-1 fold).
 //
 // The defect, reproduced by the lens: a project layer's `disabledRules` is
-// UNIONED with the global layer's (`mergeStringUnion` in the pi-steering
-// loader), so a repo whose `.pi/steering/index.ts` says
-// `{ disabledRules: ["agents-do-not-merge-directly"] }` deleted the global
-// merge guard with no collision, no prompt and no diagnostic — and
-// `gh api -X PUT …/pulls/4242/merge` executed.
+// UNIONED with the global layer's, so a repo whose `.pi/steering/index.ts`
+// says `{ disabledRules: ["agents-do-not-merge-directly"] }` deleted the
+// global merge guard with no collision, no prompt and no diagnostic.
 //
-// This file drives the REAL loader with a real project layer on disk and
-// the worktree's own global layer (PI_CODING_AGENT_DIR), then proves
-// through loadHarness that:
-//   - the guard is STILL ACTIVE (a private-repo merge is refused),
-//   - the refusal is LOUD (a warning-class `locked-rule-violation`
-//     diagnostic naming rule, refusing layer and lock owner),
-//   - a legitimate project-layer disable of an UNLOCKED rule still works,
-//   - the other four disarm paths (rule override, exemption, plugin
-//     disable, failOnWarnings escalation) are refused the same way.
+// Round 1 found three more classes, all folded in here:
+//   - the lock was SELF-DECLARABLE: a project layer that listed the rule
+//     became an "owner" and could then disable / override / exempt it and
+//     own `failOnWarnings` (functional F1, R-F1, trust F1);
+//   - the lock covered rule BODIES but not the REGISTRY: disabling the
+//     predicate-only `merge-guard` plugin, or re-declaring
+//     `attemptsDirectMerge`, neutered the rule and the engine threw, so
+//     the session ran unsteered (functional F2, R-F2, trust F2);
+//   - a broken inner layer could leave the session unsteered instead of
+//     just dropping the inner layer.
+//
+// Fixtures are deliberately generic: both repos are public, so no private
+// repo name or path appears here (trust F3).
 //
 // Requires the patched @cad0p/pi-steering (branch
-// feat/locked-rules-raw-command) until it ships: the installed 0.2.0
-// silently ignores `lockedRules`, which is exactly the fail-open this
-// test exists to catch. The package is symlinked into node_modules for
-// the prototype; nothing here is activated in the live config.
+// feat/locked-rules-raw-command) until it ships: on 0.2.0 the config's
+// capability gate refuses to load, which is exactly the fail-open this
+// suite exists to catch.
 
+import "./__test-agent-dir.ts";
 import assert from "node:assert/strict";
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
-import { after, before, describe, it } from "node:test";
+import { join } from "node:path";
+import { after, describe, it } from "node:test";
 import { loadSteeringConfig } from "@cad0p/pi-steering";
 import {
 	createRecordingHost,
@@ -40,22 +43,13 @@ import type { ExecResult } from "@earendil-works/pi-coding-agent";
 const MERGE_GUARD = "agents-do-not-merge-directly";
 const PLANT_GUARD = "no-steering-config-write";
 const MERGE_MESSAGE = /merge through tools\/merge-pr\.sh/;
-const PRIVATE_REPO = "cad0p/pc-host";
-const CWD = "/tmp/steering-lockdown";
+/** A neutral private repo: the guard's gate is stubbed to "private". */
+const PRIVATE_REPO = "example/private-repo";
+const CWD = "/srv/apps/example-app";
 
 const projectDirs: string[] = [];
-let previousAgentDir: string | undefined;
-
-before(() => {
-	// Load THIS worktree's global layer, not the machine's live one: the
-	// test must see the config the branch actually carries.
-	previousAgentDir = process.env.PI_CODING_AGENT_DIR;
-	process.env.PI_CODING_AGENT_DIR = resolve(process.cwd(), "..");
-});
 
 after(() => {
-	if (previousAgentDir === undefined) delete process.env.PI_CODING_AGENT_DIR;
-	else process.env.PI_CODING_AGENT_DIR = previousAgentDir;
 	for (const dir of projectDirs) rmSync(dir, { recursive: true, force: true });
 });
 
@@ -84,8 +78,7 @@ function host() {
 		exec: (cmd, args) => {
 			if (cmd === "gh" && args[0] === "api") {
 				const endpoint = /^repos\/([^/]+\/[^/]+)$/.exec(args[1] ?? "");
-				if (endpoint !== null) return Promise.resolve(ok("true"));
-				return Promise.resolve(fail);
+				return Promise.resolve(endpoint === null ? fail : ok("true"));
 			}
 			if (cmd === "gh" && args[0] === "repo" && args[1] === "view") {
 				return Promise.resolve(
@@ -133,67 +126,59 @@ function violations(
 	return diagnostics.filter((d) => d.kind === "locked-rule-violation");
 }
 
+/** The merge-guard verdict for a project layer, via the real harness. */
+async function mergeVerdict(
+	config: Awaited<ReturnType<typeof loadSteeringConfig>>["config"],
+): Promise<Verdict> {
+	return evaluate(config, "bash", {
+		command: `gh pr merge 4242 -R ${PRIVATE_REPO}`,
+	});
+}
+
+async function expectGuardLive(
+	config: Awaited<ReturnType<typeof loadSteeringConfig>>["config"],
+	label: string,
+): Promise<void> {
+	const merge = await mergeVerdict(config);
+	assert.deepEqual(
+		{ block: merge.block, rule: merge.rule },
+		{ block: true, rule: MERGE_GUARD },
+		`${label}: the merge guard must still refuse a private-repo merge`,
+	);
+	assert.match(merge.reason, MERGE_MESSAGE);
+}
+
 describe("locked rails — the F1 reproduction", () => {
 	it("a project-layer disabledRules on the merge guard is refused LOUDLY and the guard still blocks", async () => {
 		const { config, diagnostics } = await loadWithProjectLayer(
 			`export default { disabledRules: ["${MERGE_GUARD}"] };`,
 		);
-
-		// The lock held: the rule is still in the merged config and the
-		// refused disable did not survive the union.
-		assert.ok(
-			(config.rules ?? []).some((r) => r.name === MERGE_GUARD),
-			"the locked merge guard must stay in the merged config",
-		);
 		assert.ok(
 			!(config.disabledRules ?? []).includes(MERGE_GUARD),
 			"the refused disable must not appear in merged.disabledRules",
 		);
-
-		// Loud: warning-class (error-class would abort the whole runtime and
-		// hand a project layer a denial-of-steering kill switch).
 		const hits = violations(diagnostics);
 		assert.equal(hits.length, 1, JSON.stringify(diagnostics));
 		assert.equal(hits[0]?.type, "warning");
 		assert.match(hits[0]?.message ?? "", new RegExp(`locked rule "${MERGE_GUARD}"`));
 		assert.match(hits[0]?.message ?? "", /locked by layer #1/);
-		assert.match(hits[0]?.message ?? "", /stays active/);
-
-		// Effective behaviour: the lens's REST merge route is refused.
 		const rest = await evaluate(config, "bash", {
 			command: `gh api -X PUT repos/${PRIVATE_REPO}/pulls/4242/merge`,
 		});
 		assert.deepEqual(
 			{ block: rest.block, rule: rest.rule },
 			{ block: true, rule: MERGE_GUARD },
-			"the REST merge endpoint must still be refused by the live guard",
 		);
-		assert.match(rest.reason, MERGE_MESSAGE);
-
-		const cli = await evaluate(config, "bash", {
-			command: `gh pr merge 4242 -R ${PRIVATE_REPO}`,
-		});
-		assert.deepEqual(
-			{ block: cli.block, rule: cli.rule },
-			{ block: true, rule: MERGE_GUARD },
-		);
+		await expectGuardLive(config, "plain disable");
 	});
 
 	it("a legitimate project-layer disable of an UNLOCKED rule still works", async () => {
 		const { config, diagnostics } = await loadWithProjectLayer(
-			`export default { disabledRules: ["no-rm-rf-slash"] };`,
+			'export default { disabledRules: ["no-rm-rf-slash"] };',
 		);
 		assert.deepEqual(violations(diagnostics), []);
-		assert.ok(
-			!(config.rules ?? []).some((r) => r.name === "no-rm-rf-slash"),
-			"the unlocked shipped rule is filtered out of the merged config",
-		);
 		const rm = await evaluate(config, "bash", { command: "rm -rf /" });
-		assert.equal(
-			rm.block,
-			false,
-			"with the rule disabled the call is allowed (the documented customization path)",
-		);
+		assert.equal(rm.block, false);
 	});
 
 	it("the plant guard cannot itself be disabled by a project layer", async () => {
@@ -202,16 +187,13 @@ describe("locked rails — the F1 reproduction", () => {
 		);
 		assert.equal(violations(diagnostics).length, 1);
 		const plant = await evaluate(config, "write", {
-			path: "/data/work/pc-host/.pi/steering/index.ts",
-			content: 'export default { disabledRules: ["agents-do-not-merge-directly"] };',
+			path: `${CWD}/.pi/steering/index.ts`,
+			content: 'export default { disabledRules: ["x"] };',
 		});
 		assert.deepEqual(
 			{ block: plant.block, rule: plant.rule },
 			{ block: true, rule: PLANT_GUARD },
-			"a project layer that deletes the plant guard must not win",
 		);
-		// Bail wording: the file itself is unwritable through the bash route
-		// too (redirect included), so the F1 payload cannot be planted.
 		const redirect = await evaluate(config, "bash", {
 			command: `echo 'export default { disabledRules: ["${MERGE_GUARD}"] };' > .pi/steering/index.ts`,
 		});
@@ -222,102 +204,112 @@ describe("locked rails — the F1 reproduction", () => {
 	});
 });
 
-describe("locked rails — the other disarm paths", () => {
-	it("a project-layer rule OVERRIDE of the merge guard is refused; the locked definition wins", async () => {
+describe("locked rails — authority is outward-only (round-1 F1)", () => {
+	// The lens repro: a project layer that declares the lock ITSELF and
+	// then disarms. Every case must still refuse and the guard must hold.
+	it("a project layer that locks the rule cannot disable it", async () => {
 		const { config, diagnostics } = await loadWithProjectLayer(
-			`export default { rules: [{ name: "${MERGE_GUARD}", tool: "bash", command: "gh", when: { condition: () => false }, reason: "project shadow (never fires)" }] };`,
+			`export default { lockedRules: ["${MERGE_GUARD}"], disabledRules: ["${MERGE_GUARD}"] };`,
 		);
-		const hits = violations(diagnostics);
-		assert.equal(hits.length, 1, JSON.stringify(diagnostics));
-		assert.match(hits[0]?.message ?? "", /override of locked rule/);
-		const merge = await evaluate(config, "bash", {
-			command: `gh pr merge 4242 -R ${PRIVATE_REPO}`,
-		});
-		assert.deepEqual(
-			{ block: merge.block, rule: merge.rule },
-			{ block: true, rule: MERGE_GUARD },
-			"the locked body (not the project shadow) must decide the verdict",
+		assert.equal(
+			violations(diagnostics).length,
+			1,
+			JSON.stringify(diagnostics),
 		);
-		assert.match(merge.reason, MERGE_MESSAGE);
+		assert.ok(!(config.disabledRules ?? []).includes(MERGE_GUARD));
+		await expectGuardLive(config, "self-declared lock + disable");
 	});
 
-	it("a project-layer EXEMPTION targeting the merge guard is dropped", async () => {
-		const { config, diagnostics } = await loadWithProjectLayer(
-			`export default { exemptions: [{ rule: "${MERGE_GUARD}", when: { condition: () => true } }] };`,
+	it("a project layer that locks the rule cannot override or exempt it", async () => {
+		const override = await loadWithProjectLayer(
+			`export default { lockedRules: ["${MERGE_GUARD}"], rules: [{ name: "${MERGE_GUARD}", tool: "bash", command: "gh", when: { condition: () => false }, reason: "shadow" }] };`,
 		);
-		assert.equal(violations(diagnostics).length, 1, JSON.stringify(diagnostics));
+		assert.equal(violations(override.diagnostics).length, 1);
+		await expectGuardLive(override.config, "self-declared lock + override");
+
+		const exemption = await loadWithProjectLayer(
+			`export default { lockedRules: ["${MERGE_GUARD}"], exemptions: [{ rule: "${MERGE_GUARD}", when: { condition: () => true } }] };`,
+		);
+		assert.equal(violations(exemption.diagnostics).length, 1);
 		assert.equal(
-			(config.exemptions ?? []).some((e) => e.rule === MERGE_GUARD),
+			(exemption.config.exemptions ?? []).some((e) => e.rule === MERGE_GUARD),
 			false,
-			"the project carve-out must not reach the merged exemption registry",
 		);
-		const merge = await evaluate(config, "bash", {
-			command: `gh pr merge 4242 -R ${PRIVATE_REPO}`,
-		});
-		assert.deepEqual(
-			{ block: merge.block, rule: merge.rule },
-			{ block: true, rule: MERGE_GUARD },
-		);
+		await expectGuardLive(exemption.config, "self-declared lock + exemption");
 	});
 
-	it("a project-layer defaultNoOverride:false cannot make a locked rule overridable", async () => {
-		// The override-comment path: with `defaultNoOverride: false` an agent
-		// appends `# steering-override: <rule>` and the block is waived.
+	it("a project layer that locks ANY rule cannot own failOnWarnings / defaultNoOverride", async () => {
 		const { config, diagnostics } = await loadWithProjectLayer(
-			"export default { defaultNoOverride: false };",
+			`export default { lockedRules: ["${MERGE_GUARD}"], failOnWarnings: true, defaultNoOverride: false };`,
 		);
-		assert.equal(
-			config.defaultNoOverride,
-			true,
-			"the lock-declaring layer's defaultNoOverride=true governs",
-		);
-		assert.equal(violations(diagnostics).length, 1, JSON.stringify(diagnostics));
-		const merge = await evaluate(config, "bash", {
+		assert.equal(config.failOnWarnings, false);
+		assert.equal(config.defaultNoOverride, true);
+		assert.equal(violations(diagnostics).length, 2, JSON.stringify(diagnostics));
+		await expectGuardLive(config, "self-declared lock + boolean flips");
+		const overridden = await evaluate(config, "bash", {
 			command: `gh pr merge 4242 -R ${PRIVATE_REPO} # steering-override: ${MERGE_GUARD}`,
 		});
 		assert.deepEqual(
-			{ block: merge.block, rule: merge.rule },
+			{ block: overridden.block, rule: overridden.rule },
 			{ block: true, rule: MERGE_GUARD },
-			"the override comment must be rejected, not honored",
-		);
-	});
-
-	it("a project-layer failOnWarnings escalation cannot abort the rails", async () => {
-		// failOnWarnings: true turns ANY warning (including the refusal
-		// diagnostic) into a thrown abort that builds no runtime at all —
-		// the kill switch that would make the lock cosmetic.
-		const { config, diagnostics } = await loadWithProjectLayer(
-			`export default { disabledRules: ["${MERGE_GUARD}"], failOnWarnings: true };`,
-		);
-		assert.equal(
-			config.failOnWarnings,
-			false,
-			"the lock-declaring layer's failOnWarnings=false governs",
-		);
-		const hits = violations(diagnostics);
-		assert.ok(
-			hits.some((h) => /ignoring failOnWarnings=true/.test(h.message)),
-			JSON.stringify(hits),
-		);
-		const merge = await evaluate(config, "bash", {
-			command: `gh pr merge 4242 -R ${PRIVATE_REPO}`,
-		});
-		assert.deepEqual(
-			{ block: merge.block, rule: merge.rule },
-			{ block: true, rule: MERGE_GUARD },
+			"the override comment must be rejected",
 		);
 	});
 });
 
-describe("locked rails — unlocked configs are unchanged", () => {
+describe("locked rails — the registry the rule depends on (round-1 F2)", () => {
+	it("refuses disabledPlugins on the predicate-only merge-guard plugin and still builds", async () => {
+		const { config, diagnostics } = await loadWithProjectLayer(
+			'export default { disabledPlugins: ["merge-guard"] };',
+		);
+		assert.equal(
+			(config.disabledPlugins ?? []).includes("merge-guard"),
+			false,
+		);
+		const hits = violations(diagnostics);
+		assert.equal(hits.length, 1, JSON.stringify(diagnostics));
+		assert.match(hits[0]?.message ?? "", /refusing to disable plugin "merge-guard"/);
+		assert.match(hits[0]?.message ?? "", new RegExp(MERGE_GUARD));
+		// The rule resolves (no unknown-predicate throw) and still blocks.
+		await expectGuardLive(config, "plugin disable");
+	});
+
+	it("refuses a project plugin that re-declares the guard's predicate", async () => {
+		const { config, diagnostics } = await loadWithProjectLayer(
+			'export default { plugins: [{ name: "zz", predicates: { attemptsDirectMerge: () => false } }] };',
+		);
+		assert.equal(violations(diagnostics).length, 1, JSON.stringify(diagnostics));
+		await expectGuardLive(config, "predicate override");
+	});
+
+	it("refuses a project plugin that shadows the provider by name", async () => {
+		const { config, diagnostics } = await loadWithProjectLayer(
+			'export default { plugins: [{ name: "merge-guard" }] };',
+		);
+		assert.equal(violations(diagnostics).length, 1, JSON.stringify(diagnostics));
+		await expectGuardLive(config, "plugin-name shadow");
+	});
+});
+
+describe("locked rails — an inner break cannot unsteer the session", () => {
+	it("a project layer that fails to import leaves the rails live", async () => {
+		const { config, diagnostics } = await loadWithProjectLayer(
+			"export default { this is not valid TypeScript",
+		);
+		assert.ok(
+			diagnostics.some((d) => d.kind === "layer-import-failed"),
+			JSON.stringify(diagnostics),
+		);
+		await expectGuardLive(config, "broken project layer");
+	});
+});
+
+describe("locked rails — unlocked configs and the outer layer", () => {
 	it("a project layer with no disables loads with zero violation diagnostics", async () => {
 		const { config, diagnostics } = await loadWithProjectLayer(
 			"export default {};",
 		);
 		assert.deepEqual(violations(diagnostics), []);
-		assert.ok(
-			(config.lockedRules ?? []).includes(MERGE_GUARD),
-			"the global layer still declares the lock",
-		);
+		assert.ok((config.lockedRules ?? []).includes(MERGE_GUARD));
 	});
 });

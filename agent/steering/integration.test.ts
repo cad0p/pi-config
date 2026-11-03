@@ -25,6 +25,9 @@
 //     (vault detection + repo-name check via the exec stub), so these
 //     scenarios also use REAL fixture dirs.
 
+// Hermetic global layer: load THIS checkout's agent dir, not the
+// machine's live ~/.pi/agent/steering (functional F5).
+import "./__test-agent-dir.ts";
 import assert from "node:assert/strict";
 import {
 	mkdirSync,

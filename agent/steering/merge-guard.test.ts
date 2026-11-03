@@ -21,6 +21,9 @@
 // name must NEVER flip visibility between tests: every public case uses
 // PUBLIC_REPO, every private case PRIVATE_REPO (or a fresh fixture name).
 
+// Hermetic global layer: load THIS checkout's agent dir, not the
+// machine's live ~/.pi/agent/steering (functional F5).
+import "./__test-agent-dir.ts";
 import assert from "node:assert/strict";
 import { before, describe, it } from "node:test";
 import { loadSteeringConfig } from "@cad0p/pi-steering";

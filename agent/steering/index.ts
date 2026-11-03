@@ -45,8 +45,13 @@
 // ./config-write-guard.test.ts (the plant-path matrix) and
 // ./lockdown.test.ts (project-layer disables of a locked rail).
 
+// Namespace import on purpose: the capability gate below must survive a
+// framework that lacks the flag (a NAMED import of `LOCKED_RULES_SUPPORTED`
+// would be a module error whose message does not say what to install).
+import * as piSteering from "@cad0p/pi-steering";
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
+import { assertLockedRulesSupport } from "./framework-support.ts";
 import gitPlugin from "@cad0p/pi-steering/plugins/git";
 import rmPlugin from "@cad0p/pi-steering/plugins/rm";
 import napkinSteeringPlugin from "@cad0p/pi-napkin/steering";
@@ -91,6 +96,12 @@ declare global {
  * `no-main-commit` / `no-main-commit-github`.
  */
 const AGENT_DIR = join(homedir(), ".pi");
+
+// Capability gate (functional F4): a lockedRules config is SILENTLY INERT
+// on a framework that does not enforce it, so refuse to load instead of
+// pretending. Throwing here surfaces as `layer-import-failed` with this
+// message in `pi-steering list` and the session log.
+assertLockedRulesSupport(piSteering as unknown as Record<string, unknown>);
 
 const agentDirPlugin = {
 	name: "agent-dir",
@@ -174,16 +185,28 @@ export default defineConfig({
 	// the same name, add an exemption, disable the shipping plugin, or
 	// escalate `failOnWarnings` until the refusal diagnostic itself
 	// aborts the session. Red-team F1 (2026-11-03) proved exactly that
-	// for agents-do-not-merge-directly. A locked rule survives all five
-	// paths from any OTHER layer, loudly (warning-class
-	// `locked-rule-violation`), while the layer that locked it may still
-	// disable / exempt it itself.
+	// for agents-do-not-merge-directly.
+	//
+	// A lock binds OUTWARD ONLY (round-1 fold, functional F1 / R-F1 /
+	// trust F1): this layer is the outermost, so its locks bind against
+	// every project layer, and a project layer that declares lockedRules
+	// itself gains nothing — it can neither exempt itself nor own the
+	// booleans. No self-exemption: a rail is retired by removing the lock
+	// and the rule, not by disabling around it.
+	//
+	// The lock also covers the REGISTRY the rule depends on (R-F2): the
+	// predicate keys it names, its observers, its CLI descriptors and the
+	// plugins that provide them — a project plugin that re-declares
+	// `attemptsDirectMerge` would otherwise neuter the rule while its
+	// text stayed intact. An inner layer that trips an error-class
+	// diagnostic is dropped (innermost first, info-class
+	// `layer-dropped-on-error`) instead of leaving the session unsteered.
 	//
 	// Locked here: every rule THIS layer declares — its own content, the
 	// merge guard first among them. Shipped git / rm / github rails stay
 	// project-customizable for now (that is the documented override
-	// path); extending the lock to them is owner question 3 in the
-	// design note Goldmine personal/github/pi-config/plans/2026-11-03-lock-global-rails.md.
+	// path); extending the lock to them is owner question 1 in the design
+	// note Goldmine personal/github/pi-config/plans/2026-11-03-lock-global-rails.md.
 	lockedRules: [
 		"agents-do-not-merge-directly",
 		"no-agent-config-edit",

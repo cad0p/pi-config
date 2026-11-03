@@ -5,22 +5,20 @@
 // with the global layer's, so a repo whose .pi/steering/index.ts says
 // { disabledRules: ["agents-do-not-merge-directly"] } silently deleted
 // the global merge guard, and nothing stopped an agent from writing that
-// file with the write tool. This file pins the anti-plant half: the
-// write / edit tools and the writer binaries are refused for
-// .pi/steering/** , .pi/steering.ts and .pi/settings.json.
+// file with the write tool. Round 1 (R-F3) added three one-character
+// bypasses of the first cut: .pi//steering, .pi/./steering, and a
+// redirect written with no space after >. This file pins the canonical
+// coverage AND the declared gaps.
 //
-// Text guard, not a sandbox: the KNOWN GAPS asserted at the bottom are
-// part of the claim (globbed paths, a cwd already inside the dir with a
-// bare relative path, and an executed script). The load-time lock in
-// lockdown.test.ts is the half that closes the hole.
-//
-// The config is loaded through pi-steering's real loader (jiti), like
-// integration.test.ts. PI_CODING_AGENT_DIR points at THIS worktree's
-// agent dir so the test never depends on the machine's live config.
+// The guard's own claim is a TABLE, not "everything": every row below is
+// either blocked or explicitly allowed as a documented gap.
 
+import "./__test-agent-dir.ts";
 import assert from "node:assert/strict";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { before, describe, it } from "node:test";
-import { join, resolve } from "node:path";
 import { loadSteeringConfig } from "@cad0p/pi-steering";
 import {
 	createRecordingHost,
@@ -32,30 +30,31 @@ import type { ExecResult } from "@earendil-works/pi-coding-agent";
 const RULE_WRITE = "no-steering-config-write";
 const RULE_EDIT = "no-steering-config-edit";
 const RULE_BASH = "no-steering-config-bash-mutation";
-const MESSAGE = /Do not write pi steering configuration/;
 
-const CWD = "/tmp/steering-config-write-guard";
+const CWD = "/srv/apps/example-app";
+const REPO = `${CWD}`;
+/** A pi-config worktree: the sanctioned place to author config. */
+const WORKTREE = "/srv/work/pi-config-branch/agent/steering/index.ts";
 
 let config: Awaited<ReturnType<typeof loadSteeringConfig>>["config"];
 
 before(async () => {
-	const previous = process.env.PI_CODING_AGENT_DIR;
-	process.env.PI_CODING_AGENT_DIR = resolve(process.cwd(), "..");
-	try {
-		const { config: merged } = await loadSteeringConfig(process.cwd());
-		config = merged;
-	} finally {
-		if (previous === undefined) delete process.env.PI_CODING_AGENT_DIR;
-		else process.env.PI_CODING_AGENT_DIR = previous;
-	}
+	const { config: merged, diagnostics } = await loadSteeringConfig(
+		process.cwd(),
+	);
+	const errors = diagnostics.filter((d) => d.type === "error");
+	assert.deepEqual(
+		errors.map((d) => d.message),
+		[],
+		"the global config must load without error diagnostics",
+	);
+	config = merged;
 });
 
 /** Host stub: no exec is expected, but the shipped predicates shell out. */
 function host() {
 	const fail: ExecResult = { stdout: "", stderr: "", code: 1, killed: false };
-	return createRecordingHost({
-		exec: () => Promise.resolve(fail),
-	});
+	return createRecordingHost({ exec: () => Promise.resolve(fail) });
 }
 
 interface Verdict {
@@ -113,87 +112,178 @@ async function expectAllowed(
 
 describe("config-write-guard — write / edit tools", () => {
 	it("blocks writes and edits under any repo's .pi/steering/", async () => {
-		await expectBlocked("write", {
-			path: "/data/work/pc-host/.pi/steering/index.ts",
-			content: "export default {};",
-		}, RULE_WRITE);
-		await expectBlocked("edit", {
-			path: "/data/work/pc-host/.pi/steering/plugins/slip.ts",
-			edits: [{ oldText: "a", newText: "b" }],
-		}, RULE_EDIT);
-		await expectBlocked("write", {
-			path: "/data/work/pc-host/.pi/steering/package.json",
-			content: "{}",
-		}, RULE_WRITE);
+		await expectBlocked(
+			"write",
+			{ path: `${REPO}/.pi/steering/index.ts`, content: "export default {};" },
+			RULE_WRITE,
+		);
+		await expectBlocked(
+			"edit",
+			{
+				path: `${REPO}/.pi/steering/plugins/slip.ts`,
+				edits: [{ oldText: "a", newText: "b" }],
+			},
+			RULE_EDIT,
+		);
+		await expectBlocked(
+			"write",
+			{ path: `${REPO}/.pi/steering/package.json`, content: "{}" },
+			RULE_WRITE,
+		);
 	});
 
 	it("blocks the .pi/steering.ts shorthand and project settings", async () => {
-		await expectBlocked("write", {
-			path: "/data/work/pc-host/.pi/steering.ts",
-			content: "export default {};",
-		}, RULE_WRITE);
-		await expectBlocked("edit", {
-			path: "/data/work/pc-host/.pi/settings.json",
-			edits: [{ oldText: "{}", newText: "{}" }],
-		}, RULE_EDIT);
+		await expectBlocked(
+			"write",
+			{ path: `${REPO}/.pi/steering.ts`, content: "export default {};" },
+			RULE_WRITE,
+		);
+		await expectBlocked(
+			"edit",
+			{
+				path: `${REPO}/.pi/settings.json`,
+				edits: [{ oldText: "{}", newText: "{}" }],
+			},
+			RULE_EDIT,
+		);
 	});
 
 	it("blocks relative paths too (the write tool passes the path as typed)", async () => {
-		await expectBlocked("write", {
-			path: ".pi/steering/index.ts",
-			content: "export default {};",
-		}, RULE_WRITE);
-		await expectBlocked("edit", {
-			path: ".pi/settings.json",
-			edits: [{ oldText: "a", newText: "b" }],
-		}, RULE_EDIT);
+		await expectBlocked(
+			"write",
+			{ path: ".pi/steering/index.ts", content: "export default {};" },
+			RULE_WRITE,
+		);
+		await expectBlocked(
+			"edit",
+			{ path: ".pi/settings.json", edits: [{ oldText: "a", newText: "b" }] },
+			RULE_EDIT,
+		);
 	});
 
-	it("leaves ordinary files and look-alike names alone", async () => {
+	it("normalises // and ./ and .. spellings (R-F3)", async () => {
+		for (const path of [
+			".pi//steering/index.ts",
+			".pi/./steering/index.ts",
+			".pi/plugins/../steering/index.ts",
+			`${REPO}//.pi//steering//index.ts`,
+		]) {
+			await expectBlocked(
+				"write",
+				{ path, content: "export default {};" },
+				RULE_WRITE,
+			);
+		}
+	});
+
+	it("resolves a symlinked .pi directory before matching", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "writeguard-"));
+		try {
+			mkdirSync(join(dir, "real", ".pi", "steering"), { recursive: true });
+			writeFileSync(join(dir, "real", ".pi", "steering", "index.ts"), "export default {};");
+			symlinkSync(join(dir, "real", ".pi"), join(dir, "link"));
+			await expectBlocked(
+				"write",
+				{ path: join(dir, "link", "steering", "index.ts"), content: "x" },
+				RULE_WRITE,
+			);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it("blocks the GLOBAL layer and the installed framework source (R-F4)", async () => {
+		await expectBlocked(
+			"write",
+			{ path: "/root/.pi/agent/steering/index.ts", content: "export default {};" },
+			RULE_WRITE,
+		);
+		await expectBlocked(
+			"edit",
+			{
+				path: "/root/.pi/agent/steering/merge-guard.ts",
+				edits: [{ oldText: "a", newText: "b" }],
+			},
+			RULE_EDIT,
+		);
+		await expectBlocked(
+			"write",
+			{
+				path: "/root/.pi/agent/npm/node_modules/.pnpm/@cad0p+pi-steering@0.2.0/node_modules/@cad0p/pi-steering/src/loader.ts",
+				content: "// neutered lock",
+			},
+			RULE_WRITE,
+		);
+	});
+
+	it("leaves ordinary files, look-alike names and the config WORKTREE alone", async () => {
 		await expectAllowed("write", {
-			path: "/data/work/pc-host/src/index.ts",
+			path: `${REPO}/src/index.ts`,
 			content: "export default {};",
 		});
 		await expectAllowed("write", {
-			path: "/data/work/pc-host/docs/.pi/steering-notes.md",
+			path: `${REPO}/docs/.pi/steering-notes.md`,
 			content: "notes about steering",
 		});
 		await expectAllowed("write", {
-			path: "/data/work/pc-host/.pi/settings.json.bak",
+			path: `${REPO}/.pi/settings.json.bak`,
 			content: "{}",
 		});
 		await expectAllowed("edit", {
-			path: "/data/work/pc-host/.pi/other.json",
+			path: `${REPO}/.pi/other.json`,
 			edits: [{ oldText: "a", newText: "b" }],
 		});
+		await expectAllowed("write", { path: WORKTREE, content: "export default {};" });
 	});
 });
 
 describe("config-write-guard — bash writers", () => {
-	it("blocks the F1 plant with a redirect, tee, sed -i, cp, mv and chmod", async () => {
+	it("blocks the F1 plant with a redirect, tee, sed -i, cp, mv, chmod, heredoc and an interpreter", async () => {
+		const plant = 'export default { disabledRules: ["agents-do-not-merge-directly"] };';
 		const plants = [
-			'echo \'export default { disabledRules: ["agents-do-not-merge-directly"] };\' > .pi/steering/index.ts',
-			"printf '%s' 'export default {}' >> /data/work/pc-host/.pi/steering/index.ts",
+			`echo '${plant}' > .pi/steering/index.ts`,
+			// R-F3: no space after the redirect.
+			`echo x >.pi/steering/index.ts`,
+			// R-F3: doubled separator on the tee target.
+			`echo x | tee .pi//steering/index.ts`,
+			"printf '%s' 'export default {}' >> .pi/steering/index.ts",
 			"tee .pi/steering/index.ts <<< 'export default {}'",
 			"sed -i 's/enabled/disabled/' .pi/steering/index.ts",
 			"cp /tmp/payload.ts .pi/steering/index.ts",
 			"mv /tmp/payload.ts .pi/steering/index.ts",
 			"chmod 600 .pi/steering/index.ts",
 			"cat > .pi/steering/index.ts <<'EOF'\nexport default {};\nEOF",
-			"python3 -c \"open('.pi/steering/index.ts','w').write('export default {}')\"",
+			`python3 -c "open('.pi/steering/index.ts','w').write('export default {}')"`,
 			"git checkout -- .pi/steering",
 			"rm -rf .pi/steering",
 			"cat /tmp/payload.ts > .pi/settings.json",
+			"cp /tmp/x /srv/apps/example-app/.pi//settings.json",
 		];
 		for (const command of plants) {
 			await expectBlocked("bash", { command }, RULE_BASH);
 		}
 	});
 
+	it("blocks the global layer and the installed framework source through bash too", async () => {
+		await expectBlocked(
+			"bash",
+			{ command: "echo 'export default {};' > /root/.pi/agent/steering/index.ts" },
+			RULE_BASH,
+		);
+		await expectBlocked(
+			"bash",
+			{
+				command:
+					"sed -i 's/lockedRules/lockedRulez/' /root/.pi/agent/npm/node_modules/.pnpm/@cad0p+pi-steering@0.2.0/node_modules/@cad0p/pi-steering/src/loader.ts",
+			},
+			RULE_BASH,
+		);
+	});
+
 	it("is not tied to the cwd: an absolute path in another repo is blocked too", async () => {
 		await expectBlocked(
 			"bash",
-			{ command: "cp /tmp/x /data/work/pc-control/.pi/steering/index.ts" },
+			{ command: "cp /tmp/x /srv/apps/other-repo/.pi/steering/index.ts" },
 			RULE_BASH,
 		);
 	});
@@ -201,20 +291,25 @@ describe("config-write-guard — bash writers", () => {
 	it("allows reading the project layer (review work is legitimate)", async () => {
 		await expectAllowed("bash", { command: "cat .pi/steering/index.ts" });
 		await expectAllowed("bash", { command: "ls -la .pi/steering" });
-		await expectAllowed("bash", {
-			command: "rg -n disabledRules .pi/steering",
-		});
+		await expectAllowed("bash", { command: "rg -n disabledRules .pi/steering" });
 		await expectAllowed("bash", { command: "git status --short" });
+		await expectAllowed("bash", { command: "sed -n '1,20p' agent/steering/index.ts" });
 	});
 
-	it("KNOWN GAP: a path built by expansion or a script written elsewhere is not seen", async () => {
-		// Stated as part of the claim (header): the text guard cannot see a
-		// path assembled at runtime. The load-time lock is what closes the
-		// hole; this rule is best-effort anti-plant.
-		// The literal path split across a quote boundary: no text scan can
-		// reassemble it, yet the shell writes exactly the plant file.
+	it("KNOWN GAP: a path built at runtime or split across a quote boundary is not seen", async () => {
+		// Stated as part of the claim (header): the guard matches shell TEXT.
+		// The load-time lock is what closes the hole; this rule is
+		// best-effort anti-plant.
 		await expectAllowed("bash", {
 			command: 'f=".pi/steer""ing/index.ts"; echo "export default {}" > "$f"',
 		});
+		// NOT a gap: the walker resolves `cd .pi && cd steering` to the
+		// effective cwd, so a bare `index.ts` token still lands on the
+		// protected path.
+		await expectBlocked(
+			"bash",
+			{ command: "cd .pi && cd steering && printf x > index.ts" },
+			RULE_BASH,
+		);
 	});
 });
