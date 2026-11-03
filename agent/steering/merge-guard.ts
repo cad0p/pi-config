@@ -9,12 +9,17 @@
  * holds none of it — it is one message over a handful of patterns.
  *
  * SCOPE (owner ruling 2026-11-03, verbatim: "just gate it to private repos
- * instead, simpler"): generic within PRIVATE repos. Every governed repo — the
- * ones whose merges go through `tools/merge-pr.sh` — is private; PUBLIC repos
- * merge normally, so the rule does not fire there. (The old every-repo scope
- * refused a direct merge in the public cad0p/pi-usage.) The helper runs `gh`
- * as a subprocess, so steering never sees its merge call and needs no
- * exception.
+ * instead, simpler"; reasoning, verbatim: "the reasoning is that public repos
+ * have free CI, so no machinery involved"): generic within PRIVATE repos.
+ * Public repos run hosted GitHub Actions for free, so their normal required
+ * checks ARE the gate and none of the local-gate / `merge-pr.sh` machinery
+ * applies — a direct agent merge there is ordinary work. Private repos are the
+ * ones on the minutes quota, with local container CI as the gate of record.
+ * Every governed repo — the ones whose merges go through
+ * `tools/merge-pr.sh` — is private, and every direct merge route there stays
+ * refused. (The old every-repo scope refused a direct merge in the public
+ * cad0p/pi-usage.) The helper runs `gh` as a subprocess, so steering never
+ * sees its merge call and needs no exception.
  *
  * VISIBILITY GATE — how the TARGET repo is resolved, per route:
  *   - `gh pr merge`: `-R/--repo` (separate, `=`, glued; last wins, like gh),
