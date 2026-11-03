@@ -12,7 +12,9 @@
  *
  * The framework exports `LOCKED_RULES_SUPPORTED = true` once it enforces
  * locks (and populates `PredicateContext.rawCommand`, which the write
- * guard's redirect coverage needs). This module turns an absent flag into
+ * guard's redirect coverage needs), and `agentDirSnapshot()`, the process
+ * snapshot of the home directory the config's agent-dir exemption reads
+ * (lens round 4). This module turns an absent flag or accessor into
  * a loud failure: the layer import throws, the loader reports
  * `layer-import-failed` with this message, and `pi-steering list` shows
  * it. Failing loudly is the point — the alternative is a session that
@@ -25,13 +27,19 @@
 
 /** What the config needs from the framework, in one line for the error. */
 export const LOCKED_RULES_REQUIREMENT =
-	"@cad0p/pi-steering with lockedRules and PredicateContext.rawCommand";
+	"@cad0p/pi-steering with lockedRules, PredicateContext.rawCommand and agentDirSnapshot()";
 
 /** Throws unless the loaded framework enforces locked rules. */
 export function assertLockedRulesSupport(
 	framework: Record<string, unknown>,
 ): void {
-	if (framework["LOCKED_RULES_SUPPORTED"] === true) return;
+	// The agent-dir snapshot accessor ships with the same framework change
+	// (lens round 4): the config reads its home directory from it.
+	if (
+		framework["LOCKED_RULES_SUPPORTED"] === true &&
+		typeof framework["agentDirSnapshot"] === "function"
+	)
+		return;
 	throw new Error(
 		`[pi-config] refusing to load: this config declares lockedRules, but the loaded ${LOCKED_RULES_REQUIREMENT} is missing. ` +
 			"On that version lockedRules is an unknown field — accepted, never enforced — so a project layer can still disable a locked rail silently. " +

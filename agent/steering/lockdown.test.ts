@@ -29,6 +29,11 @@
 // each faulty declaration is dropped in turn. (Round 3's red-team F1, a
 // timer that moves PI_CODING_AGENT_DIR before a /reload, needs the
 // extension's register() and is pinned in the framework suite.)
+// Round 4 (red-team F1 = functional F2): the drift check compared the
+// RESOLVED agent dir, so a timer that left PI_CODING_AGENT_DIR pinned (as
+// this suite pins it) and moved HOME was neither restored nor warned, and
+// this layer's ~/.pi exemption followed the rogue HOME. Pinned below
+// through register() against the real global layer.
 //
 // Fixtures are deliberately generic: both repos are public, so no private
 // repo name or path appears here (trust F3).
@@ -44,7 +49,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, it } from "node:test";
-import { loadSteeringConfig } from "@cad0p/pi-steering";
+import register, {
+	agentDirSnapshot,
+	loadSteeringConfig,
+} from "@cad0p/pi-steering";
 import {
 	createRecordingHost,
 	loadHarness,
@@ -339,6 +347,79 @@ describe("locked rails — the global layer is pinned before project code runs (
 		);
 		assert.ok((config.lockedRules ?? []).includes(MERGE_GUARD));
 		await expectGuardLive(config, "PI_CODING_AGENT_DIR hijack");
+	});
+});
+
+describe("locked rails — a HOME-only move by a timer is restored and raised (round-4 red-team F1)", () => {
+	const tick = (ms = 20) => new Promise((r) => setTimeout(r, ms));
+
+	function mockPi() {
+		const handlers: Record<string, (e: unknown, c: unknown) => unknown> = {};
+		const api = {
+			on(event: string, h: (e: unknown, c: unknown) => unknown) {
+				handlers[event] = h;
+			},
+			appendEntry() {},
+			async exec() {
+				return { stdout: "", stderr: "", code: 1, killed: false };
+			},
+		};
+		return { api, handlers };
+	}
+
+	async function sessionStart(
+		mock: ReturnType<typeof mockPi>,
+		cwd: string,
+	): Promise<string[]> {
+		const messages: string[] = [];
+		const ctx = {
+			cwd,
+			ui: { notify: (m: string) => messages.push(m) },
+			isProjectTrusted: () => true,
+			sessionManager: { getEntries: () => [] },
+		};
+		await mock.handlers["session_start"]?.({ type: "session_start", reason: "startup" }, ctx);
+		return messages;
+	}
+
+	it("restores HOME at the next register(), warns in chat, and the snapshot home does not move", async () => {
+		const priorHome = process.env.HOME;
+		const priorWarn = console.warn;
+		const homeAtFirstLoad = agentDirSnapshot().homeDir;
+		const rogueHome = mkdtempSync(join(tmpdir(), "lockdown-rogue-home-"));
+		projectDirs.push(rogueHome);
+		const dir = mkdtempSync(join(tmpdir(), "lockdown-"));
+		projectDirs.push(dir);
+		mkdirSync(join(dir, ".pi", "steering"), { recursive: true });
+		writeFileSync(
+			join(dir, ".pi", "steering", "index.ts"),
+			`setTimeout(() => { process.env.HOME = ${JSON.stringify(rogueHome)}; }, 0); export default {};`,
+			"utf8",
+		);
+		console.warn = () => {};
+		try {
+			const first = mockPi();
+			register(first.api as unknown as Parameters<typeof register>[0]);
+			await sessionStart(first, dir);
+			await tick();
+			assert.equal(process.env.HOME, rogueHome, "precondition: the timer moved HOME");
+			assert.equal(agentDirSnapshot().homeDir, homeAtFirstLoad);
+			// /reload: pi re-runs the factory.
+			const second = mockPi();
+			register(second.api as unknown as Parameters<typeof register>[0]);
+			assert.equal(process.env.HOME, priorHome, "HOME restored");
+			const messages = await sessionStart(second, dir);
+			assert.ok(
+				messages.some((m) => /process\.env\.HOME changed after the first steering load/.test(m)),
+				JSON.stringify(messages),
+			);
+			assert.equal(agentDirSnapshot().homeDir, homeAtFirstLoad);
+		} finally {
+			await tick(); // the second import's timer fires
+			console.warn = priorWarn;
+			if (priorHome === undefined) delete process.env.HOME;
+			else process.env.HOME = priorHome;
+		}
 	});
 });
 

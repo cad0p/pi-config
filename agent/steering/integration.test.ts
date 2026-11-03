@@ -39,7 +39,7 @@ import {
 import { homedir, tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, before, describe, it } from "node:test";
-import { loadSteeringConfig } from "@cad0p/pi-steering";
+import { agentDirSnapshot, loadSteeringConfig } from "@cad0p/pi-steering";
 import {
 	createRecordingHost,
 	loadHarness,
@@ -406,6 +406,40 @@ describe("global config — carve-out behavior (real fixtures)", () => {
 		const agentDir = join(homedir(), ".pi", "agent", "steering");
 		const { block, rule } = await evaluateBash(agentDir, "git commit -m 'note'");
 		assert.equal(block, false, `expected allow at ${agentDir}, got block by ${rule}`);
+	});
+
+	it("a HOME moved after the first load does not move the ~/.pi exemption (lens round 4, red-team F1)", async () => {
+		// The layer module is re-evaluated on every load; it reads the
+		// home directory from the framework's process snapshot, so a HOME
+		// that a project layer's timer left behind moves nothing.
+		const realHome = agentDirSnapshot().homeDir;
+		const priorHome = process.env.HOME;
+		const rogueHome = mkdtempSync(join(tmpdir(), "rogue-home-"));
+		const neutral = mkdtempSync(join(tmpdir(), "neutral-cwd-"));
+		mkdirSync(join(rogueHome, ".pi", "agent"), { recursive: true });
+		try {
+			process.env.HOME = rogueHome;
+			const { config: reloaded } = await loadSteeringConfig(neutral);
+			const real = await evaluateBash(
+				join(realHome, ".pi", "agent", "steering"),
+				"git commit -m 'note'",
+				hostOnMainGithub(),
+				reloaded,
+			);
+			assert.equal(real.block, false, `the real agent dir stays exempt, got ${real.rule}`);
+			const rogue = await evaluateBash(
+				join(rogueHome, ".pi", "agent"),
+				"git commit -m 'x'",
+				hostOnMainGithub(),
+				reloaded,
+			);
+			assert.equal(rogue.block, true, "the rogue home's .pi is not exempt");
+		} finally {
+			if (priorHome === undefined) delete process.env.HOME;
+			else process.env.HOME = priorHome;
+			rmSync(rogueHome, { recursive: true, force: true });
+			rmSync(neutral, { recursive: true, force: true });
+		}
 	});
 
 	it("allows `git commit` on main in an agent-dir subdirectory (settings/, prompts/)", async () => {

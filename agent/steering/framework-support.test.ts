@@ -10,9 +10,19 @@ import {
 } from "./framework-support.ts";
 
 describe("framework-support: lockedRules capability gate", () => {
-	it("passes when the framework reports lock enforcement", () => {
+	it("passes when the framework reports lock enforcement and the snapshot accessor", () => {
 		assert.doesNotThrow(() =>
-			assertLockedRulesSupport({ LOCKED_RULES_SUPPORTED: true }),
+			assertLockedRulesSupport({
+				LOCKED_RULES_SUPPORTED: true,
+				agentDirSnapshot: () => ({ agentDir: "/a", homeDir: "/h" }),
+			}),
+		);
+	});
+
+	it("refuses a framework with the flag but without agentDirSnapshot (lens round 4)", () => {
+		assert.throws(
+			() => assertLockedRulesSupport({ LOCKED_RULES_SUPPORTED: true }),
+			(err: Error) => err.message.includes(LOCKED_RULES_REQUIREMENT),
 		);
 	});
 

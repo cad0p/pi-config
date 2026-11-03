@@ -99,7 +99,20 @@
 import { existsSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename, dirname, isAbsolute, join, resolve, sep } from "node:path";
+import * as piSteering from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
+
+/**
+ * `~` expands to the framework's PROCESS snapshot of the home directory
+ * (lens round 4): a live `homedir()` follows whatever `HOME` a project
+ * layer's timer left behind until the next load restores it. The
+ * fallback only serves a framework without the accessor, which the
+ * config's capability gate refuses anyway.
+ */
+function snapshotHome(): string {
+	const snap = (piSteering as unknown as Record<string, unknown>)["agentDirSnapshot"];
+	return typeof snap === "function" ? (snap as () => { homeDir: string })().homeDir : homedir();
+}
 
 declare global {
 	interface PiSteeringPredicates {
@@ -166,7 +179,7 @@ export function canonicalConfigPath(path: string, base: string): string {
 export function isProtectedConfigWrite(path: string, base: string): boolean {
 	if (path === "") return false;
 	let candidate = path;
-	if (candidate.startsWith("~/")) candidate = join(homedir(), candidate.slice(2));
+	if (candidate.startsWith("~/")) candidate = join(snapshotHome(), candidate.slice(2));
 	return isProtectedConfigPath(canonicalConfigPath(candidate, base));
 }
 

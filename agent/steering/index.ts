@@ -73,7 +73,6 @@ import {
 	configWriteGuardPlugin,
 	configWriteGuardRules,
 } from "./config-write-guard.ts";
-import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
 declare global {
@@ -99,14 +98,21 @@ declare global {
  * config sync. Exemption is STRICTLY fail-closed: unknown cwd never
  * exempts, and anything outside the agent dir still hits
  * `no-main-commit` / `no-main-commit-github`.
+ *
+ * The home directory is the framework's PROCESS snapshot (taken at the
+ * first steering load), not a fresh `homedir()`: this module is
+ * re-evaluated on every load, so a fresh read followed whatever `HOME`
+ * a project layer's timer left behind and moved the exemption with it
+ * (lens round 4, red-team F1). Read after the capability gate below,
+ * which also requires the snapshot accessor.
  */
-const AGENT_DIR = join(homedir(), ".pi");
-
 // Capability gate (functional F4): a lockedRules config is SILENTLY INERT
 // on a framework that does not enforce it, so refuse to load instead of
 // pretending. Throwing here surfaces as `layer-import-failed` with this
 // message in `pi-steering list` and the session log.
 assertLockedRulesSupport(piSteering as unknown as Record<string, unknown>);
+
+const AGENT_DIR = join(piSteering.agentDirSnapshot().homeDir, ".pi");
 
 const agentDirPlugin = {
 	name: "agent-dir",
@@ -214,7 +220,9 @@ export default defineConfig({
 	// before any project code runs, and reuses it on every /reload, so a
 	// project layer cannot point PI_CODING_AGENT_DIR (or HOME) elsewhere
 	// to swap this layer out — not at import time and not later from a
-	// timer (a later change is restored and raised in chat).
+	// timer (a later change to either variable is restored and raised in
+	// chat, a HOME-only change included, and the agent-dir exemption
+	// above reads the snapshot home, not the live HOME).
 	//
 	// What the lock does NOT do: it binds what a project layer DECLARES.
 	// It does not stop the agent's own uid from editing this file or its
