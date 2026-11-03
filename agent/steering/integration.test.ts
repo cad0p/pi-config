@@ -272,7 +272,7 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + git-identity-guard + merge-guard plugins (opt-in since the monorepo split)", () => {
+	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + git-identity-guard + merge-guard + config-write-guard plugins (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
 		// is empty: plugins are opt-in and MUST be declared here. Since
 		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm
@@ -294,7 +294,33 @@ describe("global config — shape", () => {
 			"dev-shm-guard",
 			"git-identity-guard",
 			"merge-guard",
+			"config-write-guard",
 		]);
+	});
+
+	it("locks every rule this layer declares, the merge guard first among them", () => {
+		// Red-team F1 (2026-11-03): without locks, a project layer deletes a
+		// global rail by listing it in disabledRules (union across layers), by
+		// redefining the name, by disabling its plugin, by adding an
+		// exemption, or by escalating failOnWarnings. lockedRules makes every
+		// one of those refuse loudly. This pin keeps the list from drifting
+		// behind the rule roster: every user rule this layer declares must be
+		// locked, and no locked name may be a phantom.
+		const userRuleNames = (config.rules ?? []).map((r) => r.name);
+		const locked = [...(config.lockedRules ?? [])];
+		assert.deepEqual(
+			[...locked].sort(),
+			[...userRuleNames].sort(),
+			"lockedRules must name exactly the rules this layer declares",
+		);
+		assert.ok(
+			locked.includes("agents-do-not-merge-directly"),
+			"the merge guard is the rule F1 disarmed: it must be locked",
+		);
+		assert.ok(
+			locked.includes("no-steering-config-write"),
+			"the plant guard guards itself: a project layer must not delete it",
+		);
 	});
 
 	it("merge guard is a user rule, so it precedes every plugin rule (first-match-wins)", () => {

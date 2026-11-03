@@ -37,10 +37,13 @@
 // (inline below), ./dev-shm-guard.ts, ./git-identity-guard.ts,
 // ./merge-guard.ts (agents do not merge directly — the design's
 // P1-W1 step 1: one rule, one message, "merge through
-// tools/merge-pr.sh").
+// tools/merge-pr.sh"), ./config-write-guard.ts (agents do not write
+// `.pi/steering/**` — the plant half of red-team F1, 2026-11-03).
 // Tests: ./integration.test.ts
-// (loadHarness matrix against real vault fixtures) and
-// ./merge-guard.test.ts (the merge guard's positive/negative matrix).
+// (loadHarness matrix against real vault fixtures),
+// ./merge-guard.test.ts (the merge guard's positive/negative matrix),
+// ./config-write-guard.test.ts (the plant-path matrix) and
+// ./lockdown.test.ts (project-layer disables of a locked rail).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -56,6 +59,10 @@ import githubPlugin from "@cad0p/pi-steering-github";
 import { devShmGuardPlugin, devShmRules } from "./dev-shm-guard.ts";
 import { gitIdentityGuardPlugin, gitIdentityRules } from "./git-identity-guard.ts";
 import { mergeGuardPlugin, mergeGuardRules } from "./merge-guard.ts";
+import {
+	configWriteGuardPlugin,
+	configWriteGuardRules,
+} from "./config-write-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -155,6 +162,44 @@ export default defineConfig({
 	// sessions — observed live). See core: same-table overload warnings
 	// are a flat-namespace artifact; per-subcommand scoping is the fix.
 	failOnWarnings: false,
+	// Explicit so the lock has an owner value to freeze: while a
+	// lockedRules declaration is present, a project layer cannot flip this
+	// to `false` to make every rule overridable with a
+	// `# steering-override: <rule>` comment (see the LOCKS comment below).
+	defaultNoOverride: true,
+	// LOCKS (pi-steering `lockedRules`). Precedence across layers is
+	// inner-wins for rule bodies and a UNION for disabledRules /
+	// disabledPlugins / exemptions — so without locks any project layer
+	// could delete a global rail by name, ship a do-nothing rule under
+	// the same name, add an exemption, disable the shipping plugin, or
+	// escalate `failOnWarnings` until the refusal diagnostic itself
+	// aborts the session. Red-team F1 (2026-11-03) proved exactly that
+	// for agents-do-not-merge-directly. A locked rule survives all five
+	// paths from any OTHER layer, loudly (warning-class
+	// `locked-rule-violation`), while the layer that locked it may still
+	// disable / exempt it itself.
+	//
+	// Locked here: every rule THIS layer declares — its own content, the
+	// merge guard first among them. Shipped git / rm / github rails stay
+	// project-customizable for now (that is the documented override
+	// path); extending the lock to them is owner question 3 in the
+	// design note Goldmine personal/github/pi-config/plans/2026-11-03-lock-global-rails.md.
+	lockedRules: [
+		"agents-do-not-merge-directly",
+		"no-agent-config-edit",
+		"no-agent-config-write",
+		"no-agent-config-bash-mutation",
+		"no-dev-shm-write",
+		"no-dev-shm-edit",
+		"no-dev-shm-bash",
+		"no-global-git-identity",
+		"no-global-git-config-write",
+		"no-global-git-config-edit",
+		"no-global-git-config-bash-mutation",
+		"no-steering-config-edit",
+		"no-steering-config-write",
+		"no-steering-config-bash-mutation",
+	],
 	plugins: [
 		gitPlugin,
 		rmPlugin,
@@ -165,6 +210,7 @@ export default defineConfig({
 		devShmGuardPlugin,
 		gitIdentityGuardPlugin,
 		mergeGuardPlugin,
+		configWriteGuardPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -208,5 +254,6 @@ export default defineConfig({
 		},
 		...devShmRules,
 		...gitIdentityRules,
+		...configWriteGuardRules,
 	],
 });
