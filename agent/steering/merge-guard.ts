@@ -11,7 +11,8 @@
  * so steering never sees its merge call and needs no exception.
  *
  * Refused (bash tool calls only; the owner's terminal is not bound):
- *   - `gh pr merge` in any form and with any flags, wherever `-R/--repo`
+ *   - `gh pr merge` in any form and with any flags (sole exception:
+ *     `gh pr merge <n> --disable-auto`, which disarms auto-merge), wherever `-R/--repo`
  *     sits (the gh descriptor's consuming-flag table resolves positionals).
  *   - the REST merge: any `gh api` call naming `pulls/<n>/merge`.
  *   - the GraphQL merge mutations `mergePullRequest`,
@@ -51,6 +52,7 @@ import {
 declare global {
 	interface PiSteeringPredicates {
 		attemptsDirectMerge: PredicateShape<boolean>;
+		isAutoDisarm: PredicateShape<boolean>;
 	}
 }
 
@@ -153,10 +155,36 @@ async function pushesRenovate(ctx: PredicateContext): Promise<boolean> {
 	return false;
 }
 
-/** Does this `gh` call merge, or write a renovate ref, by any route? */
+/**
+ * Is this "gh pr merge" exactly the disarm form "gh pr merge <n> --disable-auto"
+ * (owner ruling 2026-11-03)? -R/--repo (separate, "=", or glued) may sit
+ * anywhere. Any other flag, a non-numeric selector, or an extra positional
+ * keeps it refused (fail closed).
+ */
+function isDisableAutoOnly(ctx: PredicateContext): boolean {
+	const words = (ctx.input.args ?? []).map((w) => w?.value ?? w?.text ?? "");
+	const rest: string[] = [];
+	for (let i = 0; i < words.length; i++) {
+		const w = words[i] ?? "";
+		if (w === "-R" || w === "--repo") {
+			if (i + 1 >= words.length) return false;
+			i++;
+		} else if (w.startsWith("--repo=") || /^-R./.test(w)) {
+			// repo selector; consumed
+		} else rest.push(w);
+	}
+	if (rest.length !== 4) return false;
+	if (rest.filter((w) => w === "--disable-auto").length !== 1) return false;
+	const pos = rest.filter((w) => w !== "--disable-auto");
+	return pos[0] === "pr" && pos[1] === "merge" && /^\d+$/.test(pos[2] ?? "");
+}
+
+/** Does this gh call merge, or write a renovate ref, by any route? */
 function ghAttemptsDirectMerge(ctx: PredicateContext): boolean {
 	const positionals = ctx.command.positionals();
-	if (positionals[0] === "pr" && positionals[1] === "merge") return true;
+	if (positionals[0] === "pr" && positionals[1] === "merge") {
+		return !isDisableAutoOnly(ctx);
+	}
 	if (positionals[0] !== "api") return false;
 	const text = refText(ctx);
 	return (
@@ -177,11 +205,24 @@ export const mergeGuardPlugin = {
 			if (ctx.input.basename === "git") return pushesRenovate(ctx);
 			return false;
 		},
+		// True for exactly gh pr merge <n> --disable-auto (+ -R/--repo).
+		isAutoDisarm: (args: unknown, ctx: PredicateContext) => {
+			if (args !== true) return false;
+			if (ctx.input.basename !== "gh") return false;
+			const p = ctx.command.positionals();
+			return p[0] === "pr" && p[1] === "merge" && isDisableAutoOnly(ctx);
+		},
 	},
+	// The github plugin merge-time rules (closing keyword, -R placement)
+	// police merges carrying a squash subject; a disarm merges nothing.
+	exemptions: [
+		{ rule: "pr-merge-needs-closing-keywords", when: { isAutoDisarm: true } },
+		{ rule: "gh-repo-flag-before-subcommand", when: { isAutoDisarm: true } },
+	],
 };
 
 const REASON =
-	"Agents do not merge directly — merge through tools/merge-pr.sh (the sole merge path: it runs the local gate on the head, binds the merge record and performs the merge). This guard refuses gh pr merge in any form, the REST pulls/<n>/merge endpoint, the GraphQL mergePullRequest / enablePullRequestAutoMerge / mergeBranch mutations, a push to a renovate/** branch (explicit refspec, current branch or upstream), and writes to git/refs/heads/renovate/**. The owner merges from their own terminal.";
+	"Agents do not merge directly — merge through tools/merge-pr.sh (the sole merge path: it runs the local gate on the head, binds the merge record and performs the merge). This guard refuses gh pr merge in any form except the bare disarm gh pr merge <n> --disable-auto (alone, optionally with -R/--repo), the REST pulls/<n>/merge endpoint, the GraphQL mergePullRequest / enablePullRequestAutoMerge / mergeBranch mutations, a push to a renovate/** branch (explicit refspec, current branch or upstream), and writes to git/refs/heads/renovate/**. The owner merges from their own terminal.";
 
 export const mergeGuardRules = [
 	{

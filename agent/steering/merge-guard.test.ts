@@ -166,6 +166,56 @@ describe("merge guard — gh pr merge (any form)", () => {
 	});
 });
 
+describe("merge guard — gh pr merge <n> --disable-auto (disarm) allowed", () => {
+	it("allows the plain disarm form", async () => {
+		await allowed("gh pr merge 999999 --disable-auto");
+	});
+	it("allows flag before the number", async () => {
+		await allowed("gh pr merge --disable-auto 999999");
+	});
+	it("allows -R before and after", async () => {
+		await allowed("gh -R cad0p/pc-host pr merge 999999 --disable-auto");
+		await allowed("gh pr merge 999999 --disable-auto -R cad0p/pc-host");
+		await allowed("gh pr merge 999999 -R cad0p/pc-host --disable-auto");
+	});
+	it("allows --repo and --repo=", async () => {
+		await allowed("gh pr merge 999999 --disable-auto --repo cad0p/pc-host");
+		await allowed("gh pr merge --repo=cad0p/pc-host 999999 --disable-auto");
+	});
+	it("allows an env prefix", async () => {
+		await allowed("GITHUB_TOKEN=x gh pr merge 999999 --disable-auto");
+	});
+	it("allows sh -c / bash -c wrappers", async () => {
+		await allowed("sh -c 'gh pr merge 999999 --disable-auto'");
+		await allowed("bash -c 'gh -R cad0p/pc-host pr merge 999999 --disable-auto'");
+	});
+	for (const flag of [
+		"--admin", "--squash", "--merge", "--rebase", "--auto",
+		"--match-head-commit abc123", "-d", "--delete-branch", "--body x",
+		"-t x", "-b x", "-s", "-m", "-r",
+	]) {
+		it(`blocks --disable-auto combined with ${flag}`, async () => {
+			await blocked(`gh pr merge 999999 --disable-auto ${flag}`);
+			await blocked(`gh pr merge 999999 ${flag} --disable-auto -R cad0p/pc-host`);
+		});
+	}
+	it("blocks --auto alone", async () => {
+		await blocked("gh pr merge 999999 --auto");
+	});
+	it("blocks a wrapped combined form", async () => {
+		await blocked("sh -c 'gh pr merge 999999 --disable-auto --admin'");
+	});
+	it("blocks --disable-auto without a number or with a non-numeric selector", async () => {
+		await blocked("gh pr merge --disable-auto");
+		await blocked("gh pr merge some-branch --disable-auto");
+	});
+	it("allows the disablePullRequestAutoMerge mutation", async () => {
+		await allowed(
+			`gh api graphql -f 'query=mutation { disablePullRequestAutoMerge(input: {pullRequestId: "x"}) { clientMutationId } }'`,
+		);
+	});
+});
+
 describe("merge guard — REST merge endpoint", () => {
 	it("blocks gh api -X PUT …/pulls/<n>/merge", async () => {
 		await blocked(
