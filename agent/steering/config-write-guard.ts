@@ -13,8 +13,9 @@
  * lock (`lockedRules` in this layer) refuses a project layer's DISARM
  * of a locked rail whatever wrote it; neither half keeps a determined
  * agent from changing the global layer itself. Where the boundary could
- * live (OS ownership, an integrity pin, or accepting the residual) is an
- * owner question in the design note, Goldmine
+ * live (OS ownership, an integrity pin, accepting the residual, or a
+ * separate uid) is owner question 1, "Where the agent trust boundary
+ * lives", in the design note, Goldmine
  * personal/github/pi-config/plans/2026-11-03-lock-global-rails.md.
  *
  * WHY (2026-11-03). Red-team F1 on the per-repo steering design: a
@@ -50,7 +51,8 @@
  *   effective cwd, else the session cwd) and matched against the same
  *   list.
  *
- * WHAT IT DOES NOT CATCH (each row pinned as ALLOWED in the test):
+ * WHAT IT DOES NOT CATCH (every testable row is pinned as ALLOWED in
+ * the test; the last row is outside what a tool-call test can drive):
  *   - a write by a program not in the writer list, or by no program at
  *     all: `> file`, `: > file`, `jq … > file`, `yes | head > file`
  *     (a redirect target is not a ref, and the basename filter runs
@@ -58,9 +60,13 @@
  *   - a relative target whose token does not itself contain `.pi`:
  *     `cd ~/.pi/agent && echo x > steering/index.ts` (the `.pi`
  *     substring prefilter skips the token before cwd resolution).
- *     Conversely a `cd .pi/steering` in the same line trips the rule
- *     whatever the write target is (the `cd` argument matches) — a
- *     false positive, not coverage — red-team r2 F2;
+ *     Conversely `cd .pi && cd steering && printf x > /tmp/harmless.txt`
+ *     IS refused, as a false positive: every token resolves against the
+ *     walker's FINAL effective cwd (`<cwd>/.pi/steering`), so the first
+ *     `cd`'s own `.pi` argument becomes `<cwd>/.pi/steering/.pi`, which
+ *     lies under `.pi/steering`. `cd .pi && printf x > /tmp/harmless.txt`
+ *     (one `cd`) is allowed. Cd-chain resolution does run; it resolves
+ *     the wrong token — red-team r2 F2, trust r3 NIT3;
  *   - the flat global-layer form `<agentDir>/steering.ts` (the loader
  *     uses it when the directory form is absent), a glob
  *     (`rm -rf ~/.pi/agent/steer*`), and removing or moving a parent
@@ -72,11 +78,14 @@
  *     with no protected path in the text (`git -C ~/.pi reset --hard`,
  *     `git -C ~/.pi checkout <rev>`, `git -C ~/.pi apply x.patch`);
  *   - a path built at runtime or split across a quote boundary
- *     (`f=".pi/steer""ing/index.ts"`), `eval`, an encoded path, a
- *     script written elsewhere and then executed;
- *   - a relocated `PI_CODING_AGENT_DIR` (the match is path-shaped);
+ *     (`f=".pi/steer""ing/index.ts"`), `eval "…"`, an encoded path
+ *     (`… > "$(echo … | base64 -d)"`), a script written elsewhere and
+ *     then executed (`bash /tmp/plant.sh`);
+ *   - a relocated `PI_CODING_AGENT_DIR` (the match is path-shaped: a
+ *     global layer at `/srv/relocated-agent/steering/` has no `.pi`);
  *   - any other `~/.pi/agent/**` file (sessions, auth, extensions);
- *   - the OWNER, and any non-pi harness: it binds pi tool calls only.
+ *   - not testable here: the OWNER's own terminal and any non-pi
+ *     harness (it binds pi tool calls only).
  * These are not bugs to be fixed one by one: the writer and path space
  * is open, and closing it by enumeration is the claim three rounds
  * disproved. Keep the claim at "tripwire".

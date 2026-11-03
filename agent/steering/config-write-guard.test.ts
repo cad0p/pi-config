@@ -110,6 +110,22 @@ async function expectAllowed(
 	);
 }
 
+/**
+ * The write guard does not see this call. Another rail may still refuse
+ * it (`no-hard-reset`, the agent-config guard); the pin is about THIS
+ * guard only.
+ */
+async function expectNotGuarded(
+	toolName: "bash" | "write" | "edit",
+	input: Record<string, unknown>,
+): Promise<void> {
+	const verdict = await evaluate(toolName, input);
+	assert.ok(
+		![RULE_BASH, RULE_WRITE, RULE_EDIT].includes(verdict.rule ?? ""),
+		`expected the write guard not to see ${toolName} ${JSON.stringify(input)}, got ${JSON.stringify(verdict)}`,
+	);
+}
+
 describe("config-write-guard — write / edit tools", () => {
 	it("blocks writes and edits under any repo's .pi/steering/", async () => {
 		await expectBlocked(
@@ -333,6 +349,37 @@ describe("config-write-guard — declared tripwire gaps (pinned ALLOWED)", () =>
 		});
 	});
 
+	it("eval, an encoded path, and a script written elsewhere then executed (trust r3 NIT1)", async () => {
+		for (const command of [
+			`eval "echo x > ${GLOBAL}/steering/index.ts"`,
+			// base64 of "/root/.pi/agent/steering/index.ts"
+			'echo x > "$(echo L3Jvb3QvLnBpL2FnZW50L3N0ZWVyaW5nL2luZGV4LnRz | base64 -d)"',
+			"bash /tmp/plant.sh",
+		]) {
+			await expectNotGuarded("bash", { command });
+		}
+	});
+
+	it("a relocated PI_CODING_AGENT_DIR: the global layer has no .pi segment (red-team r3 F2)", async () => {
+		await expectNotGuarded("write", {
+			path: "/srv/relocated-agent/steering/index.ts",
+			content: "export default {};",
+		});
+		await expectNotGuarded("bash", {
+			command: "echo x > /srv/relocated-agent/steering/index.ts",
+		});
+	});
+
+	it("any other ~/.pi/agent/** file: sessions, auth, extensions (red-team r3 F2)", async () => {
+		for (const path of [
+			`${GLOBAL}/sessions/2026-11-03/session.jsonl`,
+			`${GLOBAL}/auth.json`,
+			`${GLOBAL}/extensions/disarm.ts`,
+		]) {
+			await expectNotGuarded("write", { path, content: "x" });
+		}
+	});
+
 	it("r2 F1: a redirect from an unlisted program, or from no program", async () => {
 		for (const command of [
 			`> ${GLOBAL}/steering/index.ts`,
@@ -350,15 +397,19 @@ describe("config-write-guard — declared tripwire gaps (pinned ALLOWED)", () =>
 		});
 	});
 
-	it("r2 F2 (false positive, not coverage): a cd into .pi/steering trips the rule whatever the target", async () => {
-		// The verdict comes from the cd ARGUMENT token, so a harmless
-		// write elsewhere in the same line is refused. Pinned so nobody
-		// reads the block as "the walker resolves cd chains".
+	it("r2 F2 (false positive, not coverage): a two-step cd into .pi/steering trips the rule whatever the target", async () => {
+		// Mechanism (trust r3 NIT3): tokens resolve against the walker's
+		// FINAL effective cwd, <cwd>/.pi/steering, so the first cd's own
+		// ".pi" argument becomes <cwd>/.pi/steering/.pi — under a protected
+		// path. One cd does not move the cwd far enough, so it is allowed.
 		await expectBlocked(
 			"bash",
 			{ command: "cd .pi && cd steering && printf x > /tmp/harmless.txt" },
 			RULE_BASH,
 		);
+		await expectAllowed("bash", {
+			command: "cd .pi && printf x > /tmp/harmless.txt",
+		});
 	});
 
 	it("r2 F3: the flat global form, a glob, and removing or moving a parent", async () => {

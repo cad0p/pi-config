@@ -24,6 +24,11 @@
 //     loader read the variable AFTER importing project code;
 //   - an error-class declaration dropped the WHOLE project layer, with
 //     only an info breadcrumb, taking the repo's legitimate rules with it.
+// Round 3 (functional F1 MED): with two independent evaluator-build faults
+// the granular drop never converged and the whole layer went again; now
+// each faulty declaration is dropped in turn. (Round 3's red-team F1, a
+// timer that moves PI_CODING_AGENT_DIR before a /reload, needs the
+// extension's register() and is pinned in the framework suite.)
 //
 // Fixtures are deliberately generic: both repos are public, so no private
 // repo name or path appears here (trust F3).
@@ -366,6 +371,30 @@ describe("locked rails — an error-class declaration drops itself, not the repo
 			"the repo's own rule must survive the drop of the broken plugin",
 		);
 		await expectGuardLive(config, "orphan-exemption plugin");
+	});
+
+	it("two independent typo'd rules beside a valid rule: both typos dropped, the valid rule stays (functional r3 F1)", async () => {
+		const { config, diagnostics } = await loadWithProjectLayer(
+			`export default {
+				rules: [
+					{ name: "repo-keep", tool: "bash", command: "printf", reason: "keep" },
+					{ name: "typo-one", tool: "bash", command: "ls", when: { bogusOne: true }, reason: "x" },
+					{ name: "typo-two", tool: "bash", command: "ls", when: { bogusTwo: true }, reason: "x" },
+				],
+			};`,
+		);
+		assert.equal(
+			diagnostics.filter((d) => d.kind === "layer-part-dropped-on-error").length,
+			2,
+			JSON.stringify(diagnostics),
+		);
+		assert.ok(!diagnostics.some((d) => d.kind === "layer-dropped-on-error"));
+		const printf = await evaluate(config, "bash", { command: "printf x" });
+		assert.deepEqual(
+			{ block: printf.block, rule: printf.rule },
+			{ block: true, rule: "repo-keep" },
+		);
+		await expectGuardLive(config, "two typo'd rules");
 	});
 
 	it("a project layer's own lockedRules is reported as inert (red-team r2 F6)", async () => {

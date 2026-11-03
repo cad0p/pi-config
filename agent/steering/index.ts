@@ -41,7 +41,8 @@
 // `.pi/steering/**` — a TRIPWIRE for honest mistakes, not a boundary:
 // its header lists what it does not catch; the lock below is what refuses
 // a project layer's disarm, and neither stops this agent's uid from
-// rewriting this file — design note owner question 2).
+// rewriting this file — design note owner question 1, "Where the agent
+// trust boundary lives").
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures),
 // ./merge-guard.test.ts (the merge guard's positive/negative matrix),
@@ -204,12 +205,16 @@ export default defineConfig({
 	// `attemptsDirectMerge` would otherwise neuter the rule while its
 	// text stayed intact. An error-class declaration in an inner layer is
 	// dropped on its own (`layer-part-dropped-on-error`: the plugin, rule,
-	// observer or exemption at fault; the rest of the repo's layer stays),
-	// and the whole inner layer only when no single drop clears it
-	// (`layer-dropped-on-error`). Both are printed and raised in chat.
-	// The framework resolves this layer's directory BEFORE any project
-	// code runs, so a project layer cannot point PI_CODING_AGENT_DIR (or
-	// HOME) elsewhere to swap this layer out.
+	// observer or exemption at fault, one at a time, so several
+	// independent faults are each dropped and the rest of the repo's layer
+	// stays), and the whole inner layer only when no removal clears an
+	// error (`layer-dropped-on-error`). Drops and import failures are
+	// printed and raised in chat as one summary per load.
+	// The framework resolves this layer's directory ONCE per pi process,
+	// before any project code runs, and reuses it on every /reload, so a
+	// project layer cannot point PI_CODING_AGENT_DIR (or HOME) elsewhere
+	// to swap this layer out — not at import time and not later from a
+	// timer (a later change is restored and raised in chat).
 	//
 	// What the lock does NOT do: it binds what a project layer DECLARES.
 	// It does not stop the agent's own uid from editing this file or its
@@ -220,7 +225,8 @@ export default defineConfig({
 	// Locked here: every rule THIS layer declares — its own content, the
 	// merge guard first among them. Shipped git / rm / github rails stay
 	// project-customizable for now (that is the documented override
-	// path); extending the lock to them is owner question 1 in the design
+	// path); extending the lock to them is owner question 2 ("Lock
+	// scope") in the design
 	// note Goldmine personal/github/pi-config/plans/2026-11-03-lock-global-rails.md.
 	lockedRules: [
 		"agents-do-not-merge-directly",
