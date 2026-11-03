@@ -21,8 +21,8 @@ importers:
         specifier: 0.2.0-20261020.1
         version: 0.2.0-20261020.1
       '@cad0p/pi-heartbeat':
-        specifier: 0.0.1-20261102.0
-        version: 0.0.1-20261102.0(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
+        specifier: 0.0.1-20261103.0
+        version: 0.0.1-20261103.0(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
       '@cad0p/pi-napkin':
         specifier: 0.7.3-20261102.0
         version: 0.7.3-20261102.0(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)
@@ -36,8 +36,8 @@ importers:
         specifier: 0.2.0-20260908.1
         version: 0.2.0-20260908.1(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
       '@cad0p/pi-subagents-tintinweb':
-        specifier: 0.22.0-20261030.6
-        version: 0.22.0-20261030.6(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)
+        specifier: 0.22.0-20261103.1
+        version: 0.22.0-20261103.1(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)
       '@cad0p/pi-timestamps':
         specifier: 0.2.0-20261102.0
         version: 0.2.0-20261102.0(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)
@@ -45,8 +45,8 @@ importers:
         specifier: 0.3.0-20261027.0
         version: 0.3.0-20261027.0(@earendil-works/pi-agent-core@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(typebox@1.3.37)
       '@cad0p/pi-usage':
-        specifier: ^0.11.5-20261103.0
-        version: 0.11.5-20261103.0
+        specifier: ^0.11.5-20261103.2
+        version: 0.11.5-20261103.2
       '@getpipher/vision':
         specifier: ^0.5.3
         version: 0.5.3(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(typebox@1.3.37)
@@ -188,8 +188,8 @@ packages:
     resolution: {integrity: sha512-/WQN2L9Z+C/l1NVXRZnQd2YB6FliM7S12j8SC84p8GC4bm3bmZj56bFhJMXFxr3mk7VVJc+eQBsg4+ltPdwJ2w==}
     engines: {node: '>=22.19.0'}
 
-  '@cad0p/pi-heartbeat@0.0.1-20261102.0':
-    resolution: {integrity: sha512-BjL5/7S6QZsZmdi2rm2eDoXJZT89oDmPKbQBmx9WFbFCiEY6H2jZjlfdO18Ma0q94x8Y5cGpFO1ZOsK4CWfDiw==}
+  '@cad0p/pi-heartbeat@0.0.1-20261103.0':
+    resolution: {integrity: sha512-x/UkvPkq3xU38zmjIImDdjVXmjPW+FaZoUrEtAfXP3Ka61Yd9tDYdm+kRP0tGpbfVCb+NqW7vzBK+EWjJT8WDA==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.84.0'
@@ -218,8 +218,8 @@ packages:
     peerDependencies:
       '@earendil-works/pi-coding-agent': '>=0.79.1'
 
-  '@cad0p/pi-subagents-tintinweb@0.22.0-20261030.6':
-    resolution: {integrity: sha512-CusZAhyjhyUbs89HSYYUlwYlAViC4va78IBZ6GPeX6uBzXnd9rl9ZUGmPyQrnMmN3kke2Q/7v+QsQBGBjqhDDA==}
+  '@cad0p/pi-subagents-tintinweb@0.22.0-20261103.1':
+    resolution: {integrity: sha512-frxYlWAF5PO26arI1OHJGnwQV68GOGnwLcaz/lvvBSypl6MOKUBK5wMhFDsu3CgScpOIQaRwCYf4qmkdAl072Q==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '>=1.4.0'
@@ -242,8 +242,8 @@ packages:
       '@earendil-works/pi-tui': '>=0.87.0'
       typebox: ^1.0.0
 
-  '@cad0p/pi-usage@0.11.5-20261103.0':
-    resolution: {integrity: sha512-TvD/AMcsa6VFnqWYkKJSRtCZZikb0VYI6dXCgEHDzS5KezPsqSo5kdmBW/7JWYT0SoTRsMm50UOl8AAyJmhPig==}
+  '@cad0p/pi-usage@0.11.5-20261103.2':
+    resolution: {integrity: sha512-VkgWg7DEzPuBTXmp2gbzKuPS6rDNNfAdA3hCHxd15YjYh+HWIJGddyyBNktO0ITfA1hbzHe1EeM/rtn2ij96Bg==}
     engines: {node: '>=22.19.0'}
     hasBin: true
 
@@ -1342,7 +1342,7 @@ snapshots:
 
   '@cad0p/pi-fallback-provider@0.2.0-20261020.1': {}
 
-  '@cad0p/pi-heartbeat@0.0.1-20261102.0(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))':
+  '@cad0p/pi-heartbeat@0.0.1-20261103.0(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))':
     dependencies:
       '@cad0p/pi-background-work': 0.0.1-20261028.2(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
       '@earendil-works/pi-coding-agent': 1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7)
@@ -1368,7 +1368,7 @@ snapshots:
       jiti: 2.7.0
       unbash: 3.0.0
 
-  '@cad0p/pi-subagents-tintinweb@0.22.0-20261030.6(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-subagents-tintinweb@0.22.0-20261103.1(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/pi-background-work': 0.0.2(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
       '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7)
@@ -1391,7 +1391,7 @@ snapshots:
       '@earendil-works/pi-tui': 1.4.0
       typebox: 1.3.37
 
-  '@cad0p/pi-usage@0.11.5-20261103.0': {}
+  '@cad0p/pi-usage@0.11.5-20261103.2': {}
 
   '@cad0p/unbash-walker@0.1.0-20260904.0':
     dependencies:
