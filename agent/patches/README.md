@@ -49,7 +49,7 @@ instead of a silent regression. Check state any time with:
 
 | id | upstream | remove when |
 |---|---|---|
-| `0001-cache-warming-identity` | [earendil-works/pi#10956](https://github.com/earendil-works/pi/issues/10956) | upstream compares re-projected messages by entry id or role+timestamp (main still uses `===` in 1.4.0) |
+| `0001-cache-warming-identity` | [earendil-works/pi#10956](https://github.com/earendil-works/pi/issues/10956) | upstream compares re-projected messages by entry id (main still uses `===` in 1.5.0; v2 compares `_entryIdsByMessage`, since role+timestamp misses one-request turns started by a custom message) |
 
 ## Adding a patch
 
