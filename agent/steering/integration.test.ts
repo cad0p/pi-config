@@ -108,6 +108,25 @@ before(async () => {
 	config = merged;
 });
 
+/**
+ * The global config with the merge guard disabled. The guard is a user
+ * rule and therefore precedes every plugin rule (first-match-wins), so
+ * the shipped github merge policy is only reachable with the guard
+ * disabled — this keeps that policy under test without pretending an
+ * agent can still reach it.
+ */
+function configWithoutMergeGuard(): Awaited<
+	ReturnType<typeof loadSteeringConfig>
+>["config"] {
+	return {
+		...config,
+		disabledRules: [
+			...(config.disabledRules ?? []),
+			"agents-do-not-merge-directly",
+		],
+	};
+}
+
 /** The real Goldmine path on THIS machine. */
 const REAL_GOLDMINE = `${homedir()}/personal/github/Goldmine`;
 
@@ -232,9 +251,10 @@ async function evaluateBash(
 	cwd: string,
 	command: string,
 	host: ReturnType<typeof createRecordingHost> = hostOnMainGithub(),
+	cfg: Awaited<ReturnType<typeof loadSteeringConfig>>["config"] = config,
 ): Promise<{ block: boolean; rule: string | null | undefined }> {
 	const ctx = mockExtensionContext(cwd, host.entries);
-	const harness = loadHarness({ config, host });
+	const harness = loadHarness({ config: cfg, host });
 	const event = {
 		type: "tool_call",
 		toolCallId: "tc1",
@@ -252,7 +272,7 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard plugins (opt-in since the monorepo split)", () => {
+	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + git-identity-guard + merge-guard plugins (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
 		// is empty: plugins are opt-in and MUST be declared here. Since
 		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm
@@ -273,7 +293,17 @@ describe("global config — shape", () => {
 			"agent-config-guard",
 			"dev-shm-guard",
 			"git-identity-guard",
+			"merge-guard",
 		]);
+	});
+
+	it("merge guard is a user rule, so it precedes every plugin rule (first-match-wins)", () => {
+		// The design's "one rule, one message": `gh pr merge` must show the
+		// merge-guard message, not a per-subcommand plugin policy. User
+		// rules evaluate before plugin-shipped rules (pi-steering runtime
+		// order), which is what makes the merge guard own the message.
+		const names = (config.rules ?? []).map((r) => r.name);
+		assert.equal(names[0], "agents-do-not-merge-directly");
 	});
 
 	it("napkin plugin ships the two exemptions targeting the SHIPPED commit-on-main rules", () => {
@@ -407,10 +437,16 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 		// (a roster regression — rule defined but not in the array —
 		// would silently re-open the hole; caught 2026-08-20 in
 		// 0.1.0-20260820.1).
+		//
+		// The merge guard (a user rule) now fires first on every
+		// `gh pr merge`, so the shipped roster is exercised with the
+		// guard disabled — same coverage, without pretending an agent
+		// can reach a plugin merge policy any more.
 		const { block, rule } = await evaluateBash(
 			makeFixtureDir(),
 			"gh -R cad0p/other pr merge --squash",
 			host,
+			configWithoutMergeGuard(),
 		);
 		assert.equal(block, true, "expected block");
 		assert.equal(rule, "gh-repo-flag-before-subcommand");
@@ -720,43 +756,62 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 	});
 
 	// ---- pr-merge-needs-closing-keywords ----
+	//
+	// Unreachable for an agent call while the merge guard is live (it is a
+	// user rule and fires first), so the shipped policy is exercised with
+	// the guard disabled; the last test pins the ordering that makes the
+	// guard's message the one an agent sees.
 
-	it("allows pr merge with keyword in BOTH --subject and --body", async () => {
+	it("allows pr merge with keyword in BOTH --subject and --body (guard disabled)", async () => {
+		const { block, rule } = await evaluateBash(
+			makeFixtureDir(),
+			`gh pr merge --squash --subject "feat: x (closes #12)" --body "Closes #12"`,
+			host,
+			configWithoutMergeGuard(),
+		);
+		assert.equal(block, false, `expected allow, got block by ${rule}`);
+	});
+
+	it("blocks pr merge without --subject (commit-subject channel required; guard disabled)", async () => {
+		const { block, rule } = await evaluateBash(
+			makeFixtureDir(),
+			`gh pr merge --squash --body "Closes #12"`,
+			host,
+			configWithoutMergeGuard(),
+		);
+		assert.equal(block, true, "expected block");
+		assert.equal(rule, "pr-merge-needs-closing-keywords");
+	});
+
+	it("allows pr merge with --subject only (commit subject closes; body optional; guard disabled)", async () => {
+		const { block, rule } = await evaluateBash(
+			makeFixtureDir(),
+			`gh pr merge --squash --subject "feat: x (closes #12)"`,
+			host,
+			configWithoutMergeGuard(),
+		);
+		assert.equal(block, false, `expected allow, got block by ${rule}`);
+	});
+
+	it("blocks pr merge with a bare mention only (guard disabled)", async () => {
+		const { block, rule } = await evaluateBash(
+			makeFixtureDir(),
+			`gh pr merge --squash --subject "feat: x (see #12)" --body "see #12"`,
+			host,
+			configWithoutMergeGuard(),
+		);
+		assert.equal(block, true, "expected block");
+		assert.equal(rule, "pr-merge-needs-closing-keywords");
+	});
+
+	it("with the merge guard live, every pr merge shows the merge-guard message", async () => {
 		const { block, rule } = await evaluateBash(
 			makeFixtureDir(),
 			`gh pr merge --squash --subject "feat: x (closes #12)" --body "Closes #12"`,
 			host,
 		);
-		assert.equal(block, false, `expected allow, got block by ${rule}`);
-	});
-
-	it("blocks pr merge without --subject (commit-subject channel required)", async () => {
-		const { block, rule } = await evaluateBash(
-			makeFixtureDir(),
-			`gh pr merge --squash --body "Closes #12"`,
-			host,
-		);
 		assert.equal(block, true, "expected block");
-		assert.equal(rule, "pr-merge-needs-closing-keywords");
-	});
-
-	it("allows pr merge with --subject only (commit subject closes; body optional)", async () => {
-		const { block, rule } = await evaluateBash(
-			makeFixtureDir(),
-			`gh pr merge --squash --subject "feat: x (closes #12)"`,
-			host,
-		);
-		assert.equal(block, false, `expected allow, got block by ${rule}`);
-	});
-
-	it("blocks pr merge with a bare mention only", async () => {
-		const { block, rule } = await evaluateBash(
-			makeFixtureDir(),
-			`gh pr merge --squash --subject "feat: x (see #12)" --body "see #12"`,
-			host,
-		);
-		assert.equal(block, true, "expected block");
-		assert.equal(rule, "pr-merge-needs-closing-keywords");
+		assert.equal(rule, "agents-do-not-merge-directly");
 	});
 
 	it("does not gate other gh subcommands (view / branch / close)", async () => {

@@ -34,9 +34,13 @@
 // inline: git + rm (pi-steering core), napkin
 // (pi-napkin/steering), github (@cad0p/pi-steering-github: PR
 // issue-link + vault body-file policy). Local guards: agent-config
-// (inline below), ./dev-shm-guard.ts, ./git-identity-guard.ts.
+// (inline below), ./dev-shm-guard.ts, ./git-identity-guard.ts,
+// ./merge-guard.ts (agents do not merge directly — the design's
+// P1-W1 step 1: one rule, one message, "merge through
+// tools/merge-pr.sh").
 // Tests: ./integration.test.ts
-// (loadHarness matrix against real vault fixtures).
+// (loadHarness matrix against real vault fixtures) and
+// ./merge-guard.test.ts (the merge guard's positive/negative matrix).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -51,6 +55,7 @@ import githubPlugin from "@cad0p/pi-steering-github";
 // steering in strict mode (observed live). Single registration wins.
 import { devShmGuardPlugin, devShmRules } from "./dev-shm-guard.ts";
 import { gitIdentityGuardPlugin, gitIdentityRules } from "./git-identity-guard.ts";
+import { mergeGuardPlugin, mergeGuardRules } from "./merge-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -159,8 +164,10 @@ export default defineConfig({
 		agentConfigGuardPlugin,
 		devShmGuardPlugin,
 		gitIdentityGuardPlugin,
+		mergeGuardPlugin,
 	],
 	rules: [
+		...mergeGuardRules,
 		{
 			name: "no-agent-config-edit",
 			tool: "edit",
