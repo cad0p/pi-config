@@ -218,8 +218,8 @@ export function writesMainRef(words: readonly string[]): boolean {
 		}
 		case "fetch": {
 			// A forced refspec ('+src:dst') writes dst without the
-			// fast-forward check. Plain refspecs are allowed: the vault hook
-			// still refuses a non-fast-forward result.
+			// fast-forward check. Plain refspecs are allowed: without '+'
+			// git itself refuses a non-fast-forward update.
 			return operands(rest, EMPTY_FLAGS).some((word) => {
 				const match = /^\+[^:]*:(.+)$/.exec(word);
 				return match !== null && isDefaultBranchTarget(match[1] ?? "");
