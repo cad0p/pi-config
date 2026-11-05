@@ -122,6 +122,7 @@
     "{\"source\":\"npm:mitsupi\",\"scope\":\"user\"}": "1.6.0",
     "{\"source\":\"npm:@cad0p/pi-napkin@next\",\"scope\":\"user\"}": "0.7.3-20261102.0",
     "{\"source\":\"npm:@cad0p/pi-timestamps@next\",\"scope\":\"user\"}": "0.2.0-20261102.0",
-    "{\"source\":\"npm:@cad0p/pi-usage\",\"scope\":\"user\"}": "0.11.5"
+    "{\"source\":\"npm:@cad0p/pi-usage\",\"scope\":\"user\"}": "0.11.5",
+    "{\"source\":\"npm:@cad0p/pi-usage@next\",\"scope\":\"user\"}": "0.11.5-20261103.2"
   }
 }
