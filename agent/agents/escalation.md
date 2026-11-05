@@ -1,6 +1,6 @@
 ---
-display_name: Escalation Agent
-description: "Very smart and expensive — do not pick first. Use after general-purpose has demonstrated poor performance on the task, verified by facts. Only exception: design work."
+display_name: Design | Escalation
+description: "For design work where breadth of knowledge matters. For everyting else: only use after general-purpose has demonstrated poor performance on the task, verified by facts."
 tools: "*"
 prompt_mode: append
 extensions: true
