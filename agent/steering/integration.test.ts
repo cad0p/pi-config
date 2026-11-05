@@ -272,7 +272,7 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + git-identity-guard + merge-guard plugins (opt-in since the monorepo split)", () => {
+	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + ref-write-guard + git-identity-guard + merge-guard plugins (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
 		// is empty: plugins are opt-in and MUST be declared here. Since
 		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm
@@ -292,6 +292,7 @@ describe("global config — shape", () => {
 			"agent-dir",
 			"agent-config-guard",
 			"dev-shm-guard",
+			"ref-write-guard",
 			"git-identity-guard",
 			"merge-guard",
 		]);

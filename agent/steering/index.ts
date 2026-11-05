@@ -37,10 +37,14 @@
 // (inline below), ./dev-shm-guard.ts, ./git-identity-guard.ts,
 // ./merge-guard.ts (agents do not merge directly — the design's
 // P1-W1 step 1: one rule, one message, "merge through
-// tools/merge-pr.sh").
+// tools/merge-pr.sh"), ./ref-write-guard.ts (no plumbing writes to
+// main/master — update-ref, branch -f, checkout -B, switch -C,
+// forced fetch refspecs; the vault hook in pi-napkin is the
+// authoritative layer).
 // Tests: ./integration.test.ts
-// (loadHarness matrix against real vault fixtures) and
-// ./merge-guard.test.ts (the merge guard's positive/negative matrix).
+// (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
+// (the merge guard's positive/negative matrix) and
+// ./ref-write-guard.test.ts (the argv matcher's block/allow matrix).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -54,6 +58,7 @@ import githubPlugin from "@cad0p/pi-steering-github";
 // alongside only produces duplicate-predicate warnings, which DISABLE
 // steering in strict mode (observed live). Single registration wins.
 import { devShmGuardPlugin, devShmRules } from "./dev-shm-guard.ts";
+import { refWriteGuardPlugin, refWriteGuardRules } from "./ref-write-guard.ts";
 import { gitIdentityGuardPlugin, gitIdentityRules } from "./git-identity-guard.ts";
 import { mergeGuardPlugin, mergeGuardRules } from "./merge-guard.ts";
 import { homedir } from "node:os";
@@ -163,6 +168,7 @@ export default defineConfig({
 		agentDirPlugin,
 		agentConfigGuardPlugin,
 		devShmGuardPlugin,
+		refWriteGuardPlugin,
 		gitIdentityGuardPlugin,
 		mergeGuardPlugin,
 	],
@@ -207,6 +213,7 @@ export default defineConfig({
 				"Do not mutate agent definitions or settings.json via shell — they control model selection and guardrails. Make the change manually or ask the user.",
 		},
 		...devShmRules,
+		...refWriteGuardRules,
 		...gitIdentityRules,
 	],
 });
