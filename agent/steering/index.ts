@@ -39,8 +39,8 @@
 // P1-W1 step 1: one rule, one message, "merge through
 // tools/merge-pr.sh"), ./ref-write-guard.ts (no plumbing writes to
 // main/master — update-ref, branch -f, checkout -B, switch -C,
-// forced fetch refspecs; the vault hook in pi-napkin is the
-// authoritative layer).
+// forced fetch refspecs; reset --hard and force-push stay on the
+// shipped no-hard-reset / no-force-push rails).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and

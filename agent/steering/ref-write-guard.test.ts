@@ -102,3 +102,47 @@ describe("ref-write-guard", () => {
 		});
 	}
 });
+
+// The owner's required coverage explicitly names reset --hard "aimed at
+// main/master" and force-push. Both are owned by shipped rails that fire on
+// any branch (a superset), so this block pins them with the branch resolved
+// to main to show the main/master case is covered, not just the feature
+// branch the block above uses.
+describe("ref-write-guard — main/master target coverage", () => {
+	const mainHost = {
+		exec: async (cmd: string, args: string[]) => {
+			if (cmd === "git" && args.includes("branch") && args.includes("--show-current")) {
+				return { stdout: "main\n", stderr: "", code: 0, killed: false };
+			}
+			return { stdout: "", stderr: "", code: 0, killed: false };
+		},
+		appendEntry: () => {},
+	};
+	const harness = loadHarness({ config, host: mainHost });
+
+	for (const command of [
+		"git reset --hard HEAD~1",
+		"git -C /tmp/vault reset --hard origin/main",
+		"git reset --hard 0123456789012345678901234567890123456789",
+	]) {
+		it("blocks reset --hard while on main: " + command, async () => {
+			await expectBlocks(harness, { command }, { rule: "no-hard-reset" });
+		});
+	}
+
+	for (const command of [
+		"git push --force origin main",
+		"git push -f origin main",
+		"git push --force-with-lease origin main",
+		"git push origin +main",
+		"git push origin main --force",
+	]) {
+		it("blocks force-push aimed at main: " + command, async () => {
+			await expectBlocks(harness, { command }, { rule: "no-force-push" });
+		});
+	}
+
+	it("allows a non-force push to main", async () => {
+		await expectAllows(harness, { command: "git push origin main" });
+	});
+});

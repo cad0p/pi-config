@@ -13,23 +13,25 @@
  * ref write: update-ref, branch -f, checkout -B, switch -C and a forced
  * fetch refspec all passed steering untouched.
  *
- * This rule is the early, readable layer. It is a textual check on the
- * parsed argv: the authoritative enforcement is the reference-transaction
- * hook shipped in pi-napkin
- * (extensions/distill/scripts/vault-main-guard/install.sh), which refuses
- * the write at the git layer whatever tool, script or indirection issued
- * it. Neither replaces the other.
+ * Scope split with the shipped git-plugin rails:
+ *   - this rule owns the ref-writing verbs no shipped rule describes:
+ *     update-ref, branch -f/-M/-m, checkout -B, switch -C, a forced fetch
+ *     refspec and symbolic-ref;
+ *   - 'reset --hard' (aimed at main/master or anywhere else) is already
+ *     refused by the shipped no-hard-reset rule;
+ *   - force pushes are already refused by the shipped no-force-push rule
+ *     (every force form, '+' refspecs included).
  *
  * Matching is on the parsed argv (ctx.input.args), never on the raw
  * command string, so a commit message or a markdown code sample that
  * merely CONTAINS 'git update-ref refs/heads/main' is not blocked.
  *
- * Known gaps (fail-closed elsewhere):
+ * Known gaps (textual layer, not a substitute for review):
  *   - 'branch -m <new>' while on main renames main away; the source branch
  *     is implicit and not statically known here, so this rule cannot name
- *     it. The vault hook refuses the resulting delete of main.
+ *     it.
  *   - A shell wrapper that rebuilds the command internally
- *     ('bash -c "$CMD"') is not visible; the hook still covers it.
+ *     ('bash -c "$CMD"') is not visible.
  */
 
 import type { PredicateShape } from "@cad0p/pi-steering";
