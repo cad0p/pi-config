@@ -9,6 +9,13 @@
  * verify it and the `required_signatures` rulesets rejected the pushes
  * (pi-napkin #115, pi-timestamps #26 on 2026-11-02).
  *
+ * Incident 2026-11-06 03:22Z: a scratch `HOME=/data/tmp/scratch-home
+ * git config --global …` was allowed because the guard ignored the
+ * inherited XDG_CONFIG_HOME. Git then wrote the REAL
+ * ~/.config/git/config. The guard now resolves GIT_CONFIG_GLOBAL /
+ * XDG_CONFIG_HOME from the command, the walker env and the inherited
+ * process env, and treats an empty value as unset (as git does).
+ *
  * Blocked (scope: global / system / a `--file` that IS the real global
  * or system config):
  *   - `git config` writes of identity keys — `user|author|committer` .
@@ -21,8 +28,8 @@
  * Allowed: reads (`--get`, `-l`, a bare key), repo-local identity
  * (`git config user.email …` without a scope flag), one-off
  * `git -c user.email=… commit`, non-identity global keys, and isolated
- * test homes (`HOME=/tmp/h`, `XDG_CONFIG_HOME=…`, `GIT_CONFIG_GLOBAL=…`
- * pointing away from the real files).
+ * test homes (`HOME=/tmp/h` plus `XDG_CONFIG_HOME=/tmp/h/.config`, or
+ * `GIT_CONFIG_GLOBAL=/tmp/…`, pointing away from the real files).
  *
  * Known gap: a test runner or script that calls `git config --global`
  * internally is invisible here — steering sees only the agent's own
@@ -63,20 +70,28 @@ function expandHome(p: string, home: string): string {
 
 type Env = { get(name: string): string | undefined };
 
+/** Git treats an empty config-path variable as unset. */
+function nonEmpty(env: Env, name: string): string | undefined {
+	const v = env.get(name);
+	return v === "" ? undefined : v;
+}
+
 /** Does `scope` resolve to the real global / system config file? */
 function targetsRealConfig(scope: { kind: "global" | "system" | "file"; file?: string }, env: Env): boolean {
+	const home = nonEmpty(env, "HOME") ?? HOME;
 	if (scope.kind === "system") {
-		const sys = env.get("GIT_CONFIG_SYSTEM");
-		return sys === undefined || REAL_SYSTEM.has(expandHome(sys, HOME));
+		const sys = nonEmpty(env, "GIT_CONFIG_SYSTEM");
+		return sys === undefined || REAL_SYSTEM.has(expandHome(sys, home));
 	}
 	if (scope.kind === "file") {
-		const f = expandHome(scope.file ?? "", env.get("HOME") ?? HOME);
+		const f = expandHome(scope.file ?? "", home);
 		return REAL_GLOBAL.has(f) || REAL_SYSTEM.has(f);
 	}
-	const g = env.get("GIT_CONFIG_GLOBAL");
-	if (g !== undefined) return REAL_GLOBAL.has(expandHome(g, HOME));
-	const home = env.get("HOME") ?? HOME;
-	const xdg = env.get("XDG_CONFIG_HOME") ?? join(home, ".config");
+	const g = nonEmpty(env, "GIT_CONFIG_GLOBAL");
+	if (g !== undefined) return REAL_GLOBAL.has(expandHome(g, home));
+	const xdg = nonEmpty(env, "XDG_CONFIG_HOME") ?? join(home, ".config");
+	// Git may pick either `~/.gitconfig` or the XDG file: refuse when
+	// EITHER candidate is one of the real home's config files.
 	return REAL_GLOBAL.has(join(home, ".gitconfig")) || REAL_GLOBAL.has(join(xdg, "git", "config"));
 }
 
@@ -141,6 +156,22 @@ const GLOBAL_GIT_CONFIG_IN_CMD = new RegExp(`${HOME_PREFIX}/(?:\\.gitconfig|\\.c
 export const GLOBAL_GIT_CONFIG_PATH = new RegExp(`^${HOME_PREFIX}/(?:\\.gitconfig|\\.config/git/config)$`);
 const GLOBAL_GIT_CONFIG_DIR = join(HOME, ".config", "git");
 
+/**
+ * Does the command string name a real global config? Expand the two
+ * inherited path variables first so `$XDG_CONFIG_HOME/git/config` is
+ * judged against the value git will actually use.
+ */
+function commandTargetsRealGlobal(cmd: string, env: Env): boolean {
+	if (GLOBAL_GIT_CONFIG_IN_CMD.test(cmd)) return true;
+	const home = nonEmpty(env, "HOME") ?? HOME;
+	const xdg = nonEmpty(env, "XDG_CONFIG_HOME") ?? join(home, ".config");
+	const g = nonEmpty(env, "GIT_CONFIG_GLOBAL");
+	const expanded = cmd
+		.replace(/\$(?:\{XDG_CONFIG_HOME\}|XDG_CONFIG_HOME\b)/g, xdg)
+		.replace(/\$(?:\{GIT_CONFIG_GLOBAL\}|GIT_CONFIG_GLOBAL\b)/g, g ?? "");
+	return GLOBAL_GIT_CONFIG_IN_CMD.test(expanded);
+}
+
 /** Shell writers that could rewrite the file. All are declared by other plugins already. */
 export const GIT_CONFIG_WRITERS = [
 	"sed", "cp", "tee", "mv", "perl", "python", "python3", "awk", "node", "bash", "sh",
@@ -156,6 +187,11 @@ type Ctx = {
 	walkerState?: { cwd?: unknown; env?: ReadonlyMap<string, string> };
 };
 
+function commandEnv(prefix: Map<string, string>, chain: ReadonlyMap<string, string> | undefined): Env {
+	return { get: (n) => prefix.get(n) ?? chain?.get?.(n) ?? process.env[n] };
+}
+
+/** The command's child env: its own prefix assignments win, then the walker, then the inherited process env. */
 function envOf(ctx: Ctx): Env {
 	const prefix = new Map<string, string>();
 	for (const a of ctx?.input?.envAssignments ?? []) {
@@ -163,8 +199,16 @@ function envOf(ctx: Ctx): Env {
 		const m = /^([A-Za-z_][A-Za-z0-9_]*)=["']?(.*?)["']?$/.exec(tok);
 		if (m) prefix.set(m[1] as string, m[2] ?? "");
 	}
-	const chain = ctx?.walkerState?.env;
-	return { get: (n) => prefix.get(n) ?? chain?.get?.(n) };
+	return commandEnv(prefix, ctx?.walkerState?.env);
+}
+
+/**
+ * The env for word expansion in the command string: same-command prefix
+ * assignments do NOT bind here (bash expands words before applying them),
+ * so only the walker's snapshot and the inherited process env apply.
+ */
+function ambientEnvOf(ctx: Ctx): Env {
+	return commandEnv(new Map(), ctx?.walkerState?.env);
 }
 
 export const gitIdentityGuardPlugin = {
@@ -181,7 +225,7 @@ export const gitIdentityGuardPlugin = {
 		touchesGlobalGitConfig: (args: unknown, ctx: Ctx) => {
 			if (args !== true) return false;
 			const cmd = typeof ctx?.input?.command === "string" ? ctx.input.command : "";
-			if (GLOBAL_GIT_CONFIG_IN_CMD.test(cmd)) return true;
+			if (commandTargetsRealGlobal(cmd, ambientEnvOf(ctx))) return true;
 			const cwd = ctx?.walkerState?.cwd;
 			return typeof cwd === "string" && cwd === GLOBAL_GIT_CONFIG_DIR && /(?:^|\s)config(?:\s|$)/.test(cmd);
 		},
