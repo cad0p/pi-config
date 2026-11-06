@@ -147,6 +147,13 @@
         }
       }
     },
+    "mistral": {
+      "modelOverrides": {
+        "deepseek-v4-1-flash-1017": {
+          "contextWindow": 400000
+        }
+      }
+    },
     "opencode-go": {
       "modelOverrides": {
         "deepseek-v4.1-flash": {
