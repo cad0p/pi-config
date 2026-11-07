@@ -35,3 +35,4 @@ agent/cache/deepinfra-models.json
 
 # Scratch sandbox state (never commit)
 /sandbox-agent/
+agent/pi-devin/account-usage.json

@@ -1,5 +1,6 @@
 minimumReleaseAgeExclude:
   - '@cad0p/*'
+  - '@buyong/pi-devin@0.1.14'
 # pi's jiti loader resolves imports from the symlink path (not realpath), so
 # transitive sibling packages (@cad0p/napkin, @cad0p/unbash-walker) must be
 # hoisted to the root node_modules or extension loading fails with

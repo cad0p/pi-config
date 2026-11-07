@@ -84,12 +84,14 @@
       ]
     },
     "npm:@cad0p/pi-background-work@next",
-    "npm:@cad0p/pi-usage@next"
+    "npm:@cad0p/pi-usage@next",
+    "npm:@buyong/pi-devin"
   ],
   "theme": "light/dark",
   "externalEditor": "nvim",
   "enabledModels": [
-    "anthropic/claude-opus-5-5:high",
+    "anthropic*/claude-opus-5-5:high",
+    "devin*/claude-opus-5-5:high",
     "opencode-go*/deepseek-v4.1-flash:max",
     "mistral*/deepseek-v4-1-flash-1017:max"
   ],
@@ -124,6 +126,7 @@
     "{\"source\":\"npm:@cad0p/pi-napkin@next\",\"scope\":\"user\"}": "0.7.3-20261102.0",
     "{\"source\":\"npm:@cad0p/pi-timestamps@next\",\"scope\":\"user\"}": "0.2.0-20261102.0",
     "{\"source\":\"npm:@cad0p/pi-usage\",\"scope\":\"user\"}": "0.11.5",
-    "{\"source\":\"npm:@cad0p/pi-usage@next\",\"scope\":\"user\"}": "0.11.5-20261103.2"
+    "{\"source\":\"npm:@cad0p/pi-usage@next\",\"scope\":\"user\"}": "0.11.5-20261103.2",
+    "{\"source\":\"npm:pi-context-view\",\"scope\":\"user\"}": "0.8.3"
   }
 }
