@@ -42,7 +42,14 @@
 // forced fetch refspecs; reset --hard and force-push stay on the
 // shipped no-hard-reset / no-force-push rails), ./primary-checkout-guard.ts
 // (the primary checkout of a pc-* repo stays on main — no branch, no
-// commit, no edit there; work in a worktree).
+// commit, no edit there; work in a worktree), ./design-check-gate.ts
+// (E1: a lens/fold brief at round >= 3 needs the latest design-check
+// file; every brief write needs the pr/round/kind header),
+// ./critical-path-slip.ts (E4: a slipped critical path needs a replan
+// entry before another brief for a non-done item) and
+// ./threat-model-required.ts (E5: red-team/trust-model lens briefs
+// need a 'Threat model:' line; issue/PR vault bodies need a
+// 'threat-model:' frontmatter key).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
@@ -67,6 +74,18 @@ import {
 	primaryCheckoutGuardPlugin,
 	primaryCheckoutRules,
 } from "./primary-checkout-guard.ts";
+import {
+	designCheckGatePlugin,
+	designCheckRules,
+} from "./design-check-gate.ts";
+import {
+	criticalPathSlipPlugin,
+	criticalPathSlipRules,
+} from "./critical-path-slip.ts";
+import {
+	threatModelRequiredPlugin,
+	threatModelRules,
+} from "./threat-model-required.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -178,6 +197,9 @@ export default defineConfig({
 		gitIdentityGuardPlugin,
 		mergeGuardPlugin,
 		primaryCheckoutGuardPlugin,
+		designCheckGatePlugin,
+		criticalPathSlipPlugin,
+		threatModelRequiredPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -227,5 +249,8 @@ export default defineConfig({
 		...devShmRules,
 		...refWriteGuardRules,
 		...gitIdentityRules,
+		...designCheckRules,
+		...criticalPathSlipRules,
+		...threatModelRules,
 	],
 });

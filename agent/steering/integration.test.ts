@@ -169,9 +169,15 @@ function makeVaultRepoFixture(repo: string): VaultRepoFixture {
 	mkdirSync(prsDir, { recursive: true });
 	mkdirSync(issuesDir, { recursive: true });
 	const prBodyFile = join(prsDir, `2026-08-14-pr1-${repo}-test.md`);
-	writeFileSync(prBodyFile, "---\ntags: [test]\n---\n# Title\n\nCloses #12\n\nBody.\n");
+	writeFileSync(
+		prBodyFile,
+		"---\ntags: [test]\nthreat-model: n/a: test fixture\n---\n# Title\n\nCloses #12\n\nBody.\n",
+	);
 	const issueBodyFile = join(issuesDir, `2026-08-14-issue1-${repo}-test.md`);
-	writeFileSync(issueBodyFile, "---\ntags: [test]\n---\n# Title\n\nIssue body text.\n");
+	writeFileSync(
+		issueBodyFile,
+		"---\ntags: [test]\nthreat-model: n/a: test fixture\n---\n# Title\n\nIssue body text.\n",
+	);
 	return { vault, repo, prBodyFile, issueBodyFile };
 }
 
@@ -186,7 +192,7 @@ function stripSubstitution(file: string): string {
  */
 function stripFrontmatter(content: string): string {
 	return content.replace(
-		/^(?:\uFEFF)?---\r?\n(?:.*?\r?\n)?(?:---|\.\.\.)\r?\n(?:\r?\n)*(?:[ \t]*\r?\n)*(?:#(?!\S)[^\n]*(?:\r?\n)?(?:[ \t]*\r?\n)*)?/,
+		/^(?:\uFEFF)?---\r?\n(?:.*?\r?\n)*?(?:---|\.\.\.)\r?\n(?:\r?\n)*(?:[ \t]*\r?\n)*(?:#(?!\S)[^\n]*(?:\r?\n)?(?:[ \t]*\r?\n)*)?/,
 		"",
 	);
 }
@@ -272,7 +278,7 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + ref-write-guard + git-identity-guard + merge-guard + primary-checkout-guard plugins (opt-in since the monorepo split)", () => {
+	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + ref-write-guard + git-identity-guard + merge-guard + primary-checkout-guard + brief-gate plugins (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
 		// is empty: plugins are opt-in and MUST be declared here. Since
 		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm
@@ -296,6 +302,9 @@ describe("global config — shape", () => {
 			"git-identity-guard",
 			"merge-guard",
 			"primary-checkout-guard",
+			"brief-design-check",
+			"brief-critical-path",
+			"brief-threat-model",
 		]);
 	});
 
@@ -512,7 +521,10 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 		const prsDir = join(vault, "open-source", "github", repo, "prs");
 		mkdirSync(prsDir, { recursive: true });
 		const bodyFile = join(prsDir, "2026-08-14-pr1-nested.md");
-		writeFileSync(bodyFile, "Closes #12\n");
+		writeFileSync(
+			bodyFile,
+			"---\nthreat-model: n/a: test fixture\n---\nCloses #12\n",
+		);
 		const { block, rule } = await evaluateBash(
 			makeFixtureDir(),
 			`gh pr create --title "feat: x (closes #12)" --body-file ${stripSubstitution(bodyFile)}`,
@@ -697,7 +709,10 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 	it("blocks pr create when the stripped vault body lacks the closing keyword", async () => {
 		const fx = makeVaultRepoFixture(repo);
 		const badFile = join(dirname(fx.prBodyFile), "2026-08-14-pr2-nokw.md");
-		writeFileSync(badFile, "## What\n\nNo keywords here.\n");
+		writeFileSync(
+			badFile,
+			"---\nthreat-model: n/a: test fixture\n---\n## What\n\nNo keywords here.\n",
+		);
 		const { block, rule } = await evaluateBash(
 			makeFixtureDir(),
 			`gh pr create --title "feat: x (closes #12)" --body-file ${stripSubstitution(badFile)}`,
@@ -712,7 +727,7 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 		const kwFile = join(dirname(fx.prBodyFile), "2026-08-14-pr2-fmkw.md");
 		writeFileSync(
 			kwFile,
-			"---\ncloses: #12\n---\n# Title\n\nNo keyword here.\n",
+			"---\ncloses: #12\nthreat-model: n/a: test fixture\n---\n# Title\n\nNo keyword here.\n",
 		);
 		const { block, rule } = await evaluateBash(
 			makeFixtureDir(),
@@ -748,7 +763,10 @@ describe("global config — github rules (issue-link + vault body-file policy)",
 	it("allows multi-issue keyword-per-issue in the vault body file", async () => {
 		const fx = makeVaultRepoFixture(repo);
 		const multiFile = join(dirname(fx.prBodyFile), "2026-08-14-pr3-multi.md");
-		writeFileSync(multiFile, "Closes #12, closes #15\n");
+		writeFileSync(
+			multiFile,
+			"---\nthreat-model: n/a: test fixture\n---\nCloses #12, closes #15\n",
+		);
 		const { block, rule } = await evaluateBash(
 			makeFixtureDir(),
 			`gh pr create --title "fix: multi (closes #12)" --body-file ${stripSubstitution(multiFile)}`,
