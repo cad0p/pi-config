@@ -40,7 +40,9 @@
 // tools/merge-pr.sh"), ./ref-write-guard.ts (no plumbing writes to
 // main/master — update-ref, branch -f, checkout -B, switch -C,
 // forced fetch refspecs; reset --hard and force-push stay on the
-// shipped no-hard-reset / no-force-push rails).
+// shipped no-hard-reset / no-force-push rails), ./primary-checkout-guard.ts
+// (the primary checkout of a pc-* repo stays on main — no branch, no
+// commit, no edit there; work in a worktree).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
@@ -61,6 +63,10 @@ import { devShmGuardPlugin, devShmRules } from "./dev-shm-guard.ts";
 import { refWriteGuardPlugin, refWriteGuardRules } from "./ref-write-guard.ts";
 import { gitIdentityGuardPlugin, gitIdentityRules } from "./git-identity-guard.ts";
 import { mergeGuardPlugin, mergeGuardRules } from "./merge-guard.ts";
+import {
+	primaryCheckoutGuardPlugin,
+	primaryCheckoutRules,
+} from "./primary-checkout-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -171,9 +177,15 @@ export default defineConfig({
 		refWriteGuardPlugin,
 		gitIdentityGuardPlugin,
 		mergeGuardPlugin,
+		primaryCheckoutGuardPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
+		// The primary-checkout guard owns the most specific message ("edit
+		// in a worktree") for the verbs the shipped no-main-commit /
+		// no-main-ref-write rails also refuse. Both are user rules, so
+		// both precede every plugin rule.
+		...primaryCheckoutRules,
 		{
 			name: "no-agent-config-edit",
 			tool: "edit",

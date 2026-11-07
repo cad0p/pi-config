@@ -23,6 +23,7 @@
 		"index.ts",
 		"rules/**/*.ts",
 		"integration.test.ts",
-		"merge-guard.test.ts"
+		"merge-guard.test.ts",
+		"primary-checkout-guard.test.ts"
 	]
 }
