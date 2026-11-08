@@ -22,6 +22,11 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
+import {
+	clearLensStubs,
+	installLensStubs,
+	lensHeaderLines,
+} from "./lens-test-stubs.ts";
 
 const harness = loadHarness({ config });
 
@@ -34,10 +39,14 @@ beforeEach(() => {
 	mkdirSync(briefs, { recursive: true });
 	mkdirSync(join(state, "design-checks"), { recursive: true });
 	process.env.PI_H4_STATE_DIR = state;
+	// pc-host #704: a lens brief carries its head and a passing run, so the
+	// gate needs the gh/git/helper seams from the first write on.
+	installLensStubs(state);
 });
 
 afterEach(() => {
 	delete process.env.PI_H4_STATE_DIR;
+	clearLensStubs();
 	rmSync(state, { recursive: true, force: true });
 });
 
@@ -46,7 +55,7 @@ function briefPath(name: string): string {
 }
 
 function header(pr: string, round: number, kind = "lens", extra = ""): string {
-	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${extra}`;
+	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${lensHeaderLines(state)}${extra}`;
 }
 
 /** Write a design-check file for `pr` at `round`; returns its path. */

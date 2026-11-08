@@ -13,7 +13,17 @@
  *   kind: lens|fold|impl
  *   lens: red-team|trust-model|...        (optional)
  *   split-of: cad0p/pc-host#611            (optional: this brief is a
- *                                           split piece of that PR)
+ *                                           split piece of that PR; it
+ *                                           restarts at round 1 only when
+ *                                           it is strictly smaller)
+ *   head: <40-hex>                         (required for kind: lens: the
+ *                                           head it reviews, which must be
+ *                                           the PR's current head and have
+ *                                           a passing run bound to it)
+ *   green-run: <summary.txt path>          (optional: the tools/ci.sh
+ *                                           summary whose result:, run-on
+ *                                           and dirty lines the lens gate
+ *                                           greps)
  *   session: b55c1bf4                      (optional: the writing pi
  *                                           session's id8, the LAST 8 hex
  *                                           of PI_SESSION_ID, or the full
@@ -118,6 +128,10 @@ export interface BriefHeader {
 	splitOfKey: string | null;
 	/** `split-of` absent, or a well-formed `owner/repo#n` ref. */
 	splitOfValid: boolean;
+	/** Lowercased `head:` value (the lens brief's reviewed head), or null. */
+	head: string | null;
+	/** Value of the `green-run:` line (a summary.txt path), or null. */
+	greenRun: string | null;
 	/** Value of the `Threat model:` / `threat-model:` line, or null. */
 	threatModel: string | null;
 	/** Value of the `session:` line as written, or null. */
@@ -209,6 +223,10 @@ export function parseBriefHeader(content: string): BriefHeader {
 			: /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)#(\d+)$/.exec(splitOf);
 	const splitOfKey =
 		splitOfMatch === null || splitOf === null ? null : splitOf.toLowerCase();
+	const headRaw = (values.get("head") ?? "").trim().toLowerCase();
+	const head = headRaw === "" ? null : headRaw;
+	const greenRunRaw = (values.get("green-run") ?? "").trim();
+	const greenRun = greenRunRaw === "" ? null : greenRunRaw;
 	// The Threat model line may live in the body, not only the header.
 	const threatMatch = /^threat[ -]model:\s*(.*)$/im.exec(content);
 	const threatModel =
@@ -228,6 +246,8 @@ export function parseBriefHeader(content: string): BriefHeader {
 		splitOf,
 		splitOfKey,
 		splitOfValid: splitOf === null || splitOfMatch !== null,
+		head,
+		greenRun,
 		threatModel,
 		sessionRaw,
 		session,

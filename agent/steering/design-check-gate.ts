@@ -10,10 +10,28 @@
  * The cap is per PR number in the `pr:` line and ignores any design
  * check on file - a check with `verdict: continue` is not a licence to
  * keep folding. A split piece is a NEW PR: its brief names the piece PR
- * in `pr:` and carries `split-of: <owner>/<repo>#<n>` (the original),
- * and the piece starts again at round 1. `kind: impl` / `land` /
- * `build` briefs are never capped, so landing a PR that already has
- * clean verdicts keeps working.
+ * in `pr:` and carries `split-of: <owner>/<repo>#<n>` (the original).
+ * `kind: impl` / `land` / `build` briefs are never capped, so landing a
+ * PR that already has clean verdicts keeps working.
+ *
+ * One round definition and the shrink rule (pc-host #704 R4, R2; owner
+ * 2026-11-08: "yes it should be enforced, advisories don't work with
+ * agents"). The count is merge-pr.sh's (base-rules.ts): the effective
+ * round is the higher of the header's `round:` and the helper's count
+ * plus one, so a re-cut cannot understate it. A piece restarts at round 1
+ * only when its changed paths are a subset of the parent's and its
+ * changed lines strictly fewer; otherwise it inherits the parent's count.
+ * There is no one-split limit: a piece that reaches round 5 splits again.
+ * The helper's `rounds` subcommand does not exist until #704 merges, so
+ * ROUNDS_FROM_HELPER keeps that path dormant and the header's round
+ * stands - the live steering never shells out to a missing subcommand.
+ *
+ * No round on a red or unpushed head (pc-host #704 R1/R3). A `kind: lens`
+ * brief carries `head: <40-hex>`; it is refused unless that sha is the
+ * PR's current head on GitHub and a passing run is bound to it (a
+ * gate-record comment for that head, or a `green-run: <path>` summary
+ * whose result:, run-on and dirty lines grep clean). Every check fails
+ * closed.
  *
  * Absorb exemption (owner ruling 2026-11-08, "ideally this process should
  * not require me"): a capped PR must still take in main before it merges,
@@ -22,6 +40,11 @@
  * `absorb-of: <40-hex merge commit>` is exempt from the cap; it still
  * needs the design check for its odd round, like any lens round. Folds
  * stay capped: code beyond the absorb at round >= 6 is a split piece.
+ * The exemption is bound (#719 trust-model F1): the sha must be a merge
+ * commit on the PR branch with one parent reachable from origin/main,
+ * read from the operator clone after a fetch. Nothing more is checked -
+ * the exemption is about which round it is, not about the absorb's
+ * content - so a bogus or foreign sha is refused rather than exempted.
  *
  * Verdict consistency. The design check's `causing:` answer and its
  * verdict must agree: `causing: yes` means the design IS the source of
@@ -58,6 +81,15 @@
 import type { PredicateContext } from "@cad0p/pi-steering";
 import type { BriefWrite, DesignCheckStatus } from "./brief-gates.ts";
 import {
+	absorbBindingRefusal,
+	lensHeadRefusal,
+	pieceIsSmaller,
+	pathsOutsideParent,
+	roundsCount,
+	roundsFromHelper,
+} from "./base-rules.ts";
+import type { BriefHeader } from "./brief-gates.ts";
+import {
 	briefContent,
 	briefWrites,
 	designCheckPath,
@@ -80,8 +112,68 @@ declare global {
 export const ROUND_CAP = 6;
 
 /** The round-cap message. */
-function roundCapReason(pr: string, round: number): string {
-	return `round ${round} on ${pr}: split the PR into independent pieces (owner rule: split at round 5). A split piece is a new PR whose brief header carries split-of: ${pr} and starts again at round 1.`;
+function roundCapReason(
+	pr: string,
+	round: number,
+	why: string | null,
+): string {
+	const tail =
+		why === null
+			? "A split piece is a new PR whose brief header carries split-of: ${pr} and restarts at round 1 only when its changed paths are a subset of the parent's and its changed lines strictly fewer; otherwise it inherits the parent's round count. There is no one-split limit: a piece that reaches round 5 splits again."
+			: why;
+	return `round ${round} on ${pr}: split the PR into independent pieces (owner rule: split at round 5). ${tail}`;
+}
+
+/**
+ * The round this brief effectively is (pc-host #704 R2/R4) and whether the
+ * cap refuses it. The effective round is the higher of the header's round and
+ * the helper's count plus one, so a re-cut cannot understate it; a split piece
+ * restarts at round 1 only when it is strictly smaller than its parent, else it
+ * inherits the parent's count. A check that cannot run refuses (fail closed).
+ */
+function roundCapRefusal(header: BriefHeader): string | null {
+	if (!isGatedKind(header.kind) || header.round === null) return null;
+	const pr = header.pr ?? "";
+	let round = header.round;
+	let inherited = false;
+	if (header.splitOfKey !== null) {
+		const parent = header.splitOfKey;
+		const shrink = pieceIsSmaller(pr, parent);
+		if (!shrink.ok) {
+			return `could not compare ${pr} with its split parent ${parent} (${shrink.err}); a piece restarts at round 1 only when it is strictly smaller, so the cap cannot be evaluated (fail closed)`;
+		}
+		if (!shrink.smaller) {
+			const outside = pathsOutsideParent(pr, parent);
+			const why =
+				outside.length > 0
+					? `it changes ${outside.length} path(s) its parent does not (${outside.slice(0, 3).join(", ")}${outside.length > 3 ? ", ..." : ""})`
+					: "its changed lines are not strictly fewer than its parent's";
+			if (!roundsFromHelper()) {
+				return `split-of: ${parent} does not restart ${pr} at round 1: ${why}. A piece restarts only when it is strictly smaller; otherwise it inherits the parent's round count, which the helper's rounds subcommand reads (dormant until pc-host #704 merges), so this piece cannot be evaluated (fail closed).`;
+			}
+			const parentRounds = roundsCount(parent);
+			if (!parentRounds.ok) {
+				return `the round count of the split parent ${parent} could not be read (${parentRounds.err}); a piece that is not strictly smaller (${why}) inherits it, so the cap cannot be evaluated (fail closed)`;
+			}
+			round = Math.max(round, parentRounds.count + 1);
+			inherited = true;
+		}
+	}
+	if (roundsFromHelper()) {
+		const own = roundsCount(pr);
+		if (!own.ok) {
+			return `the round count of ${pr} could not be read (${own.err}); the cap reads merge-pr.sh rounds and refuses when it cannot (fail closed)`;
+		}
+		round = Math.max(round, own.count + 1);
+	}
+	if (round < ROUND_CAP) return null;
+	return roundCapReason(
+		pr,
+		round,
+		inherited
+			? `It inherits its split parent ${header.splitOfKey} round count.`
+			: null,
+	);
 }
 
 /** The `absorb-of:` value in the brief's leading lines, or null if absent. */
@@ -117,13 +209,17 @@ function writeBlockReason(write: BriefWrite): string | null {
 		return `absorb-of must be the absorb merge commit as 40 lowercase hex ('absorb-of: <sha>'), not '${absorbOf}'.`;
 	}
 	const absorbLens = absorbOf !== null && header.kind === "lens";
-	if (
-		isGatedKind(header.kind) &&
-		header.round !== null &&
-		header.round >= ROUND_CAP &&
-		!absorbLens
-	) {
-		return roundCapReason(header.pr, header.round);
+	if (absorbLens && absorbOf !== null) {
+		const binding = absorbBindingRefusal(absorbOf, header.pr);
+		if (binding !== null) return binding;
+	}
+	if (header.kind === "lens") {
+		const lens = lensHeadRefusal(header.head, header.greenRun, header.pr);
+		if (lens !== null) return lens;
+	}
+	if (!absorbLens) {
+		const capped = roundCapRefusal(header);
+		if (capped !== null) return capped;
 	}
 	if (
 		!isGatedKind(header.kind) ||

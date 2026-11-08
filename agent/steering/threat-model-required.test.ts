@@ -18,6 +18,11 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { BODY_STRIP } from "@cad0p/pi-steering-github";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
+import {
+	clearLensStubs,
+	installLensStubs,
+	lensHeaderLines,
+} from "./lens-test-stubs.ts";
 
 const harness = loadHarness({ config });
 const REPO = "pc-host";
@@ -37,15 +42,17 @@ beforeEach(() => {
 	cwd = join(state, REPO);
 	mkdirSync(cwd, { recursive: true });
 	process.env.PI_H4_STATE_DIR = state;
+	installLensStubs(state);
 });
 
 afterEach(() => {
 	delete process.env.PI_H4_STATE_DIR;
+	clearLensStubs();
 	rmSync(state, { recursive: true, force: true });
 });
 
 function header(extra: string): string {
-	return `pr: ${PR}\nround: 1\nkind: lens\nlens: red-team\n${extra}`;
+	return `pr: ${PR}\nround: 1\nkind: lens\nlens: red-team\n${lensHeaderLines(state)}${extra}`;
 }
 
 function briefPath(name: string): string {
@@ -97,7 +104,7 @@ describe("threat-model-required — brief side", () => {
 			{
 				write: {
 					path: briefPath("r1-trust.md"),
-					content: `pr: ${PR}\nround: 1\nkind: lens\nlens: trust-model\n`,
+					content: `pr: ${PR}\nround: 1\nkind: lens\nlens: trust-model\n${lensHeaderLines(state)}`,
 				},
 				cwd: "/tmp",
 			},
@@ -109,7 +116,7 @@ describe("threat-model-required — brief side", () => {
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("r1-functional.md"),
-				content: `pr: ${PR}\nround: 1\nkind: lens\nlens: functional\n`,
+				content: `pr: ${PR}\nround: 1\nkind: lens\nlens: functional\n${lensHeaderLines(state)}`,
 			},
 			cwd: "/tmp",
 		});

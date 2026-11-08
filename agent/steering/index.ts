@@ -46,7 +46,9 @@
 // (E1: a lens/fold brief at round >= 3 needs the latest design-check
 // file, round >= 6 is refused (owner rule: split at round 5), and a
 // check answering 'causing: yes' may not say 'verdict: continue'; every
-// brief write needs the pr/round/kind header),
+// brief write needs the pr/round/kind header; pc-host #704 adds the one
+// round definition, the split-piece shrink rule, the lens head binding
+// and the absorb-of binding — see ./base-rules.ts),
 // ./critical-path-slip.ts (E4: a slipped critical path needs a replan
 // entry before another brief for a non-done item; and a reset of
 // critical-path.json may not drop an unfinished item, pc-host #703 D8),
