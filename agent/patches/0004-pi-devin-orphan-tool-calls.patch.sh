@@ -15,7 +15,7 @@
 # synthetic error tool result, like pi-ai does.
 PATCH_ID="0004-pi-devin-orphan-tool-calls"
 PATCH_TITLE="pi-devin: synthetic error results for orphaned tool calls (rewound sessions)"
-PATCH_UPSTREAM="buYoung/pi-packages (not filed; present in @buyong/pi-devin 0.1.14)"
+PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/73"
 PATCH_REMOVE_WHEN="upstream toDevinTranscript closes orphaned tool calls; then delete this file"
 
 PATCH_ROOTS="${PI_AGENT_DIR}/npm/node_modules/@buyong/pi-devin"

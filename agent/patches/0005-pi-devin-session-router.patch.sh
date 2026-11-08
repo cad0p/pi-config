@@ -19,7 +19,7 @@
 # registration check accepts any pi-devin router instead of only this instance's object.
 PATCH_ID="0005-pi-devin-session-router"
 PATCH_TITLE="pi-devin: route requests to the instance of their session (in-process subagents)"
-PATCH_UPSTREAM="buYoung/pi-packages (not filed; present in @buyong/pi-devin 0.1.14)"
+PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/71"
 PATCH_REMOVE_WHEN="upstream keeps one provider per process or routes by session, or pi scopes native providers per session; then delete this file"
 
 PATCH_ROOTS="${PI_AGENT_DIR}/npm/node_modules/@buyong/pi-devin"

@@ -12,7 +12,7 @@
 # introduced several calls at once (still ambiguous, as tests/protocol.test.ts expects).
 PATCH_ID="0006-pi-devin-parallel-tool-calls"
 PATCH_TITLE="pi-devin: accept id-less argument deltas for parallel tool calls"
-PATCH_UPSTREAM="buYoung/pi-packages (not filed; present in @buyong/pi-devin 0.1.14)"
+PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/72"
 PATCH_REMOVE_WHEN="upstream accumulator attaches id-less deltas to the current call with several calls open; then delete this file"
 
 PATCH_ROOTS="${PI_AGENT_DIR}/npm/node_modules/@buyong/pi-devin"

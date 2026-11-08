@@ -11,7 +11,7 @@
 # grows 1.7K -> 37K (Opus 5.5 low, Haiku 5.5 xhigh).
 PATCH_ID="0002-pi-devin-cache-breakpoint"
 PATCH_TITLE="pi-devin: one prompt-cache breakpoint on the newest user/tool message"
-PATCH_UPSTREAM="buYoung/pi-packages (issue not filed yet; present in @buyong/pi-devin 0.1.14)"
+PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/70"
 PATCH_REMOVE_WHEN="upstream wireMessages() sets promptCacheOptions on one message only; then delete this file"
 
 # Not a pi release: target the installed npm extension. The package is unpinned, so every
