@@ -59,7 +59,11 @@
 // ~/.tsh: no login/logout without an isolated TELEPORT_HOME, no
 // write/edit/cp/mv/rm/tee/sed -i into it, and tsh ssh/scp/ls/status/
 // proxy/db/kube need --proxy= or TELEPORT_PROXY= on the shared home —
-// owner ruling 2026-11-08).
+// owner ruling 2026-11-08) and
+// ./critical-path-label-guard.ts (agents never apply or remove the
+// owner's critical-path label on a cad0p/pc-* repo: the merge queue's
+// actor check binds the flag to account 14107574, which agent sessions
+// share — pc-host #714 r1 red-team F2).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
@@ -103,6 +107,10 @@ import {
 	rmRelativeGuardRules,
 } from "./rm-relative-guard.ts";
 import { tshGuardPlugin, tshGuardRules } from "./tsh-guard.ts";
+import {
+	criticalPathLabelGuardPlugin,
+	criticalPathLabelRules,
+} from "./critical-path-label-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -219,6 +227,7 @@ export default defineConfig({
 		threatModelRequiredPlugin,
 		rmRelativeGuardPlugin,
 		tshGuardPlugin,
+		criticalPathLabelGuardPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -273,5 +282,6 @@ export default defineConfig({
 		...threatModelRules,
 		...rmRelativeGuardRules,
 		...tshGuardRules,
+		...criticalPathLabelRules,
 	],
 });
