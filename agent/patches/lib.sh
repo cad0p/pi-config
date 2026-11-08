@@ -59,20 +59,25 @@ patch_release() {
       n/a)     : ;;   # target code absent (upstream fixed or refactored); say nothing
       unpatched)
         cp -n "$_f" "$_f.orig" 2>/dev/null || true
+        # Restore point for THIS patch: .orig is the pristine file, so restoring it would also
+        # drop earlier patches on the same file. mv (rename) gives a new inode, never an
+        # in-place write into a pnpm store hardlink.
+        _pre=$(mktemp "${TMPDIR:-/tmp}/pi-patch-pre.XXXXXX") && cp "$_f" "$_pre" || return 1
         # perl -i writes a new inode, which matters for pnpm installs: their package files
         # are hardlinks into the content-addressed store, and an in-place write would
         # corrupt the store copy too.
         if ! perl -0pi -e "$PATCH_PERL" "$_f" || [ "$(patch_state "$_f")" != patched ]; then
           printf '    ERROR: substitution did not produce the patched form in %s, restoring backup\n' "${_f#$_pkg/}" >&2
-          [ -f "$_f.orig" ] && cp "$_f.orig" "$_f"
+          mv "$_pre" "$_f"
           return 1
         fi
         if syntax_ok "$_f"; then
+          rm -f "$_pre"
           PATCHED_COUNT=$((PATCHED_COUNT + 1))
           printf '    patched: %s\n' "${_f#$_pkg/}"
         else
           printf '    ERROR: syntax check failed on %s, restoring backup\n' "${_f#$_pkg/}" >&2
-          [ -f "$_f.orig" ] && cp "$_f.orig" "$_f"
+          mv "$_pre" "$_f"
           return 1
         fi ;;
     esac
