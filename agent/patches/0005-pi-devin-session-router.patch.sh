@@ -41,8 +41,8 @@ s#const provider = makeDevinProvider\(runtime\);#// local patch 0005: in-process
   const live = (options?: any): any => (options?.sessionId && routes.get(options.sessionId)) || (!ownClosed ? own : [...routes.values()].at(-1) ?? own);
   const forget = () => { if (ownSessionId !== undefined && routes.get(ownSessionId) === own) routes.delete(ownSessionId); };
   const provider: any = {
-    ...own, [ROUTER]: true,
-    auth: { ...own.auth, oauth: new Proxy(own.auth.oauth, { get: (_target, key) => Reflect.get(live().auth.oauth, key) }) },
+    ...own,
+    auth: { ...own.auth, oauth: new Proxy(own.auth.oauth!, { get: (_target, key) => Reflect.get(live().auth.oauth!, key) }) },
     // A child instance publishes its catalog only after its first refresh, which can land after the first request of the child.
     // Every instance serves the same account, so an empty list falls back to the catalog of another live instance.
     getModels: () => {
@@ -63,7 +63,9 @@ s#const provider = makeDevinProvider\(runtime\);#// local patch 0005: in-process
     },
     stream: (model: any, context: any, options: any) => live(options).stream(model, context, options),
     streamSimple: (model: any, context: any, options: any) => live(options).streamSimple(model, context, options),
-  };#;
+  };
+  // Not enumerable, so a copy of the provider registered by someone else still counts as a collision.
+  Object.defineProperty(provider, ROUTER, { value: true });#;
 s#if \(context\.modelRegistry\.getRegisteredNativeProvider\("devin"\) !== provider\) \{#if (!(context.modelRegistry.getRegisteredNativeProvider("devin") as any)?.[ROUTER]) {#;
 s#(\n(\s*)if \(isLead\) run\(sidekicks\.sessionStarted\()#\n\2forget(); ownSessionId = context.sessionManager.getSessionId(); routes.set(ownSessionId, own); ownClosed = false;
 \2// pi refreshes only the newest registration, and only after an async config load, so a child instance can get its first request with an empty catalog.
