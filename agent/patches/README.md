@@ -54,6 +54,7 @@ instead of a silent regression. Check state any time with:
 | id | upstream | remove when |
 |---|---|---|
 | `0001-cache-warming-identity` | [earendil-works/pi#10956](https://github.com/earendil-works/pi/issues/10956) | upstream compares re-projected messages by entry id (main still uses `===` in 1.5.0; v2 compares `_entryIdsByMessage`, since role+timestamp misses one-request turns started by a custom message) |
+| `0004-pi-devin-orphan-tool-calls` | buYoung/pi-packages (not filed) | `@buyong/pi-devin` `toDevinTranscript()` closes tool calls that have no result (after a tree rewind) with a synthetic error result, like pi-ai `transformMessages()`. Without it Devin answers `invalid_argument` for the rest of the session |
 | `0003-pi-devin-cache-warming` | buYoung/pi-packages (not filed) | `@buyong/pi-devin` stops returning `{ action: "stop" }` from `cache_warming_decision` for every devin model. Opt-in per model lives in `models.json` (`promptCache` + `cost` under `providers.devin.modelOverrides`) |
 | `0002-pi-devin-cache-breakpoint` | buYoung/pi-packages (to file) | `@buyong/pi-devin` `wireMessages()` sets `promptCacheOptions` on one message only (0.1.14 marks every user/tool message, freezing the cached prefix after ~3 turns) |
 
