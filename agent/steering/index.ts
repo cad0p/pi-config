@@ -54,12 +54,18 @@
 // 'threat-model:' frontmatter key) and
 // ./rm-relative-guard.ts (a recursive rm on a relative path is
 // refused unless the same command &&-chains an absolute cd —
-// incident 2026-11-07 rm in the wrong cwd deleted pc-tenant/.local).
+// incident 2026-11-07 rm in the wrong cwd deleted pc-tenant/.local) and
+// ./tsh-guard.ts (no agent may change the shared Teleport client state
+// ~/.tsh: no login/logout without an isolated TELEPORT_HOME, no
+// write/edit/cp/mv/rm/tee/sed -i into it, and tsh ssh/scp/ls/status/
+// proxy/db/kube need --proxy= or TELEPORT_PROXY= on the shared home —
+// owner ruling 2026-11-08).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
 // ./ref-write-guard.test.ts (the argv matcher's block/allow matrix) and
-// ./rm-relative-guard.test.ts (the relative-path block/allow matrix).
+// ./rm-relative-guard.test.ts (the relative-path block/allow matrix) and
+// ./tsh-guard.test.ts (the shared-Teleport-home block/allow matrix).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -96,6 +102,7 @@ import {
 	rmRelativeGuardPlugin,
 	rmRelativeGuardRules,
 } from "./rm-relative-guard.ts";
+import { tshGuardPlugin, tshGuardRules } from "./tsh-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -211,6 +218,7 @@ export default defineConfig({
 		criticalPathSlipPlugin,
 		threatModelRequiredPlugin,
 		rmRelativeGuardPlugin,
+		tshGuardPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -264,5 +272,6 @@ export default defineConfig({
 		...criticalPathSlipRules,
 		...threatModelRules,
 		...rmRelativeGuardRules,
+		...tshGuardRules,
 	],
 });
