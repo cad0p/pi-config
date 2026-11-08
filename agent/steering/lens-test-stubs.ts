@@ -16,7 +16,7 @@
  * gate refuses it.
  */
 
-import { chmodSync, mkdirSync, writeFileSync } from "node:fs";
+import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 /** The head every stub lens brief reviews (40 hex). */
@@ -66,7 +66,17 @@ case "\$sub" in
         jq -r --arg p "\$pr" '.prs[\$p].lines // .default_lines // 0' "\$cfg" ;;
       *"/issues/"*"/comments"*)
         [[ "\$(jq -r '.comments_fail // false' "\$cfg")" != true ]] || { echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; }
-        jq -c '.comments // []' "\$cfg" ;;
+        jqfilter=""
+        prev=""
+        for a in "\$@"; do
+          [[ "\$prev" != "--jq" ]] || jqfilter="\$a"
+          prev="\$a"
+        done
+        if [[ -n "\$jqfilter" ]]; then
+          jq -r "\$jqfilter" <<<"\$(jq -c '.comments // []' "\$cfg")"
+        else
+          jq -c '.comments // []' "\$cfg"
+        fi ;;
       *) echo "unexpected gh api: \$*" >&2; exit 97 ;;
     esac ;;
   *) echo "unexpected gh: \$*" >&2; exit 97 ;;
@@ -192,6 +202,7 @@ export function clearLensStubs(): void {
 		"PI_H4_PCMERGE_STATE",
 		"PC_MERGE_EVIDENCE_ROOT",
 		"PI_H4_ROUNDS_FROM_HELPER",
+		"PI_H4_HELPER_ROUNDS",
 	]) {
 		delete process.env[name];
 	}
@@ -224,6 +235,47 @@ export function passingSummary(
 		].join("\n"),
 	);
 	return path;
+}
+
+/**
+ * Post one `Lens: <lens>: CLEAN|FINDINGS(<n>) @ <head>` comment per head on
+ * the stub PR: the verdicts merge-pr.sh counts, in the order posted.
+ */
+export function postLensVerdicts(
+	root: string,
+	heads: string[],
+	opts: { lens?: string; findings?: number } = {},
+): void {
+	const path = join(root, "stubs", "gh.json");
+	const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+		comments?: Array<{ body: string }>;
+	};
+	const verdict =
+		opts.findings === undefined ? "CLEAN" : `FINDINGS(${opts.findings})`;
+	cfg.comments = [
+		...(cfg.comments ?? []),
+		...heads.map((head) => ({
+			body: `Lens: ${opts.lens ?? "red-team"}: ${verdict} @ ${head}\n\nreview body\n`,
+		})),
+	];
+	writeFileSync(path, JSON.stringify(cfg));
+}
+
+/** `n` distinct heads, for the posted-rounds fixtures. */
+export function postedHeads(n: number): string[] {
+	return Array.from({ length: n }, (_, i) =>
+		(i + 1).toString(16).repeat(40).slice(0, 40),
+	);
+}
+
+/** Make the stub's comment read fail (the fail-closed cases). */
+export function failGhComments(root: string): void {
+	const path = join(root, "stubs", "gh.json");
+	const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+		comments_fail?: boolean;
+	};
+	cfg.comments_fail = true;
+	writeFileSync(path, JSON.stringify(cfg));
 }
 
 /** The header lines a lens brief needs: the head and its passing run. */

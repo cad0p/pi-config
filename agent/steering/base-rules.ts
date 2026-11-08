@@ -309,13 +309,13 @@ export function prHead(
 }
 
 /**
- * The round count of a PR, from the helper's read-only `rounds`
- * subcommand: its `<round> <head>` lines, counted. A failed run, or a
- * line that is not that shape, is an error and never zero rounds.
+ * The rounds of a PR, oldest first, from the helper's read-only `rounds`
+ * subcommand: its `<round> <head>` lines, one head each. A failed run, or
+ * a line that is not that shape, is an error and never zero rounds.
  */
-export function roundsCount(
+export function roundsList(
 	ref: string,
-): { ok: true; count: number } | { ok: false; err: string } {
+): { ok: true; heads: string[] } | { ok: false; err: string } {
 	const parts = splitPr(ref);
 	if (parts === null) return { ok: false, err: `not a PR ref: ${ref}` };
 	const result = run(mergeHelper(), ["rounds", parts.repo, parts.number]);
@@ -325,16 +325,89 @@ export function roundsCount(
 			err: oneLine(result) || `${mergeHelper()} rounds failed`,
 		};
 	}
-	const lines = result.out.split("\n").filter((line) => line.trim() !== "");
-	for (const line of lines) {
-		if (!/^[1-9][0-9]* [0-9a-f]{40}$/.test(line.trim())) {
+	const heads: string[] = [];
+	for (const line of result.out.split("\n")) {
+		if (line.trim() === "") continue;
+		const match = /^[1-9][0-9]* ([0-9a-f]{40})$/.exec(line.trim());
+		if (match === null) {
 			return {
 				ok: false,
 				err: `the round count is not a '<round> <40-hex>' list: ${line.trim()}`,
 			};
 		}
+		heads.push(match[1] ?? "");
 	}
-	return { ok: true, count: lines.length };
+	return { ok: true, heads };
+}
+
+/** The round count of a PR: the helper's `rounds` list, counted. */
+export function roundsCount(
+	ref: string,
+): { ok: true; count: number } | { ok: false; err: string } {
+	const list = roundsList(ref);
+	if (!list.ok) return list;
+	return { ok: true, count: list.heads.length };
+}
+
+/**
+ * Whether the operator clone's merge helper carries the read-only `rounds`
+ * subcommand (pc-host #730): its dispatch case at the bottom of
+ * tools/merge-pr.sh. The file is read, never executed, so a helper without
+ * the subcommand is an answer ("count the comments instead"), not an error.
+ * PI_H4_HELPER_ROUNDS=1|0 forces the answer for the suite and a dry run.
+ */
+export function helperHasRounds(): boolean {
+	const forced = process.env.PI_H4_HELPER_ROUNDS;
+	if (forced === "1") return true;
+	if (forced === "0") return false;
+	let text: string;
+	try {
+		text = readFileSync(mergeHelper(), "utf8");
+	} catch {
+		return false;
+	}
+	return /^[ \t]*rounds\)/m.test(text);
+}
+
+/**
+ * A posted lens verdict's first line: merge-pr.sh's lens_bucket_json shape
+ * (`(CLEAN|FINDINGS(n)) @ <40-hex>`, case-insensitive, whitespace around
+ * the @), anchored on the line and naming the lens it came from.
+ */
+const LENS_VERDICT_LINE = /^Lens:.*?(?:CLEAN|FINDINGS\([0-9]+\))\s*@\s*([0-9a-f]{40})$/i;
+
+/**
+ * The first non-blank line of every comment, extracted by jq exactly as
+ * lens_bucket_json does it (split, drop CR, skip blank, trim). One line per
+ * comment, so the caller greps lines and nothing here parses JSON.
+ */
+const FIRST_LINE_JQ =
+	'.[] | [.body // "" | split("\\n")[] | gsub("\\r"; "") | select(test("\\\\S")) | gsub("^\\\\s+|\\\\s+$"; "")][0] // ""';
+
+/**
+ * The rounds posted on a PR, oldest first: the distinct heads a posted lens
+ * verdict names, which is what merge-pr.sh counts as design_check_rounds.
+ * When the operator clone's helper carries the `rounds` subcommand (#730)
+ * its list is the answer - the helper and the merge script share one
+ * definition - otherwise the PR's own comments are counted here with that
+ * same first-line shape. A read that fails is an error (fail closed).
+ */
+export function postedLensRounds(
+	ref: string,
+): { ok: true; heads: string[] } | { ok: false; err: string } {
+	if (helperHasRounds()) return roundsList(ref);
+	const comments = prComments(ref, FIRST_LINE_JQ);
+	if (!comments.ok) return comments;
+	const heads: string[] = [];
+	for (const line of comments.out.split("\n")) {
+		const first = line.trim();
+		// The helper's bucket skips the maintainer's own passes.
+		if (first === "" || /^Maintainer:/i.test(first)) continue;
+		const match = LENS_VERDICT_LINE.exec(first);
+		const head = match?.[1]?.toLowerCase() ?? "";
+		if (head !== "" && !heads.includes(head)) heads.push(head);
+	}
+	return { ok: true, heads };
 }
 
 /** A diff's changed paths and its changed lines (additions + deletions). */
@@ -525,6 +598,30 @@ export function absorbBindingRefusal(
 }
 
 /**
+ * The PR's issue comments, read where the helper reads them
+ * (`gh api --paginate`), optionally reduced by a `--jq` filter so the
+ * caller greps lines and never parses JSON. A failed read is data.
+ */
+function prComments(
+	ref: string,
+	jq: string | null = null,
+): { ok: true; out: string } | { ok: false; err: string } {
+	const parts = splitPr(ref);
+	if (parts === null) return { ok: false, err: `not a PR ref: ${ref}` };
+	const args = [
+		"api",
+		"--paginate",
+		`repos/${parts.repo}/issues/${parts.number}/comments`,
+	];
+	if (jq !== null) args.push("--jq", jq);
+	const result = run(ghBin(), args);
+	if (!result.ok) {
+		return { ok: false, err: oneLine(result) || "gh api failed" };
+	}
+	return { ok: true, out: result.out };
+}
+
+/**
  * The gate-record half of R3: a gate-record comment on the PR whose gate
  * manifest names this head. The gate posts `<!-- local-ci-gate:<id> -->`
  * only on a pass, and the manifest it keeps is what names the head.
@@ -534,13 +631,9 @@ function gateRecordForHead(ref: string, head: string): string | null {
 	if (parts === null) return `not a PR ref: ${ref}`;
 	const repo = repoParts(parts.repo);
 	if (!repo.ok) return `${ref}: ${repo.err}`;
-	const comments = run(ghBin(), [
-		"api",
-		"--paginate",
-		`repos/${parts.repo}/issues/${parts.number}/comments`,
-	]);
+	const comments = prComments(ref);
 	if (!comments.ok) {
-		return `the PR's comments could not be read (${oneLine(comments) || "gh api failed"}); a lens round may not start on a head that cannot be shown green (fail closed)`;
+		return `the PR's comments could not be read (${comments.err}); a lens round may not start on a head that cannot be shown green (fail closed)`;
 	}
 	const ids: string[] = [];
 	for (const match of comments.out.matchAll(

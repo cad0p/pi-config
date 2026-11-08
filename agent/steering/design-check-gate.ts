@@ -48,6 +48,21 @@
  * the exemption is about which round it is, not about the absorb's
  * content - so a bogus or foreign sha is refused rather than exempted.
  *
+ * A fold needs its verdicts posted (owner 2026-11-08: "every review
+ * round must be posted on the PR before the next fold brief is accepted,
+ * so the merge script's count can't fall behind again"). pc-host #622 ran
+ * 15 rounds but only 4 rounds of Lens: verdicts were ever posted, so
+ * merge-pr.sh's design_check_rounds (4) fell far behind and the E1 and
+ * round-5 rules read the wrong number. A `kind: fold` brief therefore
+ * carries `fold-of: <40-hex>`: the head whose lens verdicts it folds. It
+ * is refused unless that head has a posted comment whose first non-blank
+ * line is `Lens: <lens>: CLEAN|FINDINGS(<n>) @ <that sha>` (the shape
+ * merge-pr.sh counts), and unless its round is at most one past the number
+ * of distinct heads with posted Lens: comments (the helper's `rounds` list
+ * when the operator clone has it, pc-host #730; the comments otherwise).
+ * A comment read that fails refuses (fail closed). lens / impl / land /
+ * design-check briefs are unaffected.
+ *
  * Verdict consistency. The design check's `causing:` answer and its
  * verdict must agree: `causing: yes` means the design IS the source of
  * the churn, so `verdict: continue` contradicts the answer (that is how
@@ -87,6 +102,7 @@ import {
 	lensHeadRefusal,
 	pieceIsSmaller,
 	pathsOutsideParent,
+	postedLensRounds,
 	roundsCount,
 	roundsFromHelper,
 } from "./base-rules.ts";
@@ -187,6 +203,33 @@ function absorbOfValue(content: string): string | null {
 	return null;
 }
 
+/**
+ * A fold folds verdicts that are already posted (owner 2026-11-08): the
+ * header's `fold-of:` head must carry a posted Lens: verdict on the PR, and
+ * the round may not run more than one past the rounds posted there, so
+ * merge-pr.sh's design_check_rounds cannot fall behind the review chain
+ * (pc-host #622: 15 rounds, 4 posted). A comment read that fails refuses.
+ */
+function foldVerdictRefusal(header: BriefHeader): string | null {
+	if (header.kind !== "fold" || header.pr === null) return null;
+	const foldOf = header.foldOf;
+	if (foldOf === null || !/^[0-9a-f]{40}$/.test(foldOf)) {
+		return `a fold brief needs 'fold-of: <40-hex>' in its header, naming the head whose lens verdicts it folds (every review round must be posted on the PR before the next fold brief): write 'fold-of: ${foldOf ?? "<sha>"}'`;
+	}
+	const posted = postedLensRounds(header.pr);
+	if (!posted.ok) {
+		return `the lens verdicts posted on ${header.pr} could not be read (${posted.err}); a fold may not fold rounds that cannot be shown posted (fail closed)`;
+	}
+	if (!posted.heads.includes(foldOf)) {
+		return `the fold-of head ${foldOf} has no 'Lens: <lens>: CLEAN|FINDINGS(<n>) @ ${foldOf}' comment on ${header.pr}: post that round's verdicts on the PR first, then write the fold brief`;
+	}
+	const round = header.round;
+	if (round !== null && round > posted.heads.length + 1) {
+		return `round ${round} on ${header.pr} is more than one past the ${posted.heads.length} round(s) posted on the PR (${posted.heads.join(", ")}): post the earlier rounds' verdicts first, or write the fold brief at round ${posted.heads.length + 1}`;
+	}
+	return null;
+}
+
 /** `causing: yes` + `verdict: continue` is a contradiction. */
 function verdictConflictReason(
 	need: number,
@@ -219,6 +262,10 @@ function writeBlockReason(write: BriefWrite): string | null {
 		const lens = lensHeadRefusal(header.head, header.greenRun, header.pr);
 		if (lens !== null) return lens;
 	}
+	// The fold's verdicts are checked before the cap: a round that is ahead
+	// of what is posted is the diagnosis the author can act on.
+	const fold = foldVerdictRefusal(header);
+	if (fold !== null) return fold;
 	if (!absorbLens) {
 		const capped = roundCapRefusal(header);
 		if (capped !== null) return capped;

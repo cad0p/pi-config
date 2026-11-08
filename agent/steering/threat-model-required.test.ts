@@ -21,7 +21,9 @@ import config from "./index.ts";
 import {
 	clearLensStubs,
 	installLensStubs,
+	LENS_HEAD,
 	lensHeaderLines,
+	postLensVerdicts,
 } from "./lens-test-stubs.ts";
 
 const harness = loadHarness({ config });
@@ -123,10 +125,12 @@ describe("threat-model-required — brief side", () => {
 	});
 
 	it("allows a fold brief without a Threat model line", async () => {
+		// A fold carries fold-of: and folds verdicts already posted on the PR.
+		postLensVerdicts(state, [LENS_HEAD]);
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("r1-fold.md"),
-				content: `pr: ${PR}\nround: 1\nkind: fold\n`,
+				content: `pr: ${PR}\nround: 1\nkind: fold\nfold-of: ${LENS_HEAD}\n`,
 			},
 			cwd: "/tmp",
 		});

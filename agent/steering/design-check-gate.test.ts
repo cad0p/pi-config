@@ -16,7 +16,13 @@
 // suite never reads or writes the real ~/.local/state/h4-orchestration.
 
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
@@ -24,8 +30,13 @@ import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/test
 import config from "./index.ts";
 import {
 	clearLensStubs,
+	failGhComments,
 	installLensStubs,
+	LENS_HEAD,
 	lensHeaderLines,
+	OTHER_HEAD,
+	postLensVerdicts,
+	postedHeads,
 } from "./lens-test-stubs.ts";
 
 const harness = loadHarness({ config });
@@ -56,6 +67,28 @@ function briefPath(name: string): string {
 
 function header(pr: string, round: number, kind = "lens", extra = ""): string {
 	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${lensHeaderLines(state)}${extra}`;
+}
+
+/**
+ * A fold brief's header: pr/round/kind plus `fold-of:`, the head whose lens
+ * verdicts it folds (which must be posted on the PR first).
+ */
+function foldHeader(
+	round: number,
+	foldOf: string = LENS_HEAD,
+	extra = "",
+): string {
+	return `pr: ${PR}\nround: ${round}\nkind: fold\nfold-of: ${foldOf}\n${extra}`;
+}
+
+/** The stub helper's rounds for the suite's PR (one head per round). */
+function setHelperRounds(count: number): void {
+	const path = join(state, "stubs", "helper.json");
+	const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+		rounds: Record<string, string[]>;
+	};
+	cfg.rounds["650"] = postedHeads(count);
+	writeFileSync(path, JSON.stringify(cfg));
 }
 
 /** Write a design-check file for `pr` at `round`; returns its path. */
@@ -132,10 +165,11 @@ describe("design-check-gate — write tool", () => {
 
 	it("allows a round-5 fold brief when the r5 design check exists", async () => {
 		designCheck(PR, 5);
+		postLensVerdicts(state, postedHeads(4));
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("p1-r5-fold.md"),
-				content: header(PR, 5, "fold"),
+				content: foldHeader(5, postedHeads(4)[0] ?? LENS_HEAD),
 			},
 			cwd: "/tmp",
 		});
@@ -206,14 +240,15 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 		);
 	});
 
-	it("blocks a round-7 fold brief", async () => {
+	it("blocks a round-7 fold brief (its verdicts posted, the cap still applies)", async () => {
 		designCheck(PR, 7);
+		postLensVerdicts(state, postedHeads(7));
 		await expectBlocks(
 			harness,
 			{
 				write: {
 					path: briefPath("p1-r7-fold.md"),
-					content: header(PR, 7, "fold"),
+					content: foldHeader(7, postedHeads(7)[0] ?? LENS_HEAD),
 				},
 				cwd: "/tmp",
 			},
@@ -259,12 +294,17 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 
 	it("keeps a round-6 fold capped even with absorb-of (folds are split pieces)", async () => {
 		designCheck(PR, 5);
+		postLensVerdicts(state, postedHeads(6));
 		await expectBlocks(
 			harness,
 			{
 				write: {
 					path: briefPath("p1-r6-absorb-fold.md"),
-					content: header(PR, 6, "fold", `absorb-of: ${"c".repeat(40)}\n`),
+					content: foldHeader(
+						6,
+						postedHeads(6)[0] ?? LENS_HEAD,
+						`absorb-of: ${"c".repeat(40)}\n`,
+					),
 				},
 				cwd: "/tmp",
 			},
@@ -340,6 +380,157 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	});
 });
 
+describe("design-check-gate — a fold needs its verdicts posted", () => {
+	// pc-host #622: 15 rounds, but only 4 rounds of Lens: verdicts were ever
+	// posted, so merge-pr.sh's design_check_rounds read 4 and the E1 and
+	// round-5 rules read the wrong number. A fold brief now names the head it
+	// folds (`fold-of:`) and is refused until that head's verdict is on the
+	// PR, and until its round is at most one past the rounds posted there.
+
+	const FOLD_MISSING = /a fold brief needs 'fold-of: <40-hex>'/;
+	const NOT_POSTED = /has no 'Lens: <lens>: CLEAN\|FINDINGS\(<n>\) @/;
+	const AHEAD = /is more than one past the \d+ round\(s\) posted on the PR/;
+	const READ_FAILED = /could not be read .*fail closed/s;
+
+	it("blocks a fold brief with no fold-of line", async () => {
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r2-fold.md"),
+					content: header(PR, 2, "fold"),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: FOLD_MISSING },
+		);
+	});
+
+	it("blocks a fold-of that is not a 40-hex sha", async () => {
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r2-fold.md"),
+					content: foldHeader(2, "1234abc"),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: FOLD_MISSING },
+		);
+	});
+
+	it("blocks a fold whose head has no posted verdict", async () => {
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r2-fold.md"), content: foldHeader(2) },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: NOT_POSTED },
+		);
+	});
+
+	it("blocks a fold whose verdicts are posted for another head", async () => {
+		postLensVerdicts(state, [OTHER_HEAD]);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r2-fold.md"),
+					content: foldHeader(2, LENS_HEAD),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: NOT_POSTED },
+		);
+	});
+
+	it("blocks a fold at round 4 when only one round is posted", async () => {
+		designCheck(PR, 3);
+		postLensVerdicts(state, postedHeads(1));
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r4-fold.md"), content: foldHeader(4) },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: AHEAD },
+		);
+	});
+
+	it("fails closed when the PR's comments cannot be read", async () => {
+		failGhComments(state);
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r2-fold.md"), content: foldHeader(2) },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: READ_FAILED },
+		);
+	});
+
+	it("allows a fold whose head's verdict is posted", async () => {
+		postLensVerdicts(state, postedHeads(1));
+		await expectAllows(harness, {
+			write: { path: briefPath("p1-r2-fold.md"), content: foldHeader(2) },
+			cwd: "/tmp",
+		});
+	});
+
+	it("counts a FINDINGS(n) verdict as a posted round", async () => {
+		postLensVerdicts(state, postedHeads(1), { findings: 3 });
+		await expectAllows(harness, {
+			write: { path: briefPath("p1-r2-fold.md"), content: foldHeader(2) },
+			cwd: "/tmp",
+		});
+	});
+
+	it("allows a fold one round past what is posted", async () => {
+		designCheck(PR, 3);
+		postLensVerdicts(state, postedHeads(3));
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("p1-r4-fold.md"),
+				content: foldHeader(4, postedHeads(3)[2] ?? LENS_HEAD),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("reads the helper's rounds list when it carries the subcommand (#730)", async () => {
+		// Nothing is posted on the stub PR: only the helper's list can green it.
+		process.env.PI_H4_HELPER_ROUNDS = "1";
+		setHelperRounds(2);
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("p1-r2-fold.md"),
+				content: foldHeader(2, postedHeads(2)[1] ?? LENS_HEAD),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("fails closed when the helper's rounds list fails", async () => {
+		process.env.PI_H4_HELPER_ROUNDS = "1";
+		const path = join(state, "stubs", "helper.json");
+		const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+			fail: Record<string, boolean>;
+		};
+		cfg.fail["650"] = true;
+		writeFileSync(path, JSON.stringify(cfg));
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r2-fold.md"), content: foldHeader(2) },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: READ_FAILED },
+		);
+	});
+});
+
 describe("design-check-gate — verdict consistency (causing vs verdict)", () => {
 	it("blocks causing: yes with verdict: continue", async () => {
 		designCheck(
@@ -379,8 +570,12 @@ describe("design-check-gate — verdict consistency (causing vs verdict)", () =>
 			5,
 			"scope: ok\ndesign: causing the churn\ncausing: yes\nclass: static-precedence-mirror\nverdict: cut\n",
 		);
+		postLensVerdicts(state, postedHeads(4));
 		await expectAllows(harness, {
-			write: { path: briefPath("p1-r5-fold.md"), content: header(PR, 5, "fold") },
+			write: {
+				path: briefPath("p1-r5-fold.md"),
+				content: foldHeader(5, postedHeads(4)[0] ?? LENS_HEAD),
+			},
 			cwd: "/tmp",
 		});
 	});

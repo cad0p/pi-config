@@ -20,6 +20,12 @@
  *                                           head it reviews, which must be
  *                                           the PR's current head and have
  *                                           a passing run bound to it)
+ *   fold-of: <40-hex>                      (required for kind: fold: the
+ *                                           head whose lens verdicts it
+ *                                           folds, which must already be
+ *                                           posted on the PR as a
+ *                                           'Lens: <lens>: CLEAN|
+ *                                           FINDINGS(<n>) @ <sha>' comment)
  *   green-run: <summary.txt path>          (optional: the tools/ci.sh
  *                                           summary whose result:, run-on
  *                                           and dirty lines the lens gate
@@ -128,6 +134,8 @@ export interface BriefHeader {
 	splitOfKey: string | null;
 	/** `split-of` absent, or a well-formed `owner/repo#n` ref. */
 	splitOfValid: boolean;
+	/** Lowercased `fold-of:` value (the head a fold brief folds), or null. */
+	foldOf: string | null;
 	/** Lowercased `head:` value (the lens brief's reviewed head), or null. */
 	head: string | null;
 	/** Value of the `green-run:` line (a summary.txt path), or null. */
@@ -225,6 +233,8 @@ export function parseBriefHeader(content: string): BriefHeader {
 		splitOfMatch === null || splitOf === null ? null : splitOf.toLowerCase();
 	const headRaw = (values.get("head") ?? "").trim().toLowerCase();
 	const head = headRaw === "" ? null : headRaw;
+	const foldOfRaw = (values.get("fold-of") ?? "").trim().toLowerCase();
+	const foldOf = foldOfRaw === "" ? null : foldOfRaw;
 	const greenRunRaw = (values.get("green-run") ?? "").trim();
 	const greenRun = greenRunRaw === "" ? null : greenRunRaw;
 	// The Threat model line may live in the body, not only the header.
@@ -246,6 +256,7 @@ export function parseBriefHeader(content: string): BriefHeader {
 		splitOf,
 		splitOfKey,
 		splitOfValid: splitOf === null || splitOfMatch !== null,
+		foldOf,
 		head,
 		greenRun,
 		threatModel,
