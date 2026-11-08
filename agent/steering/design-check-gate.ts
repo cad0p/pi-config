@@ -42,7 +42,9 @@
  * stay capped: code beyond the absorb at round >= 6 is a split piece.
  * The exemption is bound (#719 trust-model F1): the sha must be a merge
  * commit on the PR branch with one parent reachable from origin/main,
- * read from the operator clone after a fetch. Nothing more is checked -
+ * read from the PR's own repo clone after a fetch (base-rules.ts
+ * repoClone: `<clones root>/<owner>--<repo>`, never pc-host's clone for
+ * another repo's PR). Nothing more is checked -
  * the exemption is about which round it is, not about the absorb's
  * content - so a bogus or foreign sha is refused rather than exempted.
  *

@@ -14,7 +14,9 @@
 //       gate record for that head, or a green-run summary that is green,
 //       clean and run on that head).
 //   #719 F1 the absorb-of exemption holds only for a merge commit on the
-//       PR branch with one parent reachable from origin/main.
+//       PR branch with one parent reachable from origin/main, read in the
+//       PR's own repo clone (a pc-tenant absorb is not in the pc-host
+//       clone, so reading there refused a sound absorb).
 //
 // Every check fails closed, so each error path below is a refusal too.
 // The stubs (lens-test-stubs.ts) answer gh/git/the helper from a JSON
@@ -35,11 +37,15 @@ import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/test
 import config from "./index.ts";
 import {
 	clearLensStubs,
+	cloneDir,
 	installLensStubs,
 	LENS_HEAD,
 	LENS_MAIN,
 	OTHER_HEAD,
 	passingSummary,
+	TENANT_HEAD,
+	TENANT_MAIN,
+	TENANT_PR,
 } from "./lens-test-stubs.ts";
 
 const harness = loadHarness({ config });
@@ -401,6 +407,125 @@ describe("base-rules — R1/R3, no round on a red or unpushed head", () => {
 			},
 			{ rule: "design-check-gate", reason: NO_RUN },
 		);
+	});
+});
+
+describe("base-rules — absorb-of reads the PR's own repo clone", () => {
+	// The absorb-of binding is the only rule that reads a PR's commits with
+	// git. It used to read them in the pc-host operator clone, which holds
+	// pc-host's history and nothing else: every absorb-of on another repo
+	// failed closed ("cannot read commit ...") even when it was sound. The
+	// binding now reads `<clones root>/<owner>--<repo>`; the stub records
+	// every `-C` it was called with, so the routing is asserted, not assumed.
+
+	/** The tenant PR's head + its green run, the header a lens brief needs. */
+	function tenantLens(round: number, extra = ""): string {
+		return `pr: ${TENANT_PR}\nround: ${round}\nkind: lens\nhead: ${TENANT_HEAD}\ngreen-run: ${passingSummary(state, TENANT_HEAD)}\n${extra}`;
+	}
+
+	/** The clone basenames the git stub was called with, deduped. */
+	function gitClones(): string[] {
+		const log = join(stubs, "git-calls.log");
+		let text: string;
+		try {
+			text = readFileSync(log, "utf8");
+		} catch {
+			return [];
+		}
+		return [
+			...new Set(
+				text
+					.split("\n")
+					.map((line) => line.trim())
+					.filter((line) => line !== "")
+					.map((line) => line.split(" ")[0] ?? ""),
+			),
+		];
+	}
+
+	/**
+	 * A pc-tenant clone that holds the absorb merge (its head + its own main),
+	 * and a pc-host clone that holds pc-host's history only — where the tenant
+	 * sha reads as a one-parent commit, so a read routed there is refused.
+	 */
+	function tenantClones(commits: Record<string, { parents: string[] }>): void {
+		mkdirSync(cloneDir(state, "cad0p--pc-tenant"), { recursive: true });
+		editStub("gh", (cfg) => {
+			cfg.prs["189"] = {
+				head: TENANT_HEAD,
+				paths: ["tools/example.sh"],
+				lines: 40,
+			};
+		});
+		editStub("git", (cfg) => {
+			cfg.clones = {
+				"cad0p--pc-tenant": {
+					commits,
+					refs: { "refs/remotes/origin/main": TENANT_MAIN },
+					ancestors: { [`${TENANT_HEAD} ${TENANT_MAIN}`]: false },
+				},
+				"cad0p--pc-host": {
+					commits: { [ABSORB]: { parents: [LENS_HEAD] } },
+					refs: { "refs/remotes/origin/main": LENS_MAIN },
+				},
+			};
+		});
+	}
+
+	it("allows a pc-tenant absorb-of whose merge commit and main are in its clone", async () => {
+		designCheck(TENANT_PR, 5);
+		tenantClones({ [ABSORB]: { parents: [TENANT_HEAD, TENANT_MAIN] } });
+		await expectAllows(harness, {
+			write: {
+				path: brief("tenant-r6-absorb.md"),
+				content: tenantLens(6, `absorb-of: ${ABSORB}\n`),
+			},
+			cwd: "/tmp",
+		});
+		assert.deepEqual(gitClones(), ["cad0p--pc-tenant"]);
+	});
+
+	it("refuses a pc-tenant absorb-of whose sha lives only in another repo's clone", async () => {
+		designCheck(TENANT_PR, 5);
+		// The pc-host clone carries the sha (a one-parent commit there); the
+		// tenant clone does not carry it at all.
+		tenantClones({});
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("tenant-r6-absorb.md"),
+					content: tenantLens(6, `absorb-of: ${ABSORB}\n`),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /cannot read commit .*needs the absorb merge commit in the cad0p\/pc-tenant clone \(fail closed\)/s,
+			},
+		);
+	});
+
+	it("refuses fail-closed when the PR's repo has no clone", async () => {
+		designCheck(TENANT_PR, 5);
+		editStub("gh", (cfg) => {
+			cfg.prs["189"] = { head: TENANT_HEAD };
+		});
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("tenant-r6-absorb.md"),
+					content: tenantLens(6, `absorb-of: ${ABSORB}\n`),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /no clone of cad0p\/pc-tenant at .*cad0p--pc-tenant.*fail closed/s,
+			},
+		);
+		assert.deepEqual(gitClones(), []);
 	});
 });
 

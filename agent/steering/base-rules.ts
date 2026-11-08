@@ -36,17 +36,26 @@
  *
  * Absorb-of binding (#719 trust-model F1). The absorb-lens exemption holds
  * only when the named sha is a merge commit on the PR branch with one
- * parent reachable from origin/main, read from the operator clone after a
- * fetch. Nothing more is checked: the exemption is about which round it is,
- * not about what the absorb contains.
+ * parent reachable from origin/main, read from the PR's OWN repo clone
+ * (repoClone) after a fetch. Nothing more is checked: the exemption is
+ * about which round it is, not about what the absorb contains.
+ *
+ * One clone per repo. Every git read of a PR's commits runs in that repo's
+ * clone, `<clones root>/<owner>--<repo>` (the merge helper keeps one
+ * checkout per repo there): the operator clone of pc-host holds pc-host's
+ * history and nothing else, so reading a pc-tenant sha there refuses a
+ * sound absorb. operatorClone() stays the merge HELPER's checkout (merge-pr.sh
+ * lives only in pc-host) and is the fallback clone for cad0p/pc-host when
+ * no cad0p--pc-host clone exists. A missing clone is a named refusal.
  *
  * Every command runs through a seam (PI_H4_GH / PI_H4_GIT / PI_H4_CLONE /
- * PI_H4_MERGE_HELPER / PI_H4_PCMERGE_STATE) so the suite drives stubs and
- * never touches the network or the operator's real state.
+ * PI_H4_CLONES_ROOT / PI_H4_MERGE_HELPER / PI_H4_PCMERGE_STATE) so the
+ * suite drives stubs and never touches the network or the operator's real
+ * state.
  */
 
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -91,12 +100,38 @@ export function gitBin(): string {
 	return env("PI_H4_GIT", "git");
 }
 
-/** The operator clone of pc-host: where the merge helper and the git reads run. */
+/** The operator clone of pc-host: where the merge helper runs. */
 export function operatorClone(): string {
 	return env(
 		"PI_H4_CLONE",
 		join(process.env.HOME ?? homedir(), ".local", "share", "pc-merge", "pc-host"),
 	);
+}
+
+/** The root of the per-repo clones: one `<owner>--<repo>` checkout per repo. */
+export function clonesRoot(): string {
+	return env(
+		"PI_H4_CLONES_ROOT",
+		join(process.env.HOME ?? homedir(), ".local", "share", "pc-merge"),
+	);
+}
+
+/**
+ * The clone a PR's git reads run in: `<clones root>/<owner>--<repo>`. A
+ * PR's commits exist in its own repo's clone and nowhere else, so reading
+ * them in the pc-host clone is a wrong answer, not a stale one. The merge
+ * helper's checkout (operatorClone) is pc-host's fallback when no
+ * `cad0p--pc-host` clone exists. A missing clone is a named error: the
+ * caller refuses (fail closed).
+ */
+export function repoClone(
+	ownerRepo: string,
+): { ok: true; path: string } | { ok: false; err: string } {
+	const key = ownerRepo.trim().toLowerCase();
+	const path = join(clonesRoot(), key.replace(/\//g, "--"));
+	if (existsSync(path)) return { ok: true, path };
+	if (key === "cad0p/pc-host") return { ok: true, path: operatorClone() };
+	return { ok: false, err: `no clone of ${ownerRepo} at ${path}` };
 }
 
 /** The merge helper the operator clone runs (read-only subcommands only). */
@@ -281,16 +316,17 @@ export function pathsOutsideParent(piece: string, parent: string): string[] {
 	return mine.paths.filter((path) => !parentPaths.has(path));
 }
 
-/** `git -C <clone> ...` in the operator clone. */
-function cloneGit(args: string[]): Run {
-	return run(gitBin(), ["-C", operatorClone(), ...args]);
+/** `git -C <clone> ...` in one repo's clone. */
+function cloneGit(clone: string, args: string[]): Run {
+	return run(gitBin(), ["-C", clone, ...args]);
 }
 
-/** A commit's parents, from `git cat-file -p`. */
+/** A commit's parents, from `git cat-file -p` in that repo's clone. */
 export function commitParents(
 	sha: string,
+	clone: string,
 ): { ok: true; parents: string[] } | { ok: false; err: string } {
-	const result = cloneGit(["cat-file", "-p", sha]);
+	const result = cloneGit(clone, ["cat-file", "-p", sha]);
 	if (!result.ok) {
 		return { ok: false, err: oneLine(result) || `cannot read commit ${sha}` };
 	}
@@ -303,12 +339,18 @@ export function commitParents(
 	return { ok: true, parents };
 }
 
-/** `git merge-base --is-ancestor <ancestor> <descendant>` (after a fetch). */
+/** `git merge-base --is-ancestor <ancestor> <descendant>` in that clone. */
 export function isAncestor(
 	ancestor: string,
 	descendant: string,
+	clone: string,
 ): { ok: true; yes: boolean } | { ok: false; err: string } {
-	const result = cloneGit(["merge-base", "--is-ancestor", ancestor, descendant]);
+	const result = cloneGit(clone, [
+		"merge-base",
+		"--is-ancestor",
+		ancestor,
+		descendant,
+	]);
 	if (result.ok) return { ok: true, yes: true };
 	// git exits 1 for the negative answer and 128 (or anything else) for an
 	// error: the status is the answer, never a guess from the empty output.
@@ -319,15 +361,16 @@ export function isAncestor(
 	};
 }
 
-/** Fetch the operator clone, then read a ref's sha. */
+/** Fetch that repo's clone, then read a ref's sha. */
 export function fetchedRef(
 	ref: string,
+	clone: string,
 ): { ok: true; sha: string } | { ok: false; err: string } {
-	const fetch = cloneGit(["fetch", "--quiet", "origin"]);
+	const fetch = cloneGit(clone, ["fetch", "--quiet", "origin"]);
 	if (!fetch.ok) {
 		return { ok: false, err: oneLine(fetch) || "git fetch origin failed" };
 	}
-	const result = cloneGit(["rev-parse", ref]);
+	const result = cloneGit(clone, ["rev-parse", ref]);
 	const sha = oneLine(result);
 	if (!result.ok || !/^[0-9a-f]{40}$/.test(sha)) {
 		return { ok: false, err: oneLine(result) || `cannot read ${ref}` };
@@ -337,35 +380,46 @@ export function fetchedRef(
 
 /**
  * The absorb-of binding: the sha is a merge commit on the PR branch with
- * one parent reachable from origin/main. Returns the refusal, or null.
+ * one parent reachable from origin/main, all read in the PR's own repo
+ * clone (the pc-host clone holds no other repo's history). Returns the
+ * refusal, or null.
  */
 export function absorbBindingRefusal(
 	sha: string,
 	ref: string,
 ): string | null {
-	const parents = commitParents(sha);
+	const pr = splitPr(ref);
+	if (pr === null) {
+		return `absorb-of ${sha}: not a PR ref: ${ref}; the exemption needs the PR it exempts (fail closed)`;
+	}
+	const clone = repoClone(pr.repo);
+	if (!clone.ok) {
+		return `absorb-of ${sha}: ${clone.err}; the exemption reads the absorb in that repo's clone (fail closed)`;
+	}
+	const inClone = `the ${pr.repo} clone`;
+	const parents = commitParents(sha, clone.path);
 	if (!parents.ok) {
-		return `absorb-of ${sha}: ${parents.err}; the exemption needs the absorb merge commit in the operator clone (fail closed)`;
+		return `absorb-of ${sha}: ${parents.err}; the exemption needs the absorb merge commit in ${inClone} (fail closed)`;
 	}
 	if (parents.parents.length !== 2) {
 		return `absorb-of ${sha} is not a merge commit (${parents.parents.length} parents); the exemption covers the absorb merge of main into the reviewed head, nothing else`;
 	}
-	const main = fetchedRef("refs/remotes/origin/main");
+	const main = fetchedRef("refs/remotes/origin/main", clone.path);
 	if (!main.ok) {
-		return `absorb-of ${sha}: ${main.err}; the exemption needs origin/main in the operator clone (fail closed)`;
+		return `absorb-of ${sha}: ${main.err}; the exemption needs origin/main in ${inClone} (fail closed)`;
 	}
 	const head = prHead(ref);
 	if (!head.ok) {
 		return `absorb-of ${sha}: the head of ${ref} could not be read (${head.err}); the exemption needs the absorb on the PR branch (fail closed)`;
 	}
-	const onBranch = isAncestor(sha, head.sha);
+	const onBranch = isAncestor(sha, head.sha, clone.path);
 	if (!onBranch.ok) return `absorb-of ${sha}: ${onBranch.err} (fail closed)`;
 	if (!onBranch.yes) {
 		return `absorb-of ${sha} is not on the ${ref} branch (its head is ${head.sha}); the exemption covers a commit pushed to this PR`;
 	}
 	let reachable = 0;
 	for (const parent of parents.parents) {
-		const ancestor = isAncestor(parent, main.sha);
+		const ancestor = isAncestor(parent, main.sha, clone.path);
 		if (!ancestor.ok) return `absorb-of ${sha}: ${ancestor.err} (fail closed)`;
 		if (ancestor.yes) reachable += 1;
 	}
