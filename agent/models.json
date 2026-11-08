@@ -13,6 +13,9 @@
             "cacheRead": 0.2,
             "cacheWrite": 5
           }
+        },
+        "deepseek-v4-1-flash-1017": {
+          "contextWindow": 400000
         }
       }
     },
