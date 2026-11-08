@@ -1,5 +1,6 @@
 #!/bin/sh
-# Apply every local patch under this directory to the installed pi releases.
+# Apply every local patch to its target: pi/*.patch.sh patch the installed pi releases,
+# <extension>/*.patch.sh patch that installed npm extension (each declares PATCH_ROOTS).
 #   apply.sh              reconcile the active release (idempotent)
 #   apply.sh --all        reconcile every installed release, active or not
 #   apply.sh --dry-run    report what would change, touch nothing
@@ -42,7 +43,9 @@ failures=0
 applied=0
 need_restart=0
 
-PATCHES=$(ls -1 "${0%/*}"/*.patch.sh 2>/dev/null | sort)
+# One folder per target: pi/ for pi itself, one folder per patched extension. Within a
+# folder the patches run in number order (several can touch the same file).
+PATCHES=$(ls -1 "${0%/*}"/*/*.patch.sh 2>/dev/null | sort)
 [ -n "$PATCHES" ] || { say "no patches in ${0%/*}"; exit 0; }
 
 for patch in $PATCHES; do

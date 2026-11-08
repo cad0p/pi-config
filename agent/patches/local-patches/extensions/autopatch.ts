@@ -2,7 +2,7 @@
  * Local patches auto-apply.
  *
  * pi installs each version into ~/.pi/agent/install/releases/<version>/, so local source
- * patches (see ../*.patch.sh) are lost on every upgrade. This extension reconciles them at
+ * patches (see ../*/*.patch.sh) are lost on every upgrade. This extension reconciles them at
  * session start: the running process keeps the modules it already imported, so a patch applied
  * here takes effect on the NEXT launch — the point is to make that next launch already patched
  * instead of a manual step, and to say so out loud when it happens.
