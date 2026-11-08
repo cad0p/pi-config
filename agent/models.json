@@ -1,5 +1,21 @@
 {
   "providers": {
+    "devin": {
+      "modelOverrides": {
+        "claude-opus-5-5": {
+          "contextWindow": 300000,
+          "promptCache": {
+            "short": 300
+          },
+          "cost": {
+            "input": 4,
+            "output": 20,
+            "cacheRead": 0.2,
+            "cacheWrite": 5
+          }
+        }
+      }
+    },
     "siliconflow": {
       "baseUrl": "https://api.siliconflow.com/v1",
       "api": "openai-completions",

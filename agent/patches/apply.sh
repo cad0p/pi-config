@@ -47,7 +47,7 @@ PATCHES=$(ls -1 "${0%/*}"/*.patch.sh 2>/dev/null | sort)
 
 for patch in $PATCHES; do
   # Reset the contract before each file so one patch can never inherit another's state.
-  PATCH_ID= PATCH_TITLE= PATCH_UPSTREAM= PATCH_REMOVE_WHEN= PATCH_FILES=
+  PATCH_ID= PATCH_TITLE= PATCH_UPSTREAM= PATCH_REMOVE_WHEN= PATCH_FILES= PATCH_ROOTS=
   UNPATCHED_RE= PATCHED_RE= PATCH_PERL=
   # shellcheck disable=SC1090
   . "$patch" || { printf 'pi-patches: cannot source %s\n' "$patch" >&2; failures=$((failures + 1)); continue; }
@@ -58,10 +58,16 @@ for patch in $PATCHES; do
   say "== $PATCH_ID — $PATCH_TITLE"
   say "   upstream: $PATCH_UPSTREAM"
   touched=0
-  for pkg in $RELEASES; do
+  # PATCH_ROOTS (optional) targets other installed packages, e.g. an npm extension under
+  # agent/npm/node_modules; without it the patch targets pi releases as before.
+  for pkg in ${PATCH_ROOTS:-$RELEASES}; do
     [ -d "$pkg" ] || continue
     version=$(jq -r .version "$pkg/package.json" 2>/dev/null || echo '?')
     marker=""; [ "$version" = "$ACTIVE" ] && marker=" (active)"
+    label="pi $version"
+    if [ -n "$PATCH_ROOTS" ]; then
+      label="$(jq -r .name "$pkg/package.json" 2>/dev/null) $version"; marker=""
+    fi
     # Expand the target globs, then narrow to the files that actually contain the
     # check in either state — one grep per release instead of one per chunk.
     # shellcheck disable=SC2086
@@ -74,17 +80,17 @@ for patch in $PATCHES; do
     FILES=$(grep -lE "$UNPATCHED_RE|$PATCHED_RE" $_candidates 2>/dev/null)
     [ -n "$FILES" ] || continue
     if ! release_needs_patch "$pkg"; then
-      say "   pi $version$marker: already applied"
+      say "   $label$marker: already applied"
       continue
     fi
     case "$MODE" in
-      status) say "   pi $version$marker: NEEDS PATCH" ;;
-      dry)    say "   pi $version$marker: would patch" ;;
+      status) say "   $label$marker: NEEDS PATCH" ;;
+      dry)    say "   $label$marker: would patch" ;;
       apply)
         if patch_release "$pkg" $((1 - QUIET)); then
           applied=$((applied + PATCHED_COUNT))
           [ "$PATCHED_COUNT" -gt 0 ] && touched=1
-          [ "$version" = "$ACTIVE" ] && [ "$PATCHED_COUNT" -gt 0 ] && need_restart=1
+          { [ -n "$PATCH_ROOTS" ] || [ "$version" = "$ACTIVE" ]; } && [ "$PATCHED_COUNT" -gt 0 ] && need_restart=1
         else
           failures=$((failures + 1))
         fi ;;
@@ -99,7 +105,7 @@ if [ "$MODE" = apply ]; then
     exit 1
   fi
   if [ "$need_restart" = 1 ]; then
-    msg="pi-patches: applied $applied patch file(s) to the active release — restart pi to load them"
+    msg="pi-patches: applied $applied patch file(s) — restart pi to load them"
   else
     msg="pi-patches: up to date ($applied file(s) patched this run)"
   fi
