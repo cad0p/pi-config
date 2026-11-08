@@ -48,7 +48,11 @@
 // check answering 'causing: yes' may not say 'verdict: continue'; every
 // brief write needs the pr/round/kind header),
 // ./critical-path-slip.ts (E4: a slipped critical path needs a replan
-// entry before another brief for a non-done item) and
+// entry before another brief for a non-done item; and a reset of
+// critical-path.json may not drop an unfinished item, pc-host #703 D8),
+// ./open-work-gate.ts (pc-host #703 D7: no new brief while the armed
+// open-work ledger lists dropped PRs; dormant until open-work.json
+// says armed: true) and
 // ./threat-model-required.ts (E5: red-team/trust-model lens briefs
 // need a 'Threat model:' line; issue/PR vault bodies need a
 // 'threat-model:' frontmatter key) and
@@ -98,6 +102,7 @@ import {
 	criticalPathSlipPlugin,
 	criticalPathSlipRules,
 } from "./critical-path-slip.ts";
+import { openWorkGatePlugin, openWorkGateRules } from "./open-work-gate.ts";
 import {
 	threatModelRequiredPlugin,
 	threatModelRules,
@@ -224,6 +229,7 @@ export default defineConfig({
 		primaryCheckoutGuardPlugin,
 		designCheckGatePlugin,
 		criticalPathSlipPlugin,
+		openWorkGatePlugin,
 		threatModelRequiredPlugin,
 		rmRelativeGuardPlugin,
 		tshGuardPlugin,
@@ -279,6 +285,7 @@ export default defineConfig({
 		...gitIdentityRules,
 		...designCheckRules,
 		...criticalPathSlipRules,
+		...openWorkGateRules,
 		...threatModelRules,
 		...rmRelativeGuardRules,
 		...tshGuardRules,

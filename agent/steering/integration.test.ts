@@ -304,6 +304,7 @@ describe("global config — shape", () => {
 			"primary-checkout-guard",
 			"brief-design-check",
 			"brief-critical-path",
+			"brief-open-work",
 			"brief-threat-model",
 			"rm-relative-guard",
 			"tsh-guard",

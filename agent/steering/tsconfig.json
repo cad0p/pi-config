@@ -27,6 +27,7 @@
 		"primary-checkout-guard.test.ts",
 		"design-check-gate.test.ts",
 		"critical-path-slip.test.ts",
+		"open-work-gate.test.ts",
 		"threat-model-required.test.ts"
 	]
 }

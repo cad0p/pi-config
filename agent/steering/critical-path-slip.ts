@@ -24,21 +24,48 @@
  * Surfaces: the same three as the design-check gate (write / edit /
  * tee + wrapper payload); see brief-gates.ts for the top-level
  * redirect gap.
+ *
+ * Reset guard (pc-host #703, design note D8): a write / edit / tee /
+ * wrapper payload / mv / cp whose target is critical-path.json may not
+ * drop an unfinished item. Old `items` are compared with the new
+ * content's by `id`; a removed item must be
+ *   (a) finished: `done_at` set or `status: done`;
+ *   (b) a well-formed `owner/repo#n` PR that the FRESH open-work
+ *       ledger (`ok`, swept under 60 min) shows `parked` in `open`
+ *       or no longer lists there (merged / closed); or
+ *   (c) listed in the new content's top-level `dropped: [{id, why,
+ *       told_owner_at}]`, all three non-empty (the escape for non-PR
+ *       items and a stale ledger, so a reset never wedges).
+ * Old file missing / unparsable: allow. New content hidden by the
+ * shell (tee, a heredoc-less redirect, an mv/cp whose source does not
+ * exist yet): refused as unverifiable. New content unparsable:
+ * refused. Works with the ledger unarmed or absent ((b) just never
+ * applies). Known gap (pinned in tests): moving or removing the old
+ * file first (`mv critical-path.json <archive>`) leaves no old file to
+ * compare, by design: archiving is untouched.
  */
 
-import { readFileSync } from "node:fs";
+import { readFileSync, statSync } from "node:fs";
+import { basename as pathBasename, join } from "node:path";
 import type { PredicateContext } from "@cad0p/pi-steering";
 import {
+	applyEdits,
 	briefContent,
 	briefWrites,
 	criticalPathFile,
+	effectiveCwd,
 	firstBriefWrite,
 	parseBriefHeader,
+	readOrNull,
+	resolveTarget,
+	toolWrites,
 } from "./brief-gates.ts";
+import { ledgerFresh, prKeyOf, readOpenWork } from "./open-work-gate.ts";
 
 declare global {
 	interface PiSteeringPredicates {
 		briefSlipsCriticalPath: import("@cad0p/pi-steering").PredicateShape<boolean>;
+		criticalPathResetDrops: import("@cad0p/pi-steering").PredicateShape<boolean>;
 	}
 }
 
@@ -46,6 +73,7 @@ interface CriticalPathItem {
 	id?: string;
 	pr?: string;
 	status?: string;
+	done_at?: unknown;
 }
 
 interface CriticalPathReplan {
@@ -62,6 +90,7 @@ interface CriticalPath {
 	eta?: string;
 	items?: CriticalPathItem[];
 	replans?: CriticalPathReplan[];
+	dropped?: unknown;
 }
 
 /** Read the state file; null on missing / unparsable (fail-open). */
@@ -131,6 +160,183 @@ function slippedItem(
 	return null;
 }
 
+function nonEmpty(value: unknown): value is string {
+	return typeof value === "string" && value.trim() !== "";
+}
+
+/** `mv` / `cp` operands: [source, destination] pairs (absolute). */
+function moveCopyPairs(
+	words: readonly string[],
+	cwd: string | null,
+): Array<[string, string]> {
+	let targetDir: string | null = null;
+	const plain: string[] = [];
+	for (let i = 0; i < words.length; i += 1) {
+		const word = words[i] ?? "";
+		if (word === "--") {
+			plain.push(...words.slice(i + 1));
+			break;
+		}
+		if (word === "-t" || word === "--target-directory") {
+			targetDir = words[i + 1] ?? null;
+			i += 1;
+			continue;
+		}
+		if (word.startsWith("--target-directory=")) {
+			targetDir = word.slice("--target-directory=".length);
+			continue;
+		}
+		if (word === "-S" || word === "--suffix") {
+			i += 1; // value-taking flag
+			continue;
+		}
+		if (word.startsWith("-") && word !== "-") continue;
+		plain.push(word);
+	}
+	const isDir = (path: string): boolean => {
+		try {
+			return statSync(path).isDirectory();
+		} catch {
+			return false;
+		}
+	};
+	const pairs: Array<[string, string]> = [];
+	const intoDir = (dir: string, sources: string[]): void => {
+		for (const source of sources) {
+			const src = resolveTarget(source, cwd);
+			if (src !== null) pairs.push([src, join(dir, pathBasename(src))]);
+		}
+	};
+	if (targetDir !== null) {
+		const dir = resolveTarget(targetDir, cwd);
+		if (dir !== null) intoDir(dir, plain);
+		return pairs;
+	}
+	if (plain.length < 2) return pairs;
+	const dest = resolveTarget(plain[plain.length - 1] ?? "", cwd);
+	if (dest === null) return pairs;
+	const sources = plain.slice(0, -1);
+	if (isDir(dest)) intoDir(dest, sources);
+	else if (sources.length === 1) {
+		const src = resolveTarget(sources[0] ?? "", cwd);
+		if (src !== null) pairs.push([src, dest]);
+	}
+	return pairs;
+}
+
+/**
+ * The new contents this tool call would give critical-path.json; null
+ * marks a write whose content the shell hides.
+ */
+function resetCandidates(ctx: PredicateContext): Array<string | null> {
+	const target = criticalPathFile();
+	if (ctx.tool === "edit") {
+		const path = typeof ctx.input.path === "string" ? ctx.input.path : "";
+		if (resolveTarget(path, effectiveCwd(ctx)) !== target) return [];
+		const base = readOrNull(target);
+		if (base === null) return [];
+		const patched = applyEdits(base, ctx.input.edits ?? []);
+		// A missed patch fails in the edit tool itself.
+		return patched === null ? [] : [patched];
+	}
+	if (ctx.tool === "bash") {
+		const basename = ctx.input.basename ?? "";
+		if (basename === "mv" || basename === "cp") {
+			const words = (ctx.input.args ?? []).map((w) => w.value ?? w.text ?? "");
+			return moveCopyPairs(words, effectiveCwd(ctx))
+				.filter(([, dest]) => dest === target)
+				.map(([src]) => readOrNull(src));
+		}
+	}
+	return toolWrites(ctx)
+		.filter((write) => write.path === target)
+		.map((write) => {
+			if (write.content === null) return null;
+			if (!write.append) return write.content;
+			return (readOrNull(target) ?? "") + write.content;
+		});
+}
+
+function field(value: unknown, key: string): unknown {
+	return typeof value === "object" && value !== null
+		? (value as Record<string, unknown>)[key]
+		: undefined;
+}
+
+/** Removed unfinished items with no allowed way out, described. */
+function unjustifiedDrops(old: CriticalPath, next: CriticalPath): string[] {
+	const oldItems = (Array.isArray(old.items) ? old.items : []).filter(
+		(item): item is CriticalPathItem & { id: string } =>
+			nonEmpty(field(item, "id")),
+	);
+	const kept = new Set(
+		(Array.isArray(next.items) ? (next.items as unknown[]) : [])
+			.map((item) => field(item, "id"))
+			.filter(nonEmpty),
+	);
+	const dropped = new Set(
+		(Array.isArray(next.dropped) ? (next.dropped as unknown[]) : [])
+			.filter(
+				(d) =>
+					nonEmpty(field(d, "id")) &&
+					nonEmpty(field(d, "why")) &&
+					nonEmpty(field(d, "told_owner_at")),
+			)
+			.map((d) => field(d, "id") as string),
+	);
+	const ledger = readOpenWork();
+	const fresh = ledger !== null && ledgerFresh(ledger);
+	const open =
+		fresh && Array.isArray(ledger.open) ? (ledger.open as unknown[]) : [];
+	const out: string[] = [];
+	for (const item of oldItems) {
+		if (kept.has(item.id)) continue;
+		if (nonEmpty(item.done_at)) continue; // (a)
+		if (String(item.status ?? "").toLowerCase() === "done") continue; // (a)
+		if (dropped.has(item.id)) continue; // (c)
+		const key = prKeyOf(item.pr);
+		if (key !== null && fresh) {
+			const entry = open.find((e) => prKeyOf(field(e, "pr")) === key);
+			if (entry === undefined || field(entry, "state") === "parked") continue; // (b)
+			out.push(`${item.id} (${item.pr}, open, not Parked)`);
+			continue;
+		}
+		if (key !== null) {
+			out.push(`${item.id} (${item.pr}, open-work ledger missing or stale)`);
+		} else if (nonEmpty(item.pr)) out.push(`${item.id} ("${item.pr}")`);
+		else out.push(item.id);
+	}
+	return out;
+}
+
+/** Why this tool call's critical-path.json write is refused, or null. */
+function resetBlockReason(ctx: PredicateContext): string | null {
+	const candidates = resetCandidates(ctx);
+	if (candidates.length === 0) return null;
+	const old = readCriticalPath();
+	if (old === null) return null; // nothing to compare
+	const target = criticalPathFile();
+	for (const content of candidates) {
+		if (content === null) {
+			return `cannot verify the new ${target} through this shell write: use the write tool, or write the temp file in a separate call first and then mv it.`;
+		}
+		let next: unknown;
+		try {
+			next = JSON.parse(content);
+		} catch {
+			next = null;
+		}
+		if (typeof next !== "object" || next === null || Array.isArray(next)) {
+			return `critical-path.json would not parse as a JSON object after this write (${target}).`;
+		}
+		const bad = unjustifiedDrops(old, next as CriticalPath);
+		if (bad.length > 0) {
+			return `critical-path reset drops unfinished item(s): ${bad.join(", ")}. Keep them, mark done_at, park the PR (tools/open-work.sh park ...), or add {id, why, told_owner_at} to a top-level "dropped" array.`;
+		}
+	}
+	return null;
+}
+
 export const criticalPathSlipPlugin = {
 	name: "brief-critical-path",
 	predicates: {
@@ -140,8 +346,19 @@ export const criticalPathSlipPlugin = {
 			if (state === null) return false; // fail-open: no state file
 			return slippedItem(state, ctx) !== null;
 		},
+		criticalPathResetDrops: (args: unknown, ctx: PredicateContext) => {
+			if (args !== true) return false;
+			return resetBlockReason(ctx) !== null;
+		},
 	},
 };
+
+function resetReason(ctx: PredicateContext): string {
+	return (
+		resetBlockReason(ctx) ??
+		'critical-path reset drops unfinished item(s): keep them, mark done_at, park the PR, or add {id, why, told_owner_at} to a top-level "dropped" array.'
+	);
+}
 
 function reason(ctx: PredicateContext): string {
 	const state = readCriticalPath();
@@ -173,5 +390,28 @@ export const criticalPathSlipRules = [
 		command: ["tee", "bash", "sh"] as const,
 		when: { briefSlipsCriticalPath: true },
 		reason,
+	},
+	{
+		name: "critical-path-reset",
+		tool: "write" as const,
+		field: "path" as const,
+		pattern: /^/,
+		when: { criticalPathResetDrops: true },
+		reason: resetReason,
+	},
+	{
+		name: "critical-path-reset-edit",
+		tool: "edit" as const,
+		field: "path" as const,
+		pattern: /^/,
+		when: { criticalPathResetDrops: true },
+		reason: resetReason,
+	},
+	{
+		name: "critical-path-reset-bash",
+		tool: "bash" as const,
+		command: ["tee", "bash", "sh", "mv", "cp"] as const,
+		when: { criticalPathResetDrops: true },
+		reason: resetReason,
 	},
 ];

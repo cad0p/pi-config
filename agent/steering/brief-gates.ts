@@ -14,6 +14,18 @@
  *   lens: red-team|trust-model|...        (optional)
  *   split-of: cad0p/pc-host#611            (optional: this brief is a
  *                                           split piece of that PR)
+ *   session: b55c1bf4                      (optional: the writing pi
+ *                                           session's id8, the LAST 8 hex
+ *                                           of PI_SESSION_ID, or the full
+ *                                           PI_SESSION_ID, reduced to it;
+ *                                           read by the open-work gate.
+ *                                           Missing or malformed = every
+ *                                           session. pi ids are UUIDv7:
+ *                                           the first 8 hex are a
+ *                                           timestamp sessions started
+ *                                           within ~65 s share, so the
+ *                                           id8 is the random tail, as in
+ *                                           pc-host tools/open-work.sh)
  *   Threat model: <section>                (required for red-team /
  *                                           trust-model lens briefs)
  *
@@ -66,6 +78,16 @@ export function criticalPathFile(): string {
 	return join(stateDir(), "critical-path.json");
 }
 
+/** The open-work ledger (pc-host #703, written by tools/open-work.sh). */
+export function openWorkFile(): string {
+	return join(stateDir(), "open-work.json");
+}
+
+/** The stale-ledger ack (`open-work.sh ack-stale`). */
+export function openWorkAckFile(): string {
+	return join(stateDir(), "open-work-ack.json");
+}
+
 /** One file write a tool call performs, with the content when known. */
 export interface BriefWrite {
 	/** Absolute target path. */
@@ -98,6 +120,10 @@ export interface BriefHeader {
 	splitOfValid: boolean;
 	/** Value of the `Threat model:` / `threat-model:` line, or null. */
 	threatModel: string | null;
+	/** Value of the `session:` line as written, or null. */
+	sessionRaw: string | null;
+	/** Lowercased id8 (the last 8 hex, see sessionId8) from `session:`; null when absent or malformed. */
+	session: string | null;
 	/** pr + round + kind all parsed. */
 	complete: boolean;
 }
@@ -140,6 +166,20 @@ function headerBlock(content: string): string[] {
 	return block;
 }
 
+/**
+ * A pi session's id8: the LAST 8 hex of its id, lowercased (pc-host
+ * tools/open-work.sh's session_id8). Takes a full PI_SESSION_ID
+ * (hex and dashes) or a bare id8; anything else is null. pi ids are
+ * UUIDv7, whose first 8 hex are a timestamp that sessions started
+ * within ~65 s share, so the prefix never names one session.
+ */
+export function sessionId8(value: string): string | null {
+	const trimmed = value.trim();
+	if (!/^[0-9A-Fa-f-]+$/.test(trimmed)) return null;
+	const hex = trimmed.replace(/-/g, "").toLowerCase();
+	return hex.length >= 8 ? hex.slice(-8) : null;
+}
+
 /** Parse the minimal brief header contract. Never throws. */
 export function parseBriefHeader(content: string): BriefHeader {
 	const values = new Map<string, string>();
@@ -173,6 +213,9 @@ export function parseBriefHeader(content: string): BriefHeader {
 	const threatMatch = /^threat[ -]model:\s*(.*)$/im.exec(content);
 	const threatModel =
 		threatMatch === null ? null : stripQuotes((threatMatch[1] ?? "").trim());
+	const sessionRawValue = (values.get("session") ?? "").trim();
+	const sessionRaw = sessionRawValue === "" ? null : sessionRawValue;
+	const session = sessionRaw === null ? null : sessionId8(sessionRaw);
 	return {
 		pr,
 		prKey: pr?.toLowerCase() ?? null,
@@ -186,6 +229,8 @@ export function parseBriefHeader(content: string): BriefHeader {
 		splitOfKey,
 		splitOfValid: splitOf === null || splitOfMatch !== null,
 		threatModel,
+		sessionRaw,
+		session,
 		complete: prMatch !== null && round !== null && kind !== null,
 	};
 }
@@ -198,7 +243,7 @@ export function isBriefFile(path: string): boolean {
 }
 
 /** Expand a leading `~` / `$HOME` and resolve against `base`. */
-function resolveTarget(raw: string, base: string | null): string | null {
+export function resolveTarget(raw: string, base: string | null): string | null {
 	let path = stripQuotes(raw.trim());
 	if (path === "") return null;
 	const home = process.env.HOME ?? homedir();
@@ -306,7 +351,7 @@ export function parseShellWrites(
 }
 
 /** Apply the edit tool's patches to a base content; null when a patch misses. */
-function applyEdits(
+export function applyEdits(
 	base: string,
 	edits: ReadonlyArray<{ oldText: string; newText: string }>,
 ): string | null {
@@ -320,7 +365,7 @@ function applyEdits(
 }
 
 /** Read a file, or null. */
-function readOrNull(path: string): string | null {
+export function readOrNull(path: string): string | null {
 	try {
 		return readFileSync(path, "utf8");
 	} catch {
@@ -329,7 +374,7 @@ function readOrNull(path: string): string | null {
 }
 
 /** The session cwd, or null when the walker could not resolve it. */
-function effectiveCwd(ctx: PredicateContext): string | null {
+export function effectiveCwd(ctx: PredicateContext): string | null {
 	const cwd = ctx.cwd;
 	return typeof cwd === "string" && cwd !== "" && cwd !== "unknown"
 		? cwd
