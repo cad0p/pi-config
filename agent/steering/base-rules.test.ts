@@ -117,21 +117,66 @@ function designCheck(pr: string, round: number): void {
 	);
 }
 
-/** A gate-record comment plus the manifest that names the head it bound. */
-function gateRecord(head: string): void {
-	editStub("gh", (cfg) => {
-		cfg.comments = [{ body: "<!-- local-ci-gate:g20261108T000000Z-1 -->\nlocal-ci a,b tree t gate g20261108T000000Z-1" }];
-	});
+const GATE_ID = "g20261108T000000Z-1";
+
+/**
+ * A gate run's manifest where the helper writes it:
+ * `<state>/pc-merge/evidence/<owner>/<repo>/<head>/<id>/manifest`, the RAW
+ * owner/repo as two directories (merge-pr.sh :2656). `layout: "key"` writes
+ * the old `cad0p--repo` shape instead, which the rule must not read.
+ */
+function gateManifest(
+	repo: string,
+	head: string,
+	opts: {
+		layout?: "raw" | "key";
+		manifestHead?: string;
+		root?: string;
+	} = {},
+): void {
+	const {
+		layout = "raw",
+		manifestHead = head,
+		root = join(state, "pc-merge", "evidence"),
+	} = opts;
 	const dir = join(
-		state,
-		"pc-merge",
-		"evidence",
-		"cad0p--pc-host",
+		root,
+		...(layout === "raw"
+			? repo.split("/")
+			: [repo.replace(/\//g, "--").replace(/\./g, "_")]),
 		head,
-		"g20261108T000000Z-1",
+		GATE_ID,
 	);
 	mkdirSync(dir, { recursive: true });
-	writeFileSync(join(dir, "manifest"), `head: ${head}\ntree: t\n`);
+	writeFileSync(join(dir, "manifest"), `head: ${manifestHead}\ntree: t\n`);
+}
+
+/** The PR's one gate-record comment (the marker plus its pass line). */
+function gateComment(): void {
+	editStub("gh", (cfg) => {
+		cfg.comments = [
+			{
+				body: `<!-- local-ci-gate:${GATE_ID} -->\nlocal-ci a,b tree t gate ${GATE_ID}`,
+			},
+		];
+	});
+}
+
+/** A gate-record comment plus the manifest that names the head it bound. */
+function gateRecord(head: string, repo = "cad0p/pc-host"): void {
+	gateComment();
+	gateManifest(repo, head);
+}
+
+/** Point the gh stub at a pc-tenant PR whose head is `TENANT_HEAD`. */
+function tenantPr(): void {
+	editStub("gh", (cfg) => {
+		cfg.prs["189"] = {
+			head: TENANT_HEAD,
+			paths: ["tools/example.sh"],
+			lines: 40,
+		};
+	});
 }
 
 const HEAD_MISSING = /needs 'head: <40-hex>'/;
@@ -407,6 +452,92 @@ describe("base-rules — R1/R3, no round on a red or unpushed head", () => {
 			},
 			{ rule: "design-check-gate", reason: NO_RUN },
 		);
+	});
+});
+
+describe("base-rules — the gate record reads the helper's evidence layout", () => {
+	// The record was read at `evidence/<owner>--<repo>/...` (the helper's repo
+	// key) while merge-pr.sh writes `evidence/<owner>/<repo>/...` with the raw
+	// name (:2656), and the fixture built the same wrong path, so the suite
+	// agreed with the bug: every gate record outside pc-host was refused. A
+	// pc-tenant run prints no 'run on: snapshot commit' line, so for that repo
+	// the gate record is the only route to green.
+
+	/** A pc-tenant round-1 lens brief: only the gate record can green it. */
+	function tenantLens(): string {
+		return `pr: ${TENANT_PR}\nround: 1\nkind: lens\nhead: ${TENANT_HEAD}\n`;
+	}
+
+	it("allows a pc-tenant gate record at evidence/<owner>/<repo>/<head>/<id>", async () => {
+		tenantPr();
+		gateComment();
+		gateManifest("cad0p/pc-tenant", TENANT_HEAD);
+		await expectAllows(harness, {
+			write: { path: brief("tenant-r1-lens.md"), content: tenantLens() },
+			cwd: "/tmp",
+		});
+	});
+
+	it("refuses the old repo-key layout (evidence/cad0p--pc-tenant/...)", async () => {
+		tenantPr();
+		gateComment();
+		gateManifest("cad0p/pc-tenant", TENANT_HEAD, { layout: "key" });
+		await expectBlocks(
+			harness,
+			{
+				write: { path: brief("tenant-r1-lens.md"), content: tenantLens() },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: NO_RUN },
+		);
+	});
+
+	it("refuses a manifest whose head line names another head", async () => {
+		tenantPr();
+		gateComment();
+		gateManifest("cad0p/pc-tenant", TENANT_HEAD, {
+			manifestHead: OTHER_HEAD,
+		});
+		await expectBlocks(
+			harness,
+			{
+				write: { path: brief("tenant-r1-lens.md"), content: tenantLens() },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: NO_RUN },
+		);
+	});
+
+	it("refuses a traversal owner/repo instead of reading outside the root", async () => {
+		gateComment();
+		gateManifest("cad0p/pc-host", LENS_HEAD);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("trav-r1-lens.md"),
+					content: `pr: ../..#189\nround: 1\nkind: lens\nhead: ${LENS_HEAD}\n`,
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /is not an owner\/repo pair of path segments/,
+			},
+		);
+	});
+
+	it("reads the helper's PC_MERGE_EVIDENCE_ROOT override", async () => {
+		process.env.PC_MERGE_EVIDENCE_ROOT = join(state, "elsewhere");
+		tenantPr();
+		gateComment();
+		gateManifest("cad0p/pc-tenant", TENANT_HEAD, {
+			root: join(state, "elsewhere"),
+		});
+		await expectAllows(harness, {
+			write: { path: brief("tenant-r1-lens.md"), content: tenantLens() },
+			cwd: "/tmp",
+		});
 	});
 });
 

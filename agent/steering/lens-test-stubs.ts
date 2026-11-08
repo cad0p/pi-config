@@ -174,6 +174,10 @@ export function installLensStubs(root: string): void {
 	process.env.PI_H4_CLONES_ROOT = join(root, "clones");
 	mkdirSync(join(root, "clones", "cad0p--pc-host"), { recursive: true });
 	process.env.PI_H4_PCMERGE_STATE = join(root, "pc-merge");
+	// The helper's own evidence override is dropped: the suite drives the
+	// state root, and an ambient override would point every case at another
+	// tree (a case that wants it sets it after this call).
+	delete process.env.PC_MERGE_EVIDENCE_ROOT;
 }
 
 /** Drop the seams (the temp root is removed by the suite). */
@@ -186,6 +190,7 @@ export function clearLensStubs(): void {
 		"PI_H4_CLONE",
 		"PI_H4_CLONES_ROOT",
 		"PI_H4_PCMERGE_STATE",
+		"PC_MERGE_EVIDENCE_ROOT",
 		"PI_H4_ROUNDS_FROM_HELPER",
 	]) {
 		delete process.env[name];

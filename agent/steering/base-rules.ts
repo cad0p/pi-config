@@ -28,6 +28,16 @@
  * commit <sha>` names that head and whose dirty-worktree lines all say no.
  * Those lines are read with greps, never a parser.
  *
+ * The gate record is read where the helper writes it:
+ * `<evidence root>/<owner>/<repo>/<head>/<gate id>/manifest`, the RAW
+ * owner/repo, one directory each (merge-pr.sh :10 evidence_root, :2656
+ * run_dir="$evidence_root/$repo/$head/$run_id"). Not the repo key
+ * (`owner--repo`, '.' -> '_'): that names the helper's stages, records,
+ * owed, locks, dispatches and per-repo clones, and the evidence tree has
+ * no keyed directory at all, so reading it here refused every gate record
+ * (pc-host and pc-control were masked by the green-run route; pc-tenant's
+ * ci.sh prints no 'run on: snapshot commit' line to use instead).
+ *
  * R2, a re-cut must shrink. A `split-of: <owner/repo>#<n>` piece restarts
  * at round 1 only when its changed paths are a subset of the parent's and
  * its changed lines are strictly fewer; otherwise it inherits the parent's
@@ -49,9 +59,9 @@
  * no cad0p--pc-host clone exists. A missing clone is a named refusal.
  *
  * Every command runs through a seam (PI_H4_GH / PI_H4_GIT / PI_H4_CLONE /
- * PI_H4_CLONES_ROOT / PI_H4_MERGE_HELPER / PI_H4_PCMERGE_STATE) so the
- * suite drives stubs and never touches the network or the operator's real
- * state.
+ * PI_H4_CLONES_ROOT / PI_H4_MERGE_HELPER / PI_H4_PCMERGE_STATE, plus the
+ * helper's own PC_MERGE_EVIDENCE_ROOT) so the suite drives stubs and never
+ * touches the network or the operator's real state.
  */
 
 import { execFileSync } from "node:child_process";
@@ -117,7 +127,7 @@ export function clonesRoot(): string {
 }
 
 /**
- * The clone a PR's git reads run in: `<clones root>/<owner>--<repo>`. A
+ * The clone a PR's git reads run in: `<clones root>/<repo key>`. A
  * PR's commits exist in its own repo's clone and nowhere else, so reading
  * them in the pc-host clone is a wrong answer, not a stale one. The merge
  * helper's checkout (operatorClone) is pc-host's fallback when no
@@ -128,7 +138,7 @@ export function repoClone(
 	ownerRepo: string,
 ): { ok: true; path: string } | { ok: false; err: string } {
 	const key = ownerRepo.trim().toLowerCase();
-	const path = join(clonesRoot(), key.replace(/\//g, "--"));
+	const path = join(clonesRoot(), repoKey(key));
 	if (existsSync(path)) return { ok: true, path };
 	if (key === "cad0p/pc-host") return { ok: true, path: operatorClone() };
 	return { ok: false, err: `no clone of ${ownerRepo} at ${path}` };
@@ -145,6 +155,91 @@ export function pcMergeState(): string {
 		"PI_H4_PCMERGE_STATE",
 		join(process.env.HOME ?? homedir(), ".local", "state", "pc-merge"),
 	);
+}
+
+/**
+ * The helper's repo key: `owner/repo` with '/' -> '--' and '.' -> '_'
+ * (merge-pr.sh :290 repo_key, tools/lib/pc-merge.sh pcm_repo_key :20). It
+ * names the helper's per-repo state — stages, records, owed, locks,
+ * dispatches — and its per-repo clones (:136). It never names the evidence
+ * tree, which keeps the raw owner/repo (gateEvidenceManifest).
+ */
+export function repoKey(ownerRepo: string): string {
+	return ownerRepo.replace(/\//g, "--").replace(/\./g, "_");
+}
+
+/**
+ * The helper's evidence root: `<state>/evidence`, or the helper's own
+ * PC_MERGE_EVIDENCE_ROOT override (merge-pr.sh :10
+ * `evidence_root="${PC_MERGE_EVIDENCE_ROOT:-$state_root/evidence}"`).
+ */
+export function evidenceRoot(): string {
+	const override = process.env.PC_MERGE_EVIDENCE_ROOT;
+	return override === undefined || override === ""
+		? join(pcMergeState(), "evidence")
+		: override;
+}
+
+/** A value that is one path segment: not '.', '..', a separator or a NUL. */
+function safeSegment(value: string): boolean {
+	return (
+		value !== "" &&
+		value !== "." &&
+		value !== ".." &&
+		!/[/\\\u0000]/.test(value)
+	);
+}
+
+/** `owner/repo` as two safe segments, so the join cannot leave the root. */
+function repoParts(
+	ownerRepo: string,
+): { ok: true; owner: string; repo: string } | { ok: false; err: string } {
+	const pieces = ownerRepo.split("/");
+	const owner = pieces[0] ?? "";
+	const repo = pieces[1] ?? "";
+	if (pieces.length !== 2 || !safeSegment(owner) || !safeSegment(repo)) {
+		return {
+			ok: false,
+			err: `'${ownerRepo}' is not an owner/repo pair of path segments, so its evidence path cannot be built (fail closed)`,
+		};
+	}
+	return { ok: true, owner, repo };
+}
+
+/**
+ * A gate run's manifest, at the path the helper writes it:
+ * `<evidence root>/<owner>/<repo>/<head>/<gate id>/manifest`, the raw
+ * owner/repo as two directories (merge-pr.sh :10 evidence_root, :2656
+ * run_dir="$evidence_root/$repo/$head/$run_id"; the live tree is
+ * ~/.local/state/pc-merge/evidence/cad0p/{pc-host,pc-tenant,...}). The
+ * helper's repo key is deliberately NOT used here: it names stages,
+ * records, owed, locks, dispatches and the clones, and using it refused
+ * every gate record outside pc-host.
+ */
+export function gateEvidenceManifest(
+	ownerRepo: string,
+	head: string,
+	gateId: string,
+): { ok: true; path: string } | { ok: false; err: string } {
+	const parts = repoParts(ownerRepo);
+	if (!parts.ok) return parts;
+	if (!safeSegment(head) || !safeSegment(gateId)) {
+		return {
+			ok: false,
+			err: `'${head}' and '${gateId}' are not a head / gate id of path segments, so their evidence path cannot be built (fail closed)`,
+		};
+	}
+	return {
+		ok: true,
+		path: join(
+			evidenceRoot(),
+			parts.owner,
+			parts.repo,
+			head,
+			gateId,
+			"manifest",
+		),
+	};
 }
 
 /** Run a command, never throwing: a failure is data, not an exception. */
@@ -437,6 +532,8 @@ export function absorbBindingRefusal(
 function gateRecordForHead(ref: string, head: string): string | null {
 	const parts = splitPr(ref);
 	if (parts === null) return `not a PR ref: ${ref}`;
+	const repo = repoParts(parts.repo);
+	if (!repo.ok) return `${ref}: ${repo.err}`;
 	const comments = run(ghBin(), [
 		"api",
 		"--paginate",
@@ -452,19 +549,15 @@ function gateRecordForHead(ref: string, head: string): string | null {
 		const id = match[1] ?? "";
 		if (id !== "" && !ids.includes(id)) ids.push(id);
 	}
-	const repoKey = parts.repo.replace(/\//g, "--").replace(/\./g, "_");
 	for (const id of ids) {
-		const manifest = join(
-			pcMergeState(),
-			"evidence",
-			repoKey,
-			head,
-			id,
-			"manifest",
-		);
+		const manifest = gateEvidenceManifest(parts.repo, head, id);
+		// A marker that is not a path segment names no run the helper could
+		// have written: it is not evidence, and it is not a reason to refuse
+		// (any comment on the PR could carry one).
+		if (!manifest.ok) continue;
 		let text: string;
 		try {
-			text = readFileSync(manifest, "utf8");
+			text = readFileSync(manifest.path, "utf8");
 		} catch {
 			continue;
 		}
