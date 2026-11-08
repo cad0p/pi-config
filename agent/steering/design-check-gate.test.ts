@@ -222,6 +222,62 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 		});
 	});
 
+	it("allows a round-6 absorb lens (absorb-of: <sha>) with the r5 check on file", async () => {
+		designCheck(PR, 5);
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("p1-r6-absorb-lens.md"),
+				content: header(PR, 6, "lens", `absorb-of: ${"a".repeat(40)}\n`),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("still requires the r7 design check for a round-7 absorb lens", async () => {
+		designCheck(PR, 5);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r7-absorb-lens.md"),
+					content: header(PR, 7, "lens", `absorb-of: ${"b".repeat(40)}\n`),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: MESSAGE },
+		);
+	});
+
+	it("keeps a round-6 fold capped even with absorb-of (folds are split pieces)", async () => {
+		designCheck(PR, 5);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r6-absorb-fold.md"),
+					content: header(PR, 6, "fold", `absorb-of: ${"c".repeat(40)}\n`),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /split the PR into independent pieces/ },
+		);
+	});
+
+	it("blocks a malformed absorb-of value", async () => {
+		designCheck(PR, 5);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r6-absorb-bad.md"),
+					content: header(PR, 6, "lens", "absorb-of: 1234abc\n"),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /absorb-of must be the absorb merge commit/ },
+		);
+	});
+
 	it("allows a round-5 lens brief with the r5 check on file", async () => {
 		designCheck(PR, 5);
 		await expectAllows(harness, {

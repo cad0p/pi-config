@@ -15,6 +15,14 @@
  * `build` briefs are never capped, so landing a PR that already has
  * clean verdicts keeps working.
  *
+ * Absorb exemption (owner ruling 2026-11-08, "ideally this process should
+ * not require me"): a capped PR must still take in main before it merges,
+ * and when merge-pr.sh's absorb check asks for a trio, that trio reviews
+ * the absorb, not new work. A `kind: lens` brief whose header carries
+ * `absorb-of: <40-hex merge commit>` is exempt from the cap; it still
+ * needs the design check for its odd round, like any lens round. Folds
+ * stay capped: code beyond the absorb at round >= 6 is a split piece.
+ *
  * Verdict consistency. The design check's `causing:` answer and its
  * verdict must agree: `causing: yes` means the design IS the source of
  * the churn, so `verdict: continue` contradicts the answer (that is how
@@ -76,6 +84,15 @@ function roundCapReason(pr: string, round: number): string {
 	return `round ${round} on ${pr}: split the PR into independent pieces (owner rule: split at round 5). A split piece is a new PR whose brief header carries split-of: ${pr} and starts again at round 1.`;
 }
 
+/** The `absorb-of:` value in the brief's leading lines, or null if absent. */
+function absorbOfValue(content: string): string | null {
+	for (const line of content.split(/\r?\n/).slice(0, 20)) {
+		const m = /^absorb-of:\s*(.*?)\s*$/i.exec(line);
+		if (m) return m[1] ?? "";
+	}
+	return null;
+}
+
 /** `causing: yes` + `verdict: continue` is a contradiction. */
 function verdictConflictReason(
 	need: number,
@@ -95,10 +112,16 @@ function writeBlockReason(write: BriefWrite): string | null {
 	if (!header.splitOfValid) {
 		return `split-of must be a PR ref ('split-of: <owner>/<repo>#<n>'), not '${header.splitOf ?? ""}'.`;
 	}
+	const absorbOf = absorbOfValue(content);
+	if (absorbOf !== null && !/^[0-9a-f]{40}$/.test(absorbOf)) {
+		return `absorb-of must be the absorb merge commit as 40 lowercase hex ('absorb-of: <sha>'), not '${absorbOf}'.`;
+	}
+	const absorbLens = absorbOf !== null && header.kind === "lens";
 	if (
 		isGatedKind(header.kind) &&
 		header.round !== null &&
-		header.round >= ROUND_CAP
+		header.round >= ROUND_CAP &&
+		!absorbLens
 	) {
 		return roundCapReason(header.pr, header.round);
 	}
