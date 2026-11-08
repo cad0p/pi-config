@@ -5,7 +5,11 @@
 // carries a pr/round/kind header, and a lens or fold brief at round >= 3
 // is refused until the latest required design-check file exists
 // (r3 for rounds 3-4, r5 for 5-6, ...) with the three answers and a
-// verdict. The gate covers the write / edit tools, `tee`, and a
+// verdict. A lens or fold brief at round >= 6 is refused outright
+// (owner rule: split at round 5; a split piece is a new PR with
+// `split-of: <pr>` in its header and starts again at round 1), and a
+// check that answers `causing: yes` may not carry `verdict: continue`.
+// The gate covers the write / edit tools, `tee`, and a
 // `bash -c` payload that redirects into the briefs dir.
 //
 // PI_H4_STATE_DIR points every case at a fresh temp state root, so the
@@ -172,6 +176,146 @@ describe("design-check-gate — write tool", () => {
 				path: join(state, "notes", "x.md"),
 				content: "no header needed here\n",
 			},
+			cwd: "/tmp",
+		});
+	});
+});
+
+describe("design-check-gate — round cap (owner rule: split at round 5)", () => {
+	it("blocks a round-6 lens brief even when the r5 check is clean", async () => {
+		designCheck(PR, 5);
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r6-lens.md"), content: header(PR, 6) },
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /round 6 on cad0p\/pc-host#650: split the PR into independent pieces/,
+			},
+		);
+	});
+
+	it("blocks a round-7 fold brief", async () => {
+		designCheck(PR, 7);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r7-fold.md"),
+					content: header(PR, 7, "fold"),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /split the PR into independent pieces/ },
+		);
+	});
+
+	it("allows a round-6 impl brief (landing is not capped)", async () => {
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("p1-r6-impl.md"),
+				content: header(PR, 6, "impl"),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("allows a round-5 lens brief with the r5 check on file", async () => {
+		designCheck(PR, 5);
+		await expectAllows(harness, {
+			write: { path: briefPath("p1-r5-lens.md"), content: header(PR, 5) },
+			cwd: "/tmp",
+		});
+	});
+
+	it("allows a split piece at round 2 whose header carries split-of", async () => {
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("piece-r2-lens.md"),
+				content: header("cad0p/pc-host#700", 2, "lens", `split-of: ${PR}\n`),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("still caps the piece PR at round 6 (split-of is lineage, not an exemption)", async () => {
+		designCheck("cad0p/pc-host#700", 5);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("piece-r6-lens.md"),
+					content: header(
+						"cad0p/pc-host#700",
+						6,
+						"lens",
+						`split-of: ${PR}\n`,
+					),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /round 6 on cad0p\/pc-host#700/ },
+		);
+	});
+
+	it("blocks a malformed split-of value", async () => {
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("piece-bad.md"),
+					content: header(PR, 2, "lens", "split-of: #611\n"),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /split-of must be a PR ref/ },
+		);
+	});
+});
+
+describe("design-check-gate — verdict consistency (causing vs verdict)", () => {
+	it("blocks causing: yes with verdict: continue", async () => {
+		designCheck(
+			PR,
+			5,
+			"scope: ok\ndesign: causing the churn\ncausing: yes (probe environment != login environment)\nclass: probe-environment\nverdict: continue\n",
+		);
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r5-lens.md"), content: header(PR, 5) },
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason:
+					/design check r5 says the design is causing the churn \(causing: yes\) but verdict: continue; the verdict must be cut or redesign/,
+			},
+		);
+	});
+
+	it("allows causing: partly with verdict: continue", async () => {
+		designCheck(
+			PR,
+			5,
+			"scope: ok\ndesign: partly causing\ncausing: partly (absorb churn, not the design)\nclass: absorb-only\nverdict: continue\n",
+		);
+		await expectAllows(harness, {
+			write: { path: briefPath("p1-r5-lens.md"), content: header(PR, 5) },
+			cwd: "/tmp",
+		});
+	});
+
+	it("allows causing: yes with verdict: cut", async () => {
+		designCheck(
+			PR,
+			5,
+			"scope: ok\ndesign: causing the churn\ncausing: yes\nclass: static-precedence-mirror\nverdict: cut\n",
+		);
+		await expectAllows(harness, {
+			write: { path: briefPath("p1-r5-fold.md"), content: header(PR, 5, "fold") },
 			cwd: "/tmp",
 		});
 	});

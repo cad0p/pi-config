@@ -1,7 +1,26 @@
 // SPDX-License-Identifier: MIT
 /**
  * E1 design-check gate - a lens or fold brief at round >= 3 needs the
- * periodic design check on file first.
+ * periodic design check on file first, and the round cap ends the
+ * chain at round 6.
+ *
+ * Round cap (owner rule: split at round 5). A lens or fold brief at
+ * round >= 6 is refused: five rounds of findings on one PR is the
+ * signal to split the PR into independent pieces, not to fold again.
+ * The cap is per PR number in the `pr:` line and ignores any design
+ * check on file - a check with `verdict: continue` is not a licence to
+ * keep folding. A split piece is a NEW PR: its brief names the piece PR
+ * in `pr:` and carries `split-of: <owner>/<repo>#<n>` (the original),
+ * and the piece starts again at round 1. `kind: impl` / `land` /
+ * `build` briefs are never capped, so landing a PR that already has
+ * clean verdicts keeps working.
+ *
+ * Verdict consistency. The design check's `causing:` answer and its
+ * verdict must agree: `causing: yes` means the design IS the source of
+ * the churn, so `verdict: continue` contradicts the answer (that is how
+ * pc-host #697 reached round 17 on `causing: yes` + `continue`). A
+ * check whose `causing:` value starts with "yes" must carry
+ * `verdict: cut` or `verdict: redesign`.
  *
  * Owner rule (pc-host plan 2026-11-07, E1): every odd round from r3
  * (3, 5, 7, ...) carries a design-check comment bound to that round,
@@ -29,6 +48,7 @@
  */
 
 import type { PredicateContext } from "@cad0p/pi-steering";
+import type { BriefWrite, DesignCheckStatus } from "./brief-gates.ts";
 import {
 	briefContent,
 	briefWrites,
@@ -48,16 +68,40 @@ declare global {
 	}
 }
 
-/** The design check the brief's round requires, or null when it passes. */
-function missingDesignCheck(
-	ctx: PredicateContext,
-): { reason: string } | null {
-	const write = firstBriefWrite(ctx);
-	if (write === null) return null;
+/** Round 6+ on the same PR: split it (owner rule: split at round 5). */
+export const ROUND_CAP = 6;
+
+/** The round-cap message. */
+function roundCapReason(pr: string, round: number): string {
+	return `round ${round} on ${pr}: split the PR into independent pieces (owner rule: split at round 5). A split piece is a new PR whose brief header carries split-of: ${pr} and starts again at round 1.`;
+}
+
+/** `causing: yes` + `verdict: continue` is a contradiction. */
+function verdictConflictReason(
+	need: number,
+	status: DesignCheckStatus,
+): string | null {
+	if (status.verdict !== "continue") return null;
+	if (status.causing === null || !/^yes/i.test(status.causing)) return null;
+	return `design check r${need} says the design is causing the churn (causing: yes) but verdict: continue; the verdict must be cut or redesign`;
+}
+
+/** Why this brief write is refused, or null when it passes. */
+function writeBlockReason(write: BriefWrite): string | null {
 	const content = briefContent(write);
-	if (content === null) return { reason: unverifiableReason(write) };
+	if (content === null) return unverifiableReason(write);
 	const header = parseBriefHeader(content);
-	if (!header.complete) return { reason: headerReason(write) };
+	if (!header.complete || header.pr === null) return headerReason(write);
+	if (!header.splitOfValid) {
+		return `split-of must be a PR ref ('split-of: <owner>/<repo>#<n>'), not '${header.splitOf ?? ""}'.`;
+	}
+	if (
+		isGatedKind(header.kind) &&
+		header.round !== null &&
+		header.round >= ROUND_CAP
+	) {
+		return roundCapReason(header.pr, header.round);
+	}
 	if (
 		!isGatedKind(header.kind) ||
 		header.round === null ||
@@ -69,16 +113,12 @@ function missingDesignCheck(
 	const path = designCheckPath(header, need);
 	const status = designCheckStatus(path);
 	if (!status.exists) {
-		return {
-			reason: `design check required for ${header.pr} r${need}: create ${path} with 'scope:', 'design:', 'class:' answers and 'verdict: continue|cut|redesign' (every odd round from r3).`,
-		};
+		return `design check required for ${header.pr} r${need}: create ${path} with 'scope:', 'design:', 'class:' answers and 'verdict: continue|cut|redesign' (every odd round from r3).`;
 	}
 	if (status.missing.length > 0) {
-		return {
-			reason: `design check ${path} is incomplete: add ${status.missing.join(", ")} (scope:, design:, class:, verdict: continue|cut|redesign).`,
-		};
+		return `design check ${path} is incomplete: add ${status.missing.join(", ")} (scope:, design:, class:, verdict: continue|cut|redesign).`;
 	}
-	return null;
+	return verdictConflictReason(need, status);
 }
 
 export const designCheckGatePlugin = {
@@ -86,29 +126,17 @@ export const designCheckGatePlugin = {
 	predicates: {
 		briefNeedsDesignCheck: (args: unknown, ctx: PredicateContext) => {
 			if (args !== true) return false;
-			for (const write of briefWrites(ctx)) {
-				const content = briefContent(write);
-				if (content === null) return true;
-				const header = parseBriefHeader(content);
-				if (!header.complete) return true;
-				if (
-					!isGatedKind(header.kind) ||
-					header.round === null ||
-					header.round < 3
-				) {
-					continue;
-				}
-				const need = requiredDesignCheckRound(header.round);
-				const status = designCheckStatus(designCheckPath(header, need));
-				if (!status.exists || status.missing.length > 0) return true;
-			}
-			return false;
+			return briefWrites(ctx).some(
+				(write) => writeBlockReason(write) !== null,
+			);
 		},
 	},
 };
 
 function reason(ctx: PredicateContext): string {
-	return missingDesignCheck(ctx)?.reason ?? headerReason(firstBriefWrite(ctx));
+	const write = firstBriefWrite(ctx);
+	if (write === null) return headerReason(null);
+	return writeBlockReason(write) ?? headerReason(write);
 }
 
 export const designCheckRules = [

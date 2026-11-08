@@ -12,6 +12,8 @@
  *   round: 3
  *   kind: lens|fold|impl
  *   lens: red-team|trust-model|...        (optional)
+ *   split-of: cad0p/pc-host#611            (optional: this brief is a
+ *                                           split piece of that PR)
  *   Threat model: <section>                (required for red-team /
  *                                           trust-model lens briefs)
  *
@@ -88,6 +90,12 @@ export interface BriefHeader {
 	kind: string | null;
 	/** Lowercased lens name, dashes normalized (`red-team`). */
 	lens: string | null;
+	/** Value of the `split-of:` line as written, or null. */
+	splitOf: string | null;
+	/** Lowercased `owner/repo#n` from `split-of:`, or null. */
+	splitOfKey: string | null;
+	/** `split-of` absent, or a well-formed `owner/repo#n` ref. */
+	splitOfValid: boolean;
 	/** Value of the `Threat model:` / `threat-model:` line, or null. */
 	threatModel: string | null;
 	/** pr + round + kind all parsed. */
@@ -153,6 +161,14 @@ export function parseBriefHeader(content: string): BriefHeader {
 	const kind = kindRaw === "" ? null : kindRaw;
 	const lensRaw = (values.get("lens") ?? "").trim().toLowerCase();
 	const lens = lensRaw === "" ? null : lensRaw.replace(/[\s_]+/g, "-");
+	const splitOfRaw = (values.get("split-of") ?? "").trim();
+	const splitOf = splitOfRaw === "" ? null : splitOfRaw;
+	const splitOfMatch =
+		splitOf === null
+			? null
+			: /^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)#(\d+)$/.exec(splitOf);
+	const splitOfKey =
+		splitOfMatch === null || splitOf === null ? null : splitOf.toLowerCase();
 	// The Threat model line may live in the body, not only the header.
 	const threatMatch = /^threat[ -]model:\s*(.*)$/im.exec(content);
 	const threatModel =
@@ -166,6 +182,9 @@ export function parseBriefHeader(content: string): BriefHeader {
 		round,
 		kind,
 		lens,
+		splitOf,
+		splitOfKey,
+		splitOfValid: splitOf === null || splitOfMatch !== null,
 		threatModel,
 		complete: prMatch !== null && round !== null && kind !== null,
 	};
@@ -420,6 +439,8 @@ export interface DesignCheckStatus {
 	/** Missing keys (`file` when the file does not exist). */
 	missing: string[];
 	verdict: string | null;
+	/** Value of the `causing:` line (trimmed), or null. */
+	causing: string | null;
 }
 
 /**
@@ -430,7 +451,7 @@ export interface DesignCheckStatus {
 export function designCheckStatus(path: string): DesignCheckStatus {
 	const content = readOrNull(path);
 	if (content === null) {
-		return { exists: false, missing: ["file"], verdict: null };
+		return { exists: false, missing: ["file"], verdict: null, causing: null };
 	}
 	const missing: string[] = [];
 	for (const key of ["scope", "design", "class"]) {
@@ -439,10 +460,12 @@ export function designCheckStatus(path: string): DesignCheckStatus {
 	}
 	const verdict = /^verdict:\s*(continue|cut|redesign)\s*$/im.exec(content);
 	if (verdict === null) missing.push("verdict");
+	const causing = /^causing:\s*(\S.*)$/im.exec(content);
 	return {
 		exists: true,
 		missing,
 		verdict: verdict?.[1]?.toLowerCase() ?? null,
+		causing: causing === null ? null : (causing[1] ?? "").trim(),
 	};
 }
 

@@ -44,16 +44,22 @@
 // (the primary checkout of a pc-* repo stays on main — no branch, no
 // commit, no edit there; work in a worktree), ./design-check-gate.ts
 // (E1: a lens/fold brief at round >= 3 needs the latest design-check
-// file; every brief write needs the pr/round/kind header),
+// file, round >= 6 is refused (owner rule: split at round 5), and a
+// check answering 'causing: yes' may not say 'verdict: continue'; every
+// brief write needs the pr/round/kind header),
 // ./critical-path-slip.ts (E4: a slipped critical path needs a replan
 // entry before another brief for a non-done item) and
 // ./threat-model-required.ts (E5: red-team/trust-model lens briefs
 // need a 'Threat model:' line; issue/PR vault bodies need a
-// 'threat-model:' frontmatter key).
+// 'threat-model:' frontmatter key) and
+// ./rm-relative-guard.ts (a recursive rm on a relative path is
+// refused unless the same command &&-chains an absolute cd —
+// incident 2026-11-07 rm in the wrong cwd deleted pc-tenant/.local).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
-// ./ref-write-guard.test.ts (the argv matcher's block/allow matrix).
+// ./ref-write-guard.test.ts (the argv matcher's block/allow matrix) and
+// ./rm-relative-guard.test.ts (the relative-path block/allow matrix).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -86,6 +92,10 @@ import {
 	threatModelRequiredPlugin,
 	threatModelRules,
 } from "./threat-model-required.ts";
+import {
+	rmRelativeGuardPlugin,
+	rmRelativeGuardRules,
+} from "./rm-relative-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -200,6 +210,7 @@ export default defineConfig({
 		designCheckGatePlugin,
 		criticalPathSlipPlugin,
 		threatModelRequiredPlugin,
+		rmRelativeGuardPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -252,5 +263,6 @@ export default defineConfig({
 		...designCheckRules,
 		...criticalPathSlipRules,
 		...threatModelRules,
+		...rmRelativeGuardRules,
 	],
 });
