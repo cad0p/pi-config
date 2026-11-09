@@ -29,7 +29,9 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
 import {
+	COMPAT_DEMANDS,
 	COMPAT_DISCLAIMER,
+	COMPAT_DISCLAIMERS,
 	COMPAT_NOTE,
 	compatDemand,
 	evidenceValid,
@@ -399,6 +401,137 @@ describe("prelaunch-compat — a demand under the pre-launch default", () => {
 		});
 	});
 
+	it("allows the owner's #228 ruling quoted verbatim (the negation false positive)", async () => {
+		// Refused on 2026-11-09 as "an already-signed release": the line
+		// names the shape only to disclaim it. A gate that refuses the
+		// owner's anti-compatibility ruling teaches agents to paraphrase
+		// owner quotes, losing the verbatim record.
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("owner-ruling-quote.md"),
+				content: brief({
+					body: [
+						"# Brief",
+						"",
+						"Owner, verbatim: \"probably option A, there's no need to support any already signed release, we have no customers yet no one using it.\"",
+						"No dual reader: one reader reads both shapes.",
+						"",
+					].join("\n"),
+				}),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("allows 'there is no need' (the spelled-out owner quote)", async () => {
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("owner-ruling-there-is.md"),
+				content: brief({
+					body: "Owner, verbatim: 'probably option A, there is no need to support any already signed release, we have no customers yet no one using it.'\n",
+				}),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("allows a line that negates the demand it names", async () => {
+		// One case per negated form: the shape and its negation sit on the
+		// SAME line, so the line disclaims. Each line carries a real demand
+		// shape (asserted below), so the negation is what allows it.
+		const lines = [
+			"no need to support a dual reader",
+			"there's no need to support any already signed release",
+			"there is no need to support any already signed release",
+			"we don't need to support backwards compatibility",
+			"we do not need to support backwards compatibility",
+			"it doesn't need to support a dual reader for the staged releases",
+			"it does not need to support a dual reader for the staged releases",
+			"No dual reader: one reader reads both shapes.",
+			"already-signed releases are not supported",
+			"already-signed releases: nothing runs them",
+			"no customers run the already-signed releases",
+			"nobody is using the already-signed releases",
+			"no one using the already-signed releases",
+		];
+		for (const [i, line] of lines.entries()) {
+			assert.equal(
+				COMPAT_DEMANDS.some((demand) => demand.pattern.test(line)),
+				true,
+				`"${line}" carries a demand shape`,
+			);
+			await expectAllows(harness, {
+				write: {
+					path: briefPath(`negation-${i}.md`),
+					content: brief({ body: `${line}.\n` }),
+				},
+				cwd: "/tmp",
+			});
+		}
+	});
+
+	it("still blocks a demand when the negation is on another line", async () => {
+		// The disclaimer is line-scoped: a negation elsewhere in the file
+		// does not excuse the demand line.
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("negation-elsewhere-existing.md"),
+					content: brief({
+						body: [
+							"No customers yet, no one using it.",
+							"The existing releases must stay verifiable after the key change.",
+							"",
+						].join("\n"),
+					}),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "prelaunch-compat-gate", reason: /an existing release that must stay verifiable/ },
+		);
+	});
+
+	it("still blocks 'keep the old releases working' when the negation is elsewhere", async () => {
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("negation-elsewhere-keep.md"),
+					content: brief({
+						body: [
+							"There's no need to support the /2 producers.",
+							"keep the old releases working",
+							"",
+						].join("\n"),
+					}),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "prelaunch-compat-gate", reason: /keeping the old shape working/ },
+		);
+	});
+
+	it("still blocks a dual reader when the negation is elsewhere", async () => {
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("negation-elsewhere-dual.md"),
+					content: brief({
+						body: [
+							"Nothing runs the /1 producer today.",
+							"Add a dual reader for the staged releases.",
+							"",
+						].join("\n"),
+					}),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "prelaunch-compat-gate", reason: /a dual reader or dual-accept window/ },
+		);
+	});
+
 	it("allows 'residual accepted' (the unanchored-dual false positive)", async () => {
 		await expectAllows(harness, {
 			write: {
@@ -576,9 +709,41 @@ describe("prelaunch-compat — the pure helpers", () => {
 	});
 
 	it("pins the disclaimer vocabulary", () => {
-		for (const phrase of ["no compatibility", "not owed", "nothing runs", "pre-launch"]) {
+		const phrases = [
+			"no compatibility",
+			"not owed",
+			"nothing runs",
+			"pre-launch",
+			"no need to support",
+			"there's no need",
+			"there is no need",
+			"don't need to support",
+			"do not need to support",
+			"doesn't need to support",
+			"does not need to support",
+			"no dual reader",
+			"not supported",
+			"no customers",
+			"nobody using",
+			"no one is using",
+		];
+		for (const phrase of phrases) {
 			assert.equal(COMPAT_DISCLAIMER.test(phrase), true, phrase);
+			assert.equal(
+				COMPAT_DISCLAIMERS.some((pattern) => pattern.test(phrase)),
+				true,
+				`one entry matches "${phrase}"`,
+			);
 		}
+	});
+
+	it("keeps a negated shape out of the demand scan and a bare shape in", () => {
+		assert.equal(compatDemand("no dual reader"), null);
+		assert.equal(compatDemand("not supported"), null);
+		assert.equal(compatDemand("no customers, nobody using it"), null);
+		assert.notEqual(compatDemand("dual reader"), null);
+		assert.notEqual(compatDemand("keep the old releases working"), null);
+		assert.notEqual(compatDemand("existing releases must stay verifiable"), null);
 	});
 
 	it("parses consumers and evidence out of the header", () => {

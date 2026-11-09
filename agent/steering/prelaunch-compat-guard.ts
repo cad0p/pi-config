@@ -53,14 +53,16 @@
  * dual readers / dual-accept windows, compatibility / migration /
  * deprecation windows, and keeping the old producer/release/client/
  * schema working. The scan is line-scoped and a line that DISCLAIMS is
- * allowed — it contains "no compatibility", "not owed", "nothing runs"
- * or "pre-launch" — so the default line itself, and a brief that states
- * the rule, pass. Tuning notes from the real corpus (all 2632 briefs
- * and 141 design checks in the live state dir were scanned when this
- * landed: 11 briefs and 1 design check carry a demand — the nine #148
- * item D briefs, 228-design-ruling.md, this rule's own brief (it quotes
- * the incident) and the #228 design check; 1212 briefs predate the
- * header and would be refused on rewrite):
+ * allowed — "no compatibility", "not owed", "nothing runs", "pre-launch",
+ * or a NEGATED demand ("no need to support", "no dual reader", "no
+ * customers", "no one using it") — so the default line itself, a brief
+ * that states the rule, and a brief that QUOTES the owner's ruling pass.
+ * Tuning notes from the real corpus (all 2632 briefs and 141 design
+ * checks in the live state dir were scanned when this landed: 11 briefs
+ * and 1 design check carry a demand — the nine #148 item D briefs,
+ * 228-design-ruling.md, this rule's own brief (it quotes the incident)
+ * and the #228 design check; 1212 briefs predate the header and would
+ * be refused on rewrite):
  *   - `\bdual` is anchored: "residual accepted" contains "dual
  *     accept" and matched the unanchored form;
  *   - a migration / deprecation window counts only on a line that also
@@ -71,7 +73,19 @@
  *     compatibility obligation;
  *   - the header is read from the leading block only, so a `consumers:`
  *     line in the body does not satisfy the contract (the anti-bypass
- *     property: the compat demand cannot move to the body either).
+ *     property: the compat demand cannot move to the body either);
+ *   - a NEGATED demand is not a demand: the owner's own ruling on #228
+ *     ("probably option A, there's no need to support any already signed
+ *     release, we have no customers yet no one using it") was refused as
+ *     "an already-signed release" when a brief quoted it verbatim. A
+ *     gate that refuses the owner's anti-compatibility ruling teaches
+ *     agents to paraphrase owner quotes instead of recording them, so
+ *     the negation is read off the same line. Re-scan after the fix
+ *     (2680 briefs, 143 design checks): the hit list is unchanged at
+ *     11 + 1 and no file's verdict flips; the only two lines the
+ *     negation newly excuses are owner quotes — this rule's own brief
+ *     and the #228 design check's `superseded-by-owner` line — and each
+ *     file still carries a real demand on another line.
  *
  * Design checks get the demand scan too (designChecksDir, no consumers
  * header): a check whose rationale repeats the obligation ("already-
@@ -128,12 +142,42 @@ export const OWNER_QUOTES =
 
 /**
  * A line that DISCLAIMS the obligation is allowed, even when it names a
- * compatibility shape: the default header line itself, and a brief that
- * states the rule ("no compatibility window is owed; nothing runs a
- * /1 producer").
+ * compatibility shape: the default header line itself, a brief that
+ * states the rule ("no compatibility window is owed; nothing runs a /1
+ * producer"), and a brief that quotes the owner's ruling on #228 —
+ * "probably option A, there's no need to support any already signed
+ * release, we have no customers yet no one using it" — which names an
+ * already-signed release only to disclaim it.
+ *
+ * The disclaimer vocabulary, one entry each (the combined regex below is
+ * what the scan uses). The negated forms matter as much as the positive
+ * ones: a gate that refuses the owner's own anti-compatibility ruling
+ * teaches agents to paraphrase owner quotes, losing the verbatim record.
  */
-export const COMPAT_DISCLAIMER =
-	/\bno compatibility|not owed|nothing runs|pre-?launch/i;
+export const COMPAT_DISCLAIMERS: readonly RegExp[] = [
+	// The rule stated in the positive.
+	/\bno compatibility/i,
+	/\bnot owed/i,
+	/\bnothing runs\b/i,
+	/\bpre-?launch/i,
+	// "no need to support", "there's / there is no need".
+	/\bno need to support\b/i,
+	/\bthere(?:['\u2019]s| is) no need\b/i,
+	// "don't / do not / doesn't / does not need to support".
+	/\b(?:do(?:n['\u2019]?t| not)|does(?:n['\u2019]?t| not)) need to support\b/i,
+	// "no dual reader", "not supported".
+	/\bno dual[- ]reader\b/i,
+	/\bnot supported\b/i,
+	// "no customers", "nobody / no one (is) using".
+	/\bno customers\b/i,
+	/\b(?:nobody|no one) (?:is )?using\b/i,
+];
+
+/** Every disclaimer above, as one regex (no capture groups to collide). */
+export const COMPAT_DISCLAIMER = new RegExp(
+	COMPAT_DISCLAIMERS.map((pattern) => pattern.source).join("|"),
+	"i",
+);
 
 /** One compatibility demand a line can make. */
 export interface CompatDemand {
