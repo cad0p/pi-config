@@ -69,9 +69,14 @@ export const DEV_SHM_WRITERS = [
 	"env",
 ] as const;
 
-/** Names already declared by other plugins (git plugin; agentConfigGuardPlugin in index.ts). */
+/**
+ * Names already declared by other plugins (git plugin; agentConfigGuardPlugin
+ * in index.ts; npm by ./pnpm-lockfile-guard.ts, which owns the npm flag
+ * table — a second declaration is a descriptor collision).
+ */
 const DECLARED_ELSEWHERE = new Set([
 	"git",
+	"npm",
 	"sed",
 	"cp",
 	"tee",

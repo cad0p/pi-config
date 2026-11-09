@@ -71,6 +71,11 @@
 // owner's critical-path label on a cad0p/pc-* repo: the merge queue's
 // actor check binds the flag to account 14107574, which agent sessions
 // share — pc-host #714 r1 red-team F2) and
+// ./pnpm-lockfile-guard.ts (where a repo carries a pnpm-lock.yaml,
+// an npm install verb — install/i/ci/add — is refused: "this repo uses
+// pnpm: run pnpm install --frozen-lockfile (one global store)"; the
+// effective directory comes from the walker's cwd plus npm --prefix,
+// owner call 11 / pc-website #80) and
 // ./secret-file-read-guard.ts (a bash command that would print a known
 // secret file — ~/.npmrc, *.env/.env*, *.pem/*.key, ~/.ssh/id_*, gh/
 // aws/docker/rclone/restic credential files — into the transcript is
@@ -90,7 +95,9 @@
 // ./tsh-guard.test.ts (the shared-Teleport-home block/allow matrix) and
 // ./secret-file-read-guard.test.ts (the secret-print block/allow matrix,
 // incl. the read-tool gap) and ./bw-cli-guard.test.ts (the bw/bwbio
-// block/allow matrix, incl. the capture/pipe gap).
+// block/allow matrix, incl. the capture/pipe gap) and
+// ./pnpm-lockfile-guard.test.ts (the npm-in-a-pnpm-repo block/allow
+// matrix over real lockfile fixtures).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -138,6 +145,10 @@ import {
 	secretFileReadGuardRules,
 } from "./secret-file-read-guard.ts";
 import { bwCliGuardPlugin, bwCliGuardRules } from "./bw-cli-guard.ts";
+import {
+	pnpmLockfilePlugin,
+	pnpmLockfileRules,
+} from "./pnpm-lockfile-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -258,6 +269,7 @@ export default defineConfig({
 		criticalPathLabelGuardPlugin,
 		secretFileReadGuardPlugin,
 		bwCliGuardPlugin,
+		pnpmLockfilePlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -316,5 +328,6 @@ export default defineConfig({
 		...criticalPathLabelRules,
 		...secretFileReadGuardRules,
 		...bwCliGuardRules,
+		...pnpmLockfileRules,
 	],
 });
