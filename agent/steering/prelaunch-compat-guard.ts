@@ -55,8 +55,12 @@
  * schema working. The scan is line-scoped and a line that DISCLAIMS is
  * allowed — it contains "no compatibility", "not owed", "nothing runs"
  * or "pre-launch" — so the default line itself, and a brief that states
- * the rule, pass. Tuning notes from the real corpus (all 2622 briefs in
- * the live briefs dir were scanned when this landed):
+ * the rule, pass. Tuning notes from the real corpus (all 2632 briefs
+ * and 141 design checks in the live state dir were scanned when this
+ * landed: 11 briefs and 1 design check carry a demand — the nine #148
+ * item D briefs, 228-design-ruling.md, this rule's own brief (it quotes
+ * the incident) and the #228 design check; 1212 briefs predate the
+ * header and would be refused on rewrite):
  *   - `\bdual` is anchored: "residual accepted" contains "dual
  *     accept" and matched the unanchored form;
  *   - a migration / deprecation window counts only on a line that also
