@@ -30,7 +30,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
 import { parseBriefHeader } from "./brief-gates.ts";
-import { SPLIT_TEMPLATE } from "./design-check-gate.ts";
+import { SPLIT_TEMPLATE, splitAddendumPath } from "./design-check-gate.ts";
 import {
 	clearLensStubs,
 	failGhComments,
@@ -264,6 +264,36 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 		assert.ok(named !== undefined, `names a template path: ${reason}`);
 		assert.equal(named, SPLIT_TEMPLATE);
 		assert.ok(existsSync(named), `the named template exists: ${named}`);
+		assert.doesNotMatch(reason, /addendum/, "no addendum file, no addendum clause");
+	});
+
+	it("names the local addendum only when it exists in the state dir", async () => {
+		designCheck(PR, 5);
+		const addendum = splitAddendumPath();
+		assert.equal(addendum, join(state, "templates", "split-addendum.md"));
+		mkdirSync(join(state, "templates"), { recursive: true });
+		writeFileSync(addendum, "local specifics\n");
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r6-lens.md"), content: header(PR, 6) },
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: new RegExp(`\\)\\. Apply the local addendum ${addendum.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")} too\\. A split piece`),
+			},
+		);
+	});
+
+	it("keeps the public template generic (no private paths, projects or ids)", () => {
+		const template = readFileSync(SPLIT_TEMPLATE, "utf8");
+		for (const needle of ["/home/", "Goldmine", "pc-host", "14107574", "/data/tmp", "pc-merge", "cad0p", "pier"]) {
+			assert.ok(
+				!template.toLowerCase().includes(needle.toLowerCase()),
+				`templates/split-brief.md is public and must not contain '${needle}'`,
+			);
+		}
 	});
 
 	it("ships a template whose filled header passes the brief gates and carries split-of", async () => {
@@ -272,7 +302,7 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 		const keys = lead.split(/\r?\n/).map((l) => l.split(":")[0]);
 		// The fields the round cap and the header contract read.
 		assert.deepEqual(keys, ["pr", "round", "kind", "split-of", "Threat model"]);
-		assert.match(template, /owner 2026-11-09, verbatim: "The PR never comes to me unless there is a real need of the owner/);
+		assert.match(template, /do not put the PR to the owner/);
 		// Unfilled, it is refused in briefs/ (placeholders fail the header).
 		await expectBlocks(
 			harness,
@@ -280,9 +310,10 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 			{ rule: "design-check-gate" },
 		);
 		const filled = template
+			.replaceAll("<owner>", "cad0p")
 			.replaceAll("<repo>", "pc-host")
 			.replaceAll("<N>", "650")
-			.replace(/<the parent PR note's threat-model value>/, "verification-base#control-plane");
+			.replace(/<the parent PR's threat-model section>/, "verification-base#control-plane");
 		const parsed = parseBriefHeader(filled);
 		assert.equal(parsed.complete, true);
 		assert.equal(parsed.pr, PR);
