@@ -132,6 +132,10 @@ import {
 	primaryCheckoutRules,
 } from "./primary-checkout-guard.ts";
 import {
+	worktreeGuardPlugin,
+	worktreeGuardRules,
+} from "./worktree-guard.ts";
+import {
 	designCheckGatePlugin,
 	designCheckRules,
 } from "./design-check-gate.ts";
@@ -277,6 +281,7 @@ export default defineConfig({
 		gitIdentityGuardPlugin,
 		mergeGuardPlugin,
 		primaryCheckoutGuardPlugin,
+		worktreeGuardPlugin,
 		designCheckGatePlugin,
 		criticalPathSlipPlugin,
 		openWorkGatePlugin,
@@ -296,6 +301,8 @@ export default defineConfig({
 		// no-main-ref-write rails also refuse. Both are user rules, so
 		// both precede every plugin rule.
 		...primaryCheckoutRules,
+		// pc-host #764: worktrees are created by pc-wt and removed by the reap.
+		...worktreeGuardRules,
 		{
 			name: "no-agent-config-edit",
 			tool: "edit",
