@@ -30,6 +30,19 @@
  *                                           summary whose result:, run-on
  *                                           and dirty lines the lens gate
  *                                           greps)
+ *   consumers: none — pre-launch: no tenant slices run; no
+ *                                          compatibility window is owed
+ *                                          (required, prelaunch-compat-
+ *                                          guard.ts: either that exact
+ *                                          pre-launch default, or a
+ *                                          concrete RUNNING consumer plus
+ *                                          an 'evidence: <path:line or
+ *                                          URL>' line. With the default,
+ *                                          a body that demands
+ *                                          compatibility work is refused)
+ *   evidence: pc-host/tools/install.sh:42  (required when consumers: names
+ *                                           a running consumer: where it
+ *                                           runs, as path:line or a URL)
  *   session: b55c1bf4                      (optional: the writing pi
  *                                           session's id8, the LAST 8 hex
  *                                           of PI_SESSION_ID, or the full
@@ -142,6 +155,10 @@ export interface BriefHeader {
 	greenRun: string | null;
 	/** Value of the `Threat model:` / `threat-model:` line, or null. */
 	threatModel: string | null;
+	/** Value of the `consumers:` line as written, or null when absent/empty. */
+	consumers: string | null;
+	/** Value of the `evidence:` line as written, or null when absent/empty. */
+	evidence: string | null;
 	/** Value of the `session:` line as written, or null. */
 	sessionRaw: string | null;
 	/** Lowercased id8 (the last 8 hex, see sessionId8) from `session:`; null when absent or malformed. */
@@ -241,6 +258,10 @@ export function parseBriefHeader(content: string): BriefHeader {
 	const threatMatch = /^threat[ -]model:\s*(.*)$/im.exec(content);
 	const threatModel =
 		threatMatch === null ? null : stripQuotes((threatMatch[1] ?? "").trim());
+	const consumersRaw = (values.get("consumers") ?? "").trim();
+	const consumers = consumersRaw === "" ? null : consumersRaw;
+	const evidenceRaw = (values.get("evidence") ?? "").trim();
+	const evidence = evidenceRaw === "" ? null : evidenceRaw;
 	const sessionRawValue = (values.get("session") ?? "").trim();
 	const sessionRaw = sessionRawValue === "" ? null : sessionRawValue;
 	const session = sessionRaw === null ? null : sessionId8(sessionRaw);
@@ -260,6 +281,8 @@ export function parseBriefHeader(content: string): BriefHeader {
 		head,
 		greenRun,
 		threatModel,
+		consumers,
+		evidence,
 		sessionRaw,
 		session,
 		complete: prMatch !== null && round !== null && kind !== null,
@@ -269,6 +292,13 @@ export function parseBriefHeader(content: string): BriefHeader {
 /** Is the absolute path a `.md` file inside the briefs directory? */
 export function isBriefFile(path: string): boolean {
 	const dir = briefsDir();
+	if (!(path === dir || path.startsWith(dir + sep))) return false;
+	return /\.md$/i.test(path);
+}
+
+/** Is the absolute path a `.md` file inside the design-checks directory? */
+export function isDesignCheckFile(path: string): boolean {
+	const dir = designChecksDir();
 	if (!(path === dir || path.startsWith(dir + sep))) return false;
 	return /\.md$/i.test(path);
 }
@@ -548,7 +578,7 @@ export function designCheckStatus(path: string): DesignCheckStatus {
 /** The header-contract message every brief gate falls back to. */
 export function headerReason(write: BriefWrite | null): string {
 	const where = write?.path ?? "the brief";
-	return `briefs need a header: the first lines must be 'pr: <owner>/<repo>#<n>', 'round: <n>', 'kind: lens|fold|impl' (optional 'lens: red-team|trust-model' and 'Threat model: <section>'). Add it to ${where}.`;
+	return `briefs need a header: the first lines must be 'pr: <owner>/<repo>#<n>', 'round: <n>', 'kind: lens|fold|impl', 'consumers: none — pre-launch: no tenant slices run; no compatibility window is owed' (or a running consumer plus 'evidence: <path:line or URL>') (optional 'lens: red-team|trust-model' and 'Threat model: <section>'). Add it to ${where}.`;
 }
 
 /** The "shell hides the content" message (tee / truncating redirects). */

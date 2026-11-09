@@ -68,8 +68,12 @@ function briefPath(name: string): string {
 	return join(briefs, name);
 }
 
+/** The pre-launch consumers line every brief header now carries. */
+const CONSUMERS =
+	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
+
 function header(pr: string, round: number, kind = "lens", extra = ""): string {
-	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${lensHeaderLines(state)}${extra}`;
+	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}`;
 }
 
 /**
@@ -81,7 +85,7 @@ function foldHeader(
 	foldOf: string = LENS_HEAD,
 	extra = "",
 ): string {
-	return `pr: ${PR}\nround: ${round}\nkind: fold\nfold-of: ${foldOf}\n${extra}`;
+	return `pr: ${PR}\nround: ${round}\nkind: fold\n${CONSUMERS}\nfold-of: ${foldOf}\n${extra}`;
 }
 
 /** The stub helper's rounds for the suite's PR (one head per round). */
@@ -301,7 +305,14 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 		const lead = template.split(/\r?\n\r?\n/)[0] ?? "";
 		const keys = lead.split(/\r?\n/).map((l) => l.split(":")[0]);
 		// The fields the round cap and the header contract read.
-		assert.deepEqual(keys, ["pr", "round", "kind", "split-of", "Threat model"]);
+		assert.deepEqual(keys, [
+			"pr",
+			"round",
+			"kind",
+			"split-of",
+			"consumers",
+			"Threat model",
+		]);
 		assert.match(template, /do not put the PR to the owner/);
 		// Unfilled, it is refused in briefs/ (placeholders fail the header).
 		await expectBlocks(

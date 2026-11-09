@@ -53,8 +53,12 @@ afterEach(() => {
 	rmSync(state, { recursive: true, force: true });
 });
 
+/** The pre-launch consumers line every brief header now carries. */
+const CONSUMERS =
+	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
+
 function header(extra: string): string {
-	return `pr: ${PR}\nround: 1\nkind: lens\nlens: red-team\n${lensHeaderLines(state)}${extra}`;
+	return `pr: ${PR}\nround: 1\nkind: lens\nlens: red-team\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}`;
 }
 
 function briefPath(name: string): string {
@@ -106,7 +110,7 @@ describe("threat-model-required — brief side", () => {
 			{
 				write: {
 					path: briefPath("r1-trust.md"),
-					content: `pr: ${PR}\nround: 1\nkind: lens\nlens: trust-model\n${lensHeaderLines(state)}`,
+					content: `pr: ${PR}\nround: 1\nkind: lens\nlens: trust-model\n${CONSUMERS}\n${lensHeaderLines(state)}`,
 				},
 				cwd: "/tmp",
 			},
@@ -118,7 +122,7 @@ describe("threat-model-required — brief side", () => {
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("r1-functional.md"),
-				content: `pr: ${PR}\nround: 1\nkind: lens\nlens: functional\n${lensHeaderLines(state)}`,
+				content: `pr: ${PR}\nround: 1\nkind: lens\nlens: functional\n${CONSUMERS}\n${lensHeaderLines(state)}`,
 			},
 			cwd: "/tmp",
 		});
@@ -130,7 +134,7 @@ describe("threat-model-required — brief side", () => {
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("r1-fold.md"),
-				content: `pr: ${PR}\nround: 1\nkind: fold\nfold-of: ${LENS_HEAD}\n`,
+				content: `pr: ${PR}\nround: 1\nkind: fold\n${CONSUMERS}\nfold-of: ${LENS_HEAD}\n`,
 			},
 			cwd: "/tmp",
 		});

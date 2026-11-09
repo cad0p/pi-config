@@ -2,6 +2,7 @@ pr: <owner>/<repo>#<N>
 round: 1
 kind: impl
 split-of: <owner>/<repo>#<N>
+consumers: none — pre-launch: no tenant slices run; no compatibility window is owed
 Threat model: <the parent PR's threat-model section>
 
 <!-- TEMPLATE NOTES: delete this block in the real brief.
@@ -9,6 +10,7 @@ Generic split-brief template, shipped next to the round-cap rule (design-check-g
 When: the round cap refuses a brief, or a PR at its cap needs ANY code change (a review finding, a gate refusal, a live-test defect, a design redesign). Split; do not put the PR to the owner. The only head move on a capped PR without a split is an absorb of the base branch (absorb-of: exemption).
 How: copy this file, fill every <...>, keep the header lines above first, write the result with the write tool to <state>/briefs/<N>-split.md, then launch one split author with the filled brief as its prompt. Never copy the unfilled template into briefs/: the brief-header gate refuses placeholders, by design.
 Local addendum: when the round-cap refusal names a local addendum file, apply it too (it carries the private specifics this public template leaves as placeholders: local paths, the never-list, the notes/vault steps, the owner's own wording).
+Consumers: the header carries the pre-launch default (no tenant slice runs, so no compatibility window is owed); a piece that must keep an already-shipped shape working names the running consumer and adds 'evidence: <path:line or URL>' instead. A signed release that exists is not a running consumer.
 Header: pr: and split-of: both name the PARENT (the pieces have no PR numbers yet); kind: impl is never round-capped. Each piece's later briefs carry pr: <piece PR>, round: 1, split-of: <parent>, and restart at round 1 only when the piece's changed paths are a SUBSET of the parent's and its changed lines strictly FEWER (else it inherits the parent's round count). There is no one-split limit: a piece that reaches round 5 splits again.
 After the author reports, the orchestrator files the piece PRs (bodies from the author's notes), closes the parent as superseded with a comment linking the pieces, and launches each piece's round-1 review.
 -->

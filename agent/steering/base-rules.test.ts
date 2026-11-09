@@ -91,9 +91,13 @@ function setRounds(pr: string, count: number): void {
 	});
 }
 
+/** The pre-launch consumers line every brief header now carries. */
+const CONSUMERS =
+	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
+
 /** A lens brief's header; `extra` adds head:, green-run:, split-of:, absorb-of:. */
 function lensHeader(round: number, extra = ""): string {
-	return `pr: ${PR}\nround: ${round}\nkind: lens\n${extra}`;
+	return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\n${extra}`;
 }
 
 /** A lens brief header with the head and its passing run: the R1/R3 shape. */
@@ -465,7 +469,7 @@ describe("base-rules — the gate record reads the helper's evidence layout", ()
 
 	/** A pc-tenant round-1 lens brief: only the gate record can green it. */
 	function tenantLens(): string {
-		return `pr: ${TENANT_PR}\nround: 1\nkind: lens\nhead: ${TENANT_HEAD}\n`;
+		return `pr: ${TENANT_PR}\nround: 1\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\n`;
 	}
 
 	it("allows a pc-tenant gate record at evidence/<owner>/<repo>/<head>/<id>", async () => {
@@ -516,7 +520,7 @@ describe("base-rules — the gate record reads the helper's evidence layout", ()
 			{
 				write: {
 					path: brief("trav-r1-lens.md"),
-					content: `pr: ../..#189\nround: 1\nkind: lens\nhead: ${LENS_HEAD}\n`,
+					content: `pr: ../..#189\nround: 1\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\n`,
 				},
 				cwd: "/tmp",
 			},
@@ -551,7 +555,7 @@ describe("base-rules — absorb-of reads the PR's own repo clone", () => {
 
 	/** The tenant PR's head + its green run, the header a lens brief needs. */
 	function tenantLens(round: number, extra = ""): string {
-		return `pr: ${TENANT_PR}\nround: ${round}\nkind: lens\nhead: ${TENANT_HEAD}\ngreen-run: ${passingSummary(state, TENANT_HEAD)}\n${extra}`;
+		return `pr: ${TENANT_PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\ngreen-run: ${passingSummary(state, TENANT_HEAD)}\n${extra}`;
 	}
 
 	/** The clone basenames the git stub was called with, deduped. */

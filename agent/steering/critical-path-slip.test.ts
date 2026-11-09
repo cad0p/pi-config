@@ -43,7 +43,7 @@ function writeState(value: unknown): void {
 }
 
 function briefContent(pr = PR): string {
-	return `pr: ${pr}\nround: 1\nkind: impl\n`;
+	return `pr: ${pr}\nround: 1\nkind: impl\nconsumers: none — pre-launch: no tenant slices run; no compatibility window is owed\n`;
 }
 
 function briefPath(name: string): string {

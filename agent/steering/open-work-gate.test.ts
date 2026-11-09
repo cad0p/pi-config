@@ -95,7 +95,12 @@ function brief(
 	pr: string,
 	opts: { session?: string; splitOf?: string } = {},
 ): string {
-	const lines = [`pr: ${pr}`, "round: 1", "kind: impl"];
+	const lines = [
+		`pr: ${pr}`,
+		"round: 1",
+		"kind: impl",
+		"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed",
+	];
 	if (opts.splitOf !== undefined) lines.push(`split-of: ${opts.splitOf}`);
 	if (opts.session !== undefined) lines.push(`session: ${opts.session}`);
 	return `${lines.join("\n")}\n\nbody\n`;

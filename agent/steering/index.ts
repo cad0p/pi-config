@@ -71,6 +71,16 @@
 // owner's critical-path label on a cad0p/pc-* repo: the merge queue's
 // actor check binds the flag to account 14107574, which agent sessions
 // share — pc-host #714 r1 red-team F2) and
+// ./prelaunch-compat-guard.ts (every brief carries 'consumers:' —
+// either the pre-launch default 'none — pre-launch: no tenant slices
+// run; no compatibility window is owed' or a concrete running consumer
+// plus 'evidence: <path:line or URL>'; with the default, a brief whose
+// body demands compatibility work — backwards compatibility,
+// already-signed releases that must stay verifiable, dual readers,
+// compatibility/migration/deprecation windows — is refused, and a
+// design check whose rationale assumes the obligation is refused too;
+// the rule lived only in prose and #148 item D and pc-tenant #228 both
+// paid for it) and
 // ./pnpm-lockfile-guard.ts (where a repo carries a pnpm-lock.yaml,
 // an npm install verb — install/i/ci/add — is refused: "this repo uses
 // pnpm: run pnpm install --frozen-lockfile (one global store)"; the
@@ -97,7 +107,10 @@
 // incl. the read-tool gap) and ./bw-cli-guard.test.ts (the bw/bwbio
 // block/allow matrix, incl. the capture/pipe gap) and
 // ./pnpm-lockfile-guard.test.ts (the npm-in-a-pnpm-repo block/allow
-// matrix over real lockfile fixtures).
+// matrix over real lockfile fixtures) and
+// ./prelaunch-compat-guard.test.ts (the consumers-header and
+// compatibility-demand block/allow matrix, incl. the #228 design
+// brief).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -149,6 +162,10 @@ import {
 	pnpmLockfilePlugin,
 	pnpmLockfileRules,
 } from "./pnpm-lockfile-guard.ts";
+import {
+	prelaunchCompatPlugin,
+	prelaunchCompatRules,
+} from "./prelaunch-compat-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -270,6 +287,7 @@ export default defineConfig({
 		secretFileReadGuardPlugin,
 		bwCliGuardPlugin,
 		pnpmLockfilePlugin,
+		prelaunchCompatPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -320,6 +338,9 @@ export default defineConfig({
 		...refWriteGuardRules,
 		...gitIdentityRules,
 		...designCheckRules,
+		// The consumers header and the pre-launch compatibility rule: a
+		// brief may not assume an obligation nobody has (pc-tenant #228).
+		...prelaunchCompatRules,
 		...criticalPathSlipRules,
 		...openWorkGateRules,
 		...threatModelRules,

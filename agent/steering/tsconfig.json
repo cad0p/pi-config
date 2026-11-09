@@ -32,6 +32,8 @@
 		"threat-model-required.test.ts",
 		"rm-relative-guard.test.ts",
 		"secret-file-read-guard.test.ts",
-		"bw-cli-guard.test.ts"
+		"bw-cli-guard.test.ts",
+		"pnpm-lockfile-guard.test.ts",
+		"prelaunch-compat-guard.test.ts"
 	]
 }
