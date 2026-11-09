@@ -53,7 +53,7 @@ instead of a silent regression. Check state any time with:
 
 ## Active patches
 
-Status as of 2026-11-08. All seven are applied, still needed (no upstream fix released), and verified to rebuild byte-identically from pristine files.
+Status as of 2026-11-08. All eight are applied, still needed (no upstream fix released), and verified to rebuild byte-identically from pristine files.
 
 ### `pi/` — pi itself (`@earendil-works/pi-coding-agent` 1.5.0)
 
@@ -71,6 +71,7 @@ Status as of 2026-11-08. All seven are applied, still needed (no upstream fix re
 | `0004-pi-devin-orphan-tool-calls` | a tool call without a result (after a tree rewind) makes Devin answer `invalid_argument` for the rest of the session | [buYoung/pi-packages#73](https://github.com/buYoung/pi-packages/issues/73) open | `toDevinTranscript()` closes orphaned calls |
 | `0005-pi-devin-session-router` | an in-process subagent re-registers `devin` and takes the lead's provider; when it ends, the lead's requests fail "The Devin provider shut down." (shown as "Operation aborted"); children also started with an empty catalog | [buYoung/pi-packages#71](https://github.com/buYoung/pi-packages/issues/71) open | upstream routes by session, or pi scopes native providers per session |
 | `0006-pi-devin-parallel-tool-calls` | Claude responses with two or more parallel tool calls fail "Cannot attach a delta without a tool ID…" (keeps upstream's check for frames that start several calls at once) | [buYoung/pi-packages#72](https://github.com/buYoung/pi-packages/issues/72) open | the accumulator attaches id-less deltas to the current call |
+| `0008-pi-devin-clamp-max-tokens` | the output limit is never clamped to the context window (always `maxOutputTokens`, 128k on swe-2), so a full context never ends in a `length` stop; a subagent ran ~20 turns at 264k-279k of a 262k window before navigate_tree caught it at 106.7% (2026-11-09) | not filed yet (fix + test on `fix/pi-devin-clamp-max-tokens` in `/data/tmp/wt/pi-devin-clamp`, 251/251) | `prepareRequest` calls `clampMaxTokensToContext` |
 
 ## Adding a patch
 
