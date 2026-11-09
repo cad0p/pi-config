@@ -14,7 +14,7 @@
 # (models.json overrides included).
 PATCH_ID="0008-pi-devin-clamp-max-tokens"
 PATCH_TITLE="pi-devin: clamp the output limit to the context window like pi-ai's adapters"
-PATCH_UPSTREAM="(not filed yet)"
+PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/74"
 PATCH_REMOVE_WHEN="upstream prepareRequest clamps maxTokens with clampMaxTokensToContext; then delete this file"
 
 PATCH_ROOTS="${PI_AGENT_DIR}/npm/node_modules/@buyong/pi-devin"
