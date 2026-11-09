@@ -17,6 +17,7 @@
 
 import assert from "node:assert/strict";
 import {
+	existsSync,
 	mkdirSync,
 	mkdtempSync,
 	readFileSync,
@@ -28,6 +29,8 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
+import { parseBriefHeader } from "./brief-gates.ts";
+import { SPLIT_TEMPLATE } from "./design-check-gate.ts";
 import {
 	clearLensStubs,
 	failGhComments,
@@ -238,6 +241,59 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 				reason: /round 6 on cad0p\/pc-host#650: split the PR into independent pieces/,
 			},
 		);
+	});
+
+	it("tells the agent to split from a template that exists, not to ask the owner", async () => {
+		designCheck(PR, 5);
+		const result = await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r6-lens.md"), content: header(PR, 6) },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /do not ask the owner/ },
+		);
+		const reason = String((result as { reason?: unknown }).reason ?? "");
+		assert.match(reason, /Next action: launch a split author from the template /);
+		assert.ok(
+			reason.includes(join(briefs, "650-split.md")),
+			`names the brief to write: ${reason}`,
+		);
+		assert.match(reason, /split-of: cad0p\/pc-host#650 and restarts at round 1/);
+		const named = /from the template (\S+\.md) /.exec(reason)?.[1];
+		assert.ok(named !== undefined, `names a template path: ${reason}`);
+		assert.equal(named, SPLIT_TEMPLATE);
+		assert.ok(existsSync(named), `the named template exists: ${named}`);
+	});
+
+	it("ships a template whose filled header passes the brief gates and carries split-of", async () => {
+		const template = readFileSync(SPLIT_TEMPLATE, "utf8");
+		const lead = template.split(/\r?\n\r?\n/)[0] ?? "";
+		const keys = lead.split(/\r?\n/).map((l) => l.split(":")[0]);
+		// The fields the round cap and the header contract read.
+		assert.deepEqual(keys, ["pr", "round", "kind", "split-of", "Threat model"]);
+		assert.match(template, /owner 2026-11-09, verbatim: "The PR never comes to me unless there is a real need of the owner/);
+		// Unfilled, it is refused in briefs/ (placeholders fail the header).
+		await expectBlocks(
+			harness,
+			{ write: { path: briefPath("650-split.md"), content: template }, cwd: "/tmp" },
+			{ rule: "design-check-gate" },
+		);
+		const filled = template
+			.replaceAll("<repo>", "pc-host")
+			.replaceAll("<N>", "650")
+			.replace(/<the parent PR note's threat-model value>/, "verification-base#control-plane");
+		const parsed = parseBriefHeader(filled);
+		assert.equal(parsed.complete, true);
+		assert.equal(parsed.pr, PR);
+		assert.equal(parsed.round, 1);
+		assert.equal(parsed.kind, "impl");
+		assert.equal(parsed.splitOfValid, true);
+		assert.equal(parsed.splitOfKey, PR);
+		await expectAllows(harness, {
+			write: { path: briefPath("650-split.md"), content: filled },
+			cwd: "/tmp",
+		});
 	});
 
 	it("blocks a round-7 fold brief (its verdicts posted, the cap still applies)", async () => {

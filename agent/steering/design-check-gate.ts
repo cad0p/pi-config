@@ -12,7 +12,10 @@
  * keep folding. A split piece is a NEW PR: its brief names the piece PR
  * in `pr:` and carries `split-of: <owner>/<repo>#<n>` (the original).
  * `kind: impl` / `land` / `build` briefs are never capped, so landing a
- * PR that already has clean verdicts keeps working.
+ * PR that already has clean verdicts keeps working. The refusal is an
+ * instruction (owner 2026-11-09: a capped PR is split, never put to the
+ * owner): it names the next action and the canonical split-brief
+ * template, templates/split-brief.md next to this file (SPLIT_TEMPLATE).
  *
  * One round definition and the shrink rule (pc-host #704 R4, R2; owner
  * 2026-11-08: "yes it should be enforced, advisories don't work with
@@ -95,6 +98,8 @@
  * (documented in brief-gates.ts).
  */
 
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { PredicateContext } from "@cad0p/pi-steering";
 import type { BriefWrite, DesignCheckStatus } from "./brief-gates.ts";
 import {
@@ -109,6 +114,7 @@ import {
 import type { BriefHeader } from "./brief-gates.ts";
 import {
 	briefContent,
+	briefsDir,
 	briefWrites,
 	designCheckPath,
 	designCheckStatus,
@@ -129,17 +135,29 @@ declare global {
 /** Round 6+ on the same PR: split it (owner rule: split at round 5). */
 export const ROUND_CAP = 6;
 
-/** The round-cap message. */
+/**
+ * The canonical split-brief template, versioned next to this rule (owner
+ * 2026-11-09: a capped PR is split, never put to the owner; splitting
+ * stalled partly because there was no ready-made brief). Resolved from this
+ * module so the refusal names the file that ships with the rule; the test
+ * pins that it exists and that its header passes the brief-header gate.
+ */
+export const SPLIT_TEMPLATE = fileURLToPath(
+	new URL("./templates/split-brief.md", import.meta.url),
+);
+
+/** The round-cap message: an instruction with the next action, not a question. */
 function roundCapReason(
 	pr: string,
 	round: number,
 	why: string | null,
 ): string {
+	const number = pr.split("#")[1] ?? "<n>";
 	const tail =
 		why === null
-			? "A split piece is a new PR whose brief header carries split-of: ${pr} and restarts at round 1 only when its changed paths are a subset of the parent's and its changed lines strictly fewer; otherwise it inherits the parent's round count. There is no one-split limit: a piece that reaches round 5 splits again."
+			? `A split piece is a new PR whose brief header carries split-of: ${pr} and restarts at round 1 only when its changed paths are a subset of the parent's and its changed lines strictly fewer; otherwise it inherits the parent's round count. There is no one-split limit: a piece that reaches round 5 splits again.`
 			: why;
-	return `round ${round} on ${pr}: split the PR into independent pieces (owner rule: split at round 5). ${tail}`;
+	return `round ${round} on ${pr}: split the PR into independent pieces (owner rule: split at round 5). This is an instruction, not a question: do not ask the owner. Next action: launch a split author from the template ${SPLIT_TEMPLATE} (fill every <...> and write it with the write tool to ${join(briefsDir(), `${number}-split.md`)}). ${tail}`;
 }
 
 /**
