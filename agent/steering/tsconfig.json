@@ -30,6 +30,8 @@
 		"critical-path-slip.test.ts",
 		"open-work-gate.test.ts",
 		"threat-model-required.test.ts",
-		"rm-relative-guard.test.ts"
+		"rm-relative-guard.test.ts",
+		"secret-file-read-guard.test.ts",
+		"bw-cli-guard.test.ts"
 	]
 }

@@ -70,13 +70,27 @@
 // ./critical-path-label-guard.ts (agents never apply or remove the
 // owner's critical-path label on a cad0p/pc-* repo: the merge queue's
 // actor check binds the flag to account 14107574, which agent sessions
-// share — pc-host #714 r1 red-team F2).
+// share — pc-host #714 r1 red-team F2) and
+// ./secret-file-read-guard.ts (a bash command that would print a known
+// secret file — ~/.npmrc, *.env/.env*, *.pem/*.key, ~/.ssh/id_*, gh/
+// aws/docker/rclone/restic credential files — into the transcript is
+// refused: the printing consumers only, so hashes, silent compares,
+// counts/queries, masked `sed` and writes stay allowed; the READ tool
+// is not gateable, pi-steering 0.2.0 rules are bash/write/edit) and
+// ./bw-cli-guard.ts (no bw/bwbio command may print a vault secret or
+// rotate the cached session: `bw get password|totp|notes|item|attachment`,
+// `bw list items`, `bw export`, `bw unlock/login`, echo/printf of
+// BW_SESSION, and bare `bwbio <cmd>` without BW_SESSION are refused —
+// guide personal/guides/2026-10-07-bitwarden-cli-session-scoping).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
 // ./ref-write-guard.test.ts (the argv matcher's block/allow matrix) and
 // ./rm-relative-guard.test.ts (the relative-path block/allow matrix) and
-// ./tsh-guard.test.ts (the shared-Teleport-home block/allow matrix).
+// ./tsh-guard.test.ts (the shared-Teleport-home block/allow matrix) and
+// ./secret-file-read-guard.test.ts (the secret-print block/allow matrix,
+// incl. the read-tool gap) and ./bw-cli-guard.test.ts (the bw/bwbio
+// block/allow matrix, incl. the capture/pipe gap).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -119,6 +133,11 @@ import {
 	criticalPathLabelGuardPlugin,
 	criticalPathLabelRules,
 } from "./critical-path-label-guard.ts";
+import {
+	secretFileReadGuardPlugin,
+	secretFileReadGuardRules,
+} from "./secret-file-read-guard.ts";
+import { bwCliGuardPlugin, bwCliGuardRules } from "./bw-cli-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -237,6 +256,8 @@ export default defineConfig({
 		rmRelativeGuardPlugin,
 		tshGuardPlugin,
 		criticalPathLabelGuardPlugin,
+		secretFileReadGuardPlugin,
+		bwCliGuardPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -293,5 +314,7 @@ export default defineConfig({
 		...rmRelativeGuardRules,
 		...tshGuardRules,
 		...criticalPathLabelRules,
+		...secretFileReadGuardRules,
+		...bwCliGuardRules,
 	],
 });
