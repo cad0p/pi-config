@@ -17,7 +17,7 @@
 # PR #10600 (AssistantMessage.retryAfterMs) was not merged; main still uses pure backoff.
 PATCH_ID="0007-agent-retry-server-hint"
 PATCH_TITLE="Agent retry: wait at least the server's 'reset/retry in N' hint; no retry past the cap"
-PATCH_UPSTREAM="earendil-works/pi#10601 (closed, fix #10600 not merged; still present in 1.5.0)"
+PATCH_UPSTREAM="earendil-works/pi#10601 (closed, fix #10600 not merged; still present in 1.5.1)"
 PATCH_REMOVE_WHEN="upstream agent-level retry honors the server-requested delay (e.g. AssistantMessage.retryAfterMs) for text hints; then delete this file"
 
 PATCH_FILES="dist/core/agent-session.js dist/bundle/chunks/*.js"

@@ -17,7 +17,7 @@
 # UNPATCHED_RE matches the upstream, v1 and v2 forms, so older installs are upgraded in place.
 PATCH_ID="0001-cache-warming-identity"
 PATCH_TITLE="Cache warming: match re-projected messages by entry id, else role+timestamp"
-PATCH_UPSTREAM="earendil-works/pi#10956 (open; still present in 1.5.0)"
+PATCH_UPSTREAM="earendil-works/pi#10956 (open; still present in 1.5.1)"
 PATCH_REMOVE_WHEN="upstream cacheContextIsCurrent compares by entry id (with restored messages mapped) or keeps projected objects stable; then delete this file"
 
 # Targets (glob relative to the pi-coding-agent package root). The bundle chunk name

@@ -53,14 +53,14 @@ instead of a silent regression. Check state any time with:
 
 ## Active patches
 
-Status as of 2026-11-08. All eight are applied, still needed (no upstream fix released), and verified to rebuild byte-identically from pristine files.
+Status as of 2026-11-10. All eight are applied, still needed (no upstream fix released), and verified to rebuild byte-identically from pristine files.
 
-### `pi/` — pi itself (`@earendil-works/pi-coding-agent` 1.5.0)
+### `pi/` — pi itself (`@earendil-works/pi-coding-agent` 1.5.1)
 
 | id | what it fixes | upstream | remove when |
 |---|---|---|---|
-| `0001-cache-warming-identity` | idle cache warming dies at the first turn that re-projects a custom/compaction message (identity compare in `cacheContextIsCurrent`) | [earendil-works/pi#10956](https://github.com/earendil-works/pi/issues/10956) open; main `415be82` still compares with `===` | upstream compares re-projected messages by entry id |
-| `0007-agent-retry-server-hint` | agent-level retry ignores the server's wait ("reset in 16 seconds"), so rate-limited turns burn their 3 retries inside the window; a hint past `retry.maxAgentDelayMs` (e.g. "~3 hours") is no longer retried, so fallback moves on at once | [earendil-works/pi#10601](https://github.com/earendil-works/pi/issues/10601) closed, fix #10600 not merged; main still pure backoff | upstream agent retry honors server-requested delays from the error text |
+| `0001-cache-warming-identity` | idle cache warming dies at the first turn that re-projects a custom/compaction message (identity compare in `cacheContextIsCurrent`) | [earendil-works/pi#10956](https://github.com/earendil-works/pi/issues/10956) open; 1.5.1 still compares with `===` | upstream compares re-projected messages by entry id |
+| `0007-agent-retry-server-hint` | agent-level retry ignores the server's wait ("reset in 16 seconds"), so rate-limited turns burn their 3 retries inside the window; a hint past `retry.maxAgentDelayMs` (e.g. "~3 hours") is no longer retried, so fallback moves on at once | [earendil-works/pi#10601](https://github.com/earendil-works/pi/issues/10601) closed, fix #10600 not merged; 1.5.1 still pure backoff | upstream agent retry honors server-requested delays from the error text |
 
 ### `pi-devin/` — `@buyong/pi-devin` 0.1.14 (latest on npm; upstream main unchanged since `7d5a318`)
 
