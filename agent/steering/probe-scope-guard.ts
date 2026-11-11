@@ -233,7 +233,7 @@ export const leaksUnboundedProbePredicate = definePredicate<BooleanLeafArgs>(
 
 /** Agent-facing message: the incident, the bound, why kill -INT fails. */
 const REASON =
-	"unbounded probe: an ad-hoc busy wait or detached launch with no runtime bound. On 2026-11-11 a backgrounded `bash v.sh & …; kill -INT $p` probe outlived its turn and burned one core for 11.5 h: a backgrounded shell in this harness ignores SIGINT, so kill -INT is a no-op and the process outlives the turn. Bound it: systemd-run --user --wait --collect --pipe --unit=pc-probe-<name> --property=RuntimeMaxSec=900 -- <cmd> (the unit's cgroup dies with it, even a setsid grandchild), or wrap it in timeout <n> (n > 0), or set PC_PROBE_BOUNDED=1 when you really mean to leave it running (docs/pc-orphan-reap.md, incident 2026-11-11).";
+	"unbounded probe: an ad-hoc busy wait or detached launch with no runtime bound. On 2026-11-11 a backgrounded `bash v.sh & …; kill -INT $p` probe outlived its turn and burned one core for 11.5 h: a backgrounded shell in this harness ignores SIGINT, so kill -INT is a no-op and the process outlives the turn. Bound it: systemd-run --user --wait --collect --pipe --unit=pc-probe-<name> --property=RuntimeMaxSec=600 -- <cmd> (the unit's cgroup dies with it, even a setsid grandchild), or wrap it in timeout <n> (n > 0), or set PC_PROBE_BOUNDED=1 when you really mean to leave it running (docs/pc-orphan-reap.md, incident 2026-11-11). 600 s is the same bar the CI run budget uses (RUN_BUDGET_SECONDS=600 in tools/ci.sh and tools/merge-pr.sh): an agent probe gets a gate run's ceiling, so something that needs longer than ten minutes is not a probe, it is a job that has to be cut.";
 
 export const probeScopeGuardRules = [
 	{

@@ -26,11 +26,23 @@ describe("probe-scope-guard", () => {
 				"bash -c 'trap \"echo RAN > /tmp/probe/r3\" EXIT; while :; do :; done' & p=$!; sleep 0.5; kill -INT $p",
 		});
 	});
-	it("GREEN: the same probe under a 900 s unit is allowed", async () => {
+	it("GREEN: the same probe under a 600 s unit is allowed", async () => {
 		await expectAllows(harness, {
 			command:
-				"systemd-run --user --wait --collect --pipe --unit=pc-probe-r3 --property=RuntimeMaxSec=900 -- bash -c 'trap \"echo RAN > /tmp/probe/r3\" EXIT; while :; do :; done' & p=$!; sleep 0.5; kill -INT $p",
+				"systemd-run --user --wait --collect --pipe --unit=pc-probe-r3 --property=RuntimeMaxSec=600 -- bash -c 'trap \"echo RAN > /tmp/probe/r3\" EXIT; while :; do :; done' & p=$!; sleep 0.5; kill -INT $p",
 		});
+	});
+
+	// The owner's one-number ruling: the probe ceiling is the CI run bar.
+	it("deny message carries the 600 s bound and the CI run budget", async () => {
+		await expectBlocks(
+			harness,
+			{ command: "bash -c 'while :; do :; done'" },
+			{
+				rule: "no-unbounded-probe",
+				reason: /RuntimeMaxSec=600[\s\S]*RUN_BUDGET_SECONDS=600/,
+			},
+		);
 	});
 
 	// --- unbounded busy waits ---------------------------------------------
@@ -94,7 +106,7 @@ describe("probe-scope-guard", () => {
 	// --- the bound shapes are allowed -------------------------------------
 	it("allows timeout <n>", async () => {
 		await expectAllows(harness, {
-			command: "timeout 900 bash -c 'while :; do :; done'",
+			command: "timeout 600 bash -c 'while :; do :; done'",
 		});
 	});
 	it("allows timeout with an smhd suffix", async () => {
@@ -105,7 +117,7 @@ describe("probe-scope-guard", () => {
 	it("allows the systemd-run RuntimeMaxSec recipe", async () => {
 		await expectAllows(harness, {
 			command:
-				"systemd-run --user --wait --collect --pipe --unit=pc-probe-a --property=RuntimeMaxSec=900 -- bash v.sh",
+				"systemd-run --user --wait --collect --pipe --unit=pc-probe-a --property=RuntimeMaxSec=600 -- bash v.sh",
 		});
 	});
 	it("allows a PC_PROBE_BOUNDED=1 prefix", async () => {
@@ -173,11 +185,11 @@ describe("probe-scope-guard", () => {
 
 describe("probe-scope-guard helpers", () => {
 	it("reads a positive timeout, not timeout 0", () => {
-		if (!hasTimeoutBound("timeout 900 bash -c x")) throw new Error("900");
+		if (!hasTimeoutBound("timeout 600 bash -c x")) throw new Error("600");
 		if (hasTimeoutBound("timeout 0 bash -c x")) throw new Error("0 is no limit");
 	});
 	it("reads a positive RuntimeMaxSec, not 0", () => {
-		if (!hasRuntimeMaxSec("--property=RuntimeMaxSec=900")) throw new Error("900");
+		if (!hasRuntimeMaxSec("--property=RuntimeMaxSec=600")) throw new Error("600");
 		if (hasRuntimeMaxSec("--property=RuntimeMaxSec=0")) throw new Error("0");
 	});
 	it("scales sleep suffixes", () => {
@@ -201,7 +213,7 @@ describe("probe-scope-guard helpers", () => {
 		if (
 			probeIsUnbounded(
 				"systemd-run",
-				"systemd-run --user --property=RuntimeMaxSec=900 -- bash v.sh",
+				"systemd-run --user --property=RuntimeMaxSec=600 -- bash v.sh",
 				{},
 			)
 		)
