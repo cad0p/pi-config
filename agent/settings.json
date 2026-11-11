@@ -93,8 +93,7 @@
     "anthropic*/claude-opus-5-5:high",
     "devin*/deepseek-v4-1-flash-1017:max",
     "opencode-go*/deepseek-v4.1-flash:max",
-    "mistral*/deepseek-v4-1-flash-1017:max",
-    "opencode-go*/longcat-2.5-free:high"
+    "mistral*/deepseek-v4-1-flash-1017:max"
   ],
   "defaultProjectTrust": "always",
   "compaction": {
