@@ -2,7 +2,7 @@
   "name": "pi-extensions",
   "private": true,
   "dependencies": {
-    "@buyong/pi-devin": "^0.1.14",
+    "@buyong/pi-devin": "^0.1.16",
     "@cad0p/pi-background-work": "0.0.2",
     "@cad0p/pi-bash-timeout": "0.1.0-20260630.1",
     "@cad0p/pi-deepinfra-provider": "0.1.5-20261020.7",

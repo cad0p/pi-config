@@ -53,25 +53,30 @@ instead of a silent regression. Check state any time with:
 
 ## Active patches
 
-Status as of 2026-11-10. All eight are applied, still needed (no upstream fix released), and verified to rebuild byte-identically from pristine files.
+Status as of 2026-11-11, after `@buyong/pi-devin` 0.1.16. Five of the six pi-devin patches are gone: 0.1.15 shipped fixes for #70, #71, #72, #73 and #74 (changelog: newest-only cache mark, parallel tool calls, orphaned tool call results, output limit fit to the context, shared-runtime routing), each with a regression test. Only `0003` remains on the extension side. `0001` and `0007` are still needed on pi 1.5.2.
 
-### `pi/` — pi itself (`@earendil-works/pi-coding-agent` 1.5.1)
-
-| id | what it fixes | upstream | remove when |
-|---|---|---|---|
-| `0001-cache-warming-identity` | idle cache warming dies at the first turn that re-projects a custom/compaction message (identity compare in `cacheContextIsCurrent`) | [earendil-works/pi#10956](https://github.com/earendil-works/pi/issues/10956) open; 1.5.1 still compares with `===` | upstream compares re-projected messages by entry id |
-| `0007-agent-retry-server-hint` | agent-level retry ignores the server's wait ("reset in 16 seconds"), so rate-limited turns burn their 3 retries inside the window; a hint past `retry.maxAgentDelayMs` (e.g. "~3 hours") is no longer retried, so fallback moves on at once | [earendil-works/pi#10601](https://github.com/earendil-works/pi/issues/10601) closed, fix #10600 not merged; 1.5.1 still pure backoff | upstream agent retry honors server-requested delays from the error text |
-
-### `pi-devin/` — `@buyong/pi-devin` 0.1.14 (latest on npm; upstream main unchanged since `7d5a318`)
+### `pi/` — pi itself (`@earendil-works/pi-coding-agent` 1.5.2)
 
 | id | what it fixes | upstream | remove when |
 |---|---|---|---|
-| `0002-pi-devin-cache-breakpoint` | every user/tool message marked EPHEMERAL, so the Claude cache prefix freezes after ~3 turns | [buYoung/pi-packages#70](https://github.com/buYoung/pi-packages/issues/70) open | only the newest message carries the mark |
-| `0003-pi-devin-cache-warming` | extension forces `{ action: "stop" }` on cache warming for every devin model; with it removed pi decides, opt-in per model in `models.json` (`promptCache` + `cost`, today only `claude-opus-5-5`) | local only: upstream stops warming on purpose (server TTL unverified) | **critical, keep.** Without it every pause longer than the cache TTL re-sends the lead's whole Opus prefix uncached against the Devin quota. Remove only if upstream lets pi decide warming for devin models |
-| `0004-pi-devin-orphan-tool-calls` | a tool call without a result (after a tree rewind) makes Devin answer `invalid_argument` for the rest of the session | [buYoung/pi-packages#73](https://github.com/buYoung/pi-packages/issues/73) open | `toDevinTranscript()` closes orphaned calls |
-| `0005-pi-devin-session-router` | an in-process subagent re-registers `devin` and takes the lead's provider; when it ends, the lead's requests fail "The Devin provider shut down." (shown as "Operation aborted"); children also started with an empty catalog | [buYoung/pi-packages#71](https://github.com/buYoung/pi-packages/issues/71) open | upstream routes by session, or pi scopes native providers per session |
-| `0006-pi-devin-parallel-tool-calls` | Claude responses with two or more parallel tool calls fail "Cannot attach a delta without a tool ID…" (keeps upstream's check for frames that start several calls at once) | [buYoung/pi-packages#72](https://github.com/buYoung/pi-packages/issues/72) open | the accumulator attaches id-less deltas to the current call |
-| `0008-pi-devin-clamp-max-tokens` | the output limit is never clamped to the context window (always `maxOutputTokens`, 128k on swe-2), so a full context never ends in a `length` stop; a subagent ran ~20 turns at 264k-279k of a 262k window before navigate_tree caught it at 106.7% (2026-11-09) | [buYoung/pi-packages#74](https://github.com/buYoung/pi-packages/issues/74) open (fix + test on local branch `fix/pi-devin-clamp-max-tokens`, 251/251) | `prepareRequest` calls `clampMaxTokensToContext` |
+| `0001-cache-warming-identity` | idle cache warming dies at the first turn that re-projects a custom/compaction message (identity compare in `cacheContextIsCurrent`) | [earendil-works/pi#10956](https://github.com/earendil-works/pi/issues/10956) open; 1.5.2 still compares with `===` | upstream compares re-projected messages by entry id |
+| `0007-agent-retry-server-hint` | agent-level retry ignores the server's wait ("reset in 16 seconds"), so rate-limited turns burn their 3 retries inside the window; a hint past `retry.maxAgentDelayMs` (e.g. "~3 hours") is no longer retried, so fallback moves on at once | [earendil-works/pi/issues/11932](https://github.com/earendil-works/pi/issues/11932) proposes an `auto_retry_decision` hook instead of text parsing; still pure backoff in 1.5.2 | upstream fires a retry decision event an extension can answer, and this repo uses it |
+
+### `pi-devin/` — `@buyong/pi-devin` 0.1.16
+
+| id | what it fixes | upstream | remove when |
+|---|---|---|---|
+| `0003-pi-devin-cache-warming` | extension forces `{ action: "stop" }` on cache warming for every devin model; with it removed pi decides, opt-in per model in `models.json` (`promptCache` + `cost`, today only `claude-opus-5-5`) | local only: 0.1.16 still stops warming on purpose (server TTL unverified) | **critical, keep.** Without it every pause longer than the cache TTL re-sends the lead's whole Opus prefix uncached against the Devin quota. Remove only if upstream lets pi decide warming for devin models |
+
+### Removed after 0.1.16
+
+| id | was | fixed upstream by |
+|---|---|---|
+| `0002-pi-devin-cache-breakpoint` | every user/tool message marked EPHEMERAL | #70: `request.ts` keeps only the newest mark (test `pi-provider.test.ts` L290) |
+| `0004-pi-devin-orphan-tool-calls` | `invalid_argument` after a tree rewind | #73: `toDevinTranscript()` answers unanswered calls with Pi's "No result provided" |
+| `0005-pi-devin-session-router` | in-process subagent took the lead's provider ("Operation aborted") | #71: `routing` routes each call to its session's instance (`pi-shared-runtime.test.ts`) |
+| `0006-pi-devin-parallel-tool-calls` | "Cannot attach a delta without a tool ID…" with parallel calls | #72: the accumulator attaches id-less deltas to the last named call |
+| `0008-pi-devin-clamp-max-tokens` | output limit never clamped to the context window | #74: `outputLimitForContext()` reserves room for the input |
 
 ## Adding a patch
 

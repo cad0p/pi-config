@@ -1,7 +1,7 @@
 lockfileVersion: '9.0'
 
 settings:
-  autoInstallPeers: false
+  autoInstallPeers: true
   excludeLinksFromLockfile: false
 
 importers:
@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@buyong/pi-devin':
-        specifier: ^0.1.14
-        version: 0.1.14(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)
+        specifier: ^0.1.16
+        version: 0.1.16(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)
       '@cad0p/pi-background-work':
         specifier: 0.0.2
         version: 0.0.2(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))
@@ -158,8 +158,8 @@ packages:
     resolution: {integrity: sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==}
     engines: {node: '>=6.9.0'}
 
-  '@buyong/pi-devin@0.1.14':
-    resolution: {integrity: sha512-I7ZyhXgpU7TLDKb+4cHSIjSNiugUznRTLqVp+RXL84SICdJZkzcLoXxGeKZKxyvdZ+vvlgca2p9W0GxnFC6u6w==}
+  '@buyong/pi-devin@0.1.16':
+    resolution: {integrity: sha512-WH6e0e/FEcliD1KXaTUbjtDCUCPbSGJhhZDrNsQoqp2J6Ehfj0guyKUFkloefG0j1TzdC2EoND76l9EBJEFNig==}
     engines: {node: '>=22.19.0'}
     peerDependencies:
       '@earendil-works/pi-ai': '*'
@@ -1330,7 +1330,7 @@ snapshots:
 
   '@babel/runtime@7.29.7': {}
 
-  '@buyong/pi-devin@0.1.14(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)':
+  '@buyong/pi-devin@0.1.16(@earendil-works/pi-ai@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-coding-agent@1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7))(@earendil-works/pi-tui@1.4.0)':
     dependencies:
       '@earendil-works/pi-ai': 1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(undici@8.10.2)(ws@8.22.0)(zod@4.6.7)
       '@earendil-works/pi-coding-agent': 1.4.0(@aws-sdk/credential-provider-node@3.972.86)(@modelcontextprotocol/sdk@1.32.1(supports-color@7.2.0)(zod@4.6.7))(@smithy/signature-v4@5.7.4)(supports-color@7.2.0)(ws@8.22.0)(zod@4.6.7)
