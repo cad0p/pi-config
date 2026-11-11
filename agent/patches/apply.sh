@@ -51,7 +51,7 @@ PATCHES=$(ls -1 "${0%/*}"/*/*.patch.sh 2>/dev/null | sort)
 for patch in $PATCHES; do
   # Reset the contract before each file so one patch can never inherit another's state.
   PATCH_ID= PATCH_TITLE= PATCH_UPSTREAM= PATCH_REMOVE_WHEN= PATCH_FILES= PATCH_ROOTS=
-  UNPATCHED_RE= PATCHED_RE= PATCH_PERL=
+  UNPATCHED_RE= PATCHED_RE= UPSTREAM_FIXED_RE= PATCH_PERL=
   # shellcheck disable=SC1090
   . "$patch" || { printf 'pi-patches: cannot source %s\n' "$patch" >&2; failures=$((failures + 1)); continue; }
   if [ -z "$PATCH_ID" ] || [ -z "$PATCH_FILES" ] || [ -z "$UNPATCHED_RE" ] || [ -z "$PATCH_PERL" ]; then
@@ -79,11 +79,23 @@ for patch in $PATCHES; do
     for glob in "$@"; do
       for f in "$pkg"/$glob; do [ -f "$f" ] && _candidates="$_candidates $f"; done
     done
+    # A file counts when it shows either of our forms or the upstream fix, so a patch whose
+    # fix landed upstream is reported instead of silently doing nothing.
+    _state_re="$UNPATCHED_RE|$PATCHED_RE"
+    [ -n "$UPSTREAM_FIXED_RE" ] && _state_re="$_state_re|$UPSTREAM_FIXED_RE"
     # shellcheck disable=SC2086
-    FILES=$(grep -lE "$UNPATCHED_RE|$PATCHED_RE" $_candidates 2>/dev/null)
+    FILES=$(grep -lE "$_state_re" $_candidates 2>/dev/null)
     [ -n "$FILES" ] || continue
     if ! release_needs_patch "$pkg"; then
-      say "   $label$marker: already applied"
+      if release_has_state upstream; then
+        if release_has_state patched; then
+          say "   $label$marker: upstream fixed one target, ours is still applied on another — review before deleting"
+        else
+          say "   $label$marker: upstream fixed this — delete the patch file"
+        fi
+      else
+        say "   $label$marker: already applied"
+      fi
       continue
     fi
     case "$MODE" in

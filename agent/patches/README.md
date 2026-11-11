@@ -31,13 +31,15 @@ Each patch declares:
 | `PATCH_FILES` | globs relative to the package root (chunk names change per release, so target directories) |
 | `PATCH_ROOTS` | optional package root globs; default is the pi-coding-agent package of the releases in scope |
 | `UNPATCHED_RE` / `PATCHED_RE` | how to tell the upstream form from the patched form (idempotency) |
+| `UPSTREAM_FIXED_RE` | optional: matches the code that shows the fix landed upstream. Then the patch reports `upstream fixed this — delete the patch file` and touches nothing, even when `UNPATCHED_RE` still matches an anchor line that survived the upstream rewrite (2026-11-11: pi-devin 0.1.15 fixed #73/#74 while the old anchor line stayed, so the shape alone said "unpatched") |
 | `PATCH_PERL` | the `perl -0 -p` substitution program |
 | `PATCH_UPSTREAM` / `PATCH_REMOVE_WHEN` | which upstream issue this works around, and when to delete the file |
 
 The runner backs up each file it touches to `<file>.orig`. It restores the backup if perl fails, if the result does not match `PATCHED_RE`, or if the syntax check fails. The syntax check is `node --check`; `.ts` files are type-stripped with `node:module`'s `stripTypeScriptTypes` first.
 
-pnpm installs (the npm extensions) hardlink package files into the content-addressed store. `perl -i` writes a new inode, so patching never touches the store copy. Do not "fix" a target with an in-place write such as `cp` over it or an editor that preserves the inode. A patch whose target code is absent (upstream fixed
-it, or the code was refactored) reports as "not applicable" and does nothing.
+pnpm installs (the npm extensions) hardlink package files into the content-addressed store. `perl -i` writes a new inode, so patching never touches the store copy. Do not "fix" a target with an in-place write such as `cp` over it or an editor that preserves the inode. A patch whose target code is absent (upstream refactored it) reports as "not applicable" and does nothing.
+
+**When a patch may lie, write `UPSTREAM_FIXED_RE`.** A patch decides "unpatched" from the shape of the line it rewrites, so a release that keeps that line while adding the fix elsewhere (or next to it) reads as "needs patch" and applying would duplicate or contradict the upstream code. Declare the upstream fix's own code instead: the runner then reports the patch as obsolete and skips it. Two examples are wired today: `0007` matches `auto_retry_decision` (the hook pi#11932 asks for), so it retires itself the day pi grows that event.
 
 ## Why the auto-apply runs at session_start
 

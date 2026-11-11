@@ -24,6 +24,9 @@ PATCH_FILES="dist/core/agent-session.js dist/bundle/chunks/*.js"
 
 UNPATCHED_RE='let delayMs=retryDelayMs\(settings,this\._retryAttempt\);|const delayMs = retryDelayMs\(settings, this\._retryAttempt\);'
 PATCHED_RE='_serverRetryHintMs\(message\)\{|_serverRetryHintMs\(message\) \{'
+# If pi ever fires a retry decision an extension can answer (earendil-works/pi#11932), this
+# workaround is obsolete: report it instead of patching a rewritten _prepareRetry.
+UPSTREAM_FIXED_RE='auto_retry_decision'
 
 PATCH_PERL='
 s#_isRetryableError\(message\)\{return #_serverRetryHintMs(message){let m=/\\b(?:resets?|retry|try again) in ~?\\s*(\\d+(?:\\.\\d+)?)\\s*(ms|milliseconds?|s|secs?|seconds?|m|mins?|minutes?|h|hrs?|hours?)\\b/i.exec(message.errorMessage??"");if(!m)return;let u=m[2].toLowerCase(),f=u.startsWith("ms")||u.startsWith("milli")?1:u.startsWith("h")?36e5:u.startsWith("m")?6e4:1e3;return Math.ceil(Number(m[1])*f)}_isRetryableError(message){let hintMs=this._serverRetryHintMs(message),capMs=this.settingsManager.getRetrySettings().maxAgentDelayMs??6e4;if(hintMs!==void 0&&capMs>0&&hintMs>capMs)return!1;return #;

@@ -14,10 +14,17 @@ active_version() {
   [ -r "$f" ] && IFS= read -r v < "$f" && printf '%s' "$v"
 }
 
-# patched | unpatched | n/a  (n/a = the code this patch targets is gone: upstream fixed or refactor)
+# patched | upstream | unpatched | n/a
+#  patched   our marker is there
+#  upstream  UPSTREAM_FIXED_RE matches: the fix landed in the package, so applying ours would
+#            duplicate or contradict it (2026-11-11: pi-devin 0.1.15 fixed #73/#74 and the old
+#            anchor line survived, so the shape alone still said "unpatched")
+#  unpatched our anchor is there and nothing claims the fix
+#  n/a       the code this patch targets is gone: upstream refactor
 patch_state() {
   _pkgfile=$1
   if grep -qE "$PATCHED_RE" "$_pkgfile" 2>/dev/null; then echo patched
+  elif [ -n "$UPSTREAM_FIXED_RE" ] && grep -qE "$UPSTREAM_FIXED_RE" "$_pkgfile" 2>/dev/null; then echo upstream
   elif grep -qE "$UNPATCHED_RE" "$_pkgfile" 2>/dev/null; then echo unpatched
   else echo n/a
   fi
@@ -39,11 +46,16 @@ syntax_ok() {
 # True when the release still contains any unpatched target file.
 release_needs_patch() {
   _pkg=$1
-  _need=1
+  release_has_state unpatched && return 0
+  return 1
+}
+
+# True when any target file is in the given state (patched | upstream | unpatched | n/a).
+release_has_state() {
   for _f in $FILES; do
-    [ "$(patch_state "$_f")" = unpatched ] && _need=0 && break
+    [ "$(patch_state "$_f")" = "$1" ] && return 0
   done
-  return $_need
+  return 1
 }
 
 # Patch one release. Sets PATCHED_COUNT; prints one line per file when verbose.
@@ -56,7 +68,8 @@ patch_release() {
     _state=$(patch_state "$_f")
     case "$_state" in
       patched) [ "$_verbose" = 1 ] && printf '    already patched: %s\n' "${_f#$_pkg/}" ;;
-      n/a)     : ;;   # target code absent (upstream fixed or refactored); say nothing
+      upstream) [ "$_verbose" = 1 ] && printf '    upstream already fixed, left alone: %s\n' "${_f#$_pkg/}" ;;
+      n/a)     : ;;   # target code absent (upstream refactor); say nothing
       unpatched)
         cp -n "$_f" "$_f.orig" 2>/dev/null || true
         # Restore point for THIS patch: .orig is the pristine file, so restoring it would also
