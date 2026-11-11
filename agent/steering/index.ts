@@ -81,6 +81,13 @@
 // design check whose rationale assumes the obligation is refused too;
 // the rule lived only in prose and #148 item D and pc-tenant #228 both
 // paid for it) and
+// ./probe-scope-guard.ts (an ad-hoc probe may not run unbounded: an
+// unbounded busy wait, setsid/nohup/start_new_session, an endless sleep,
+// or a systemd-run without a positive RuntimeMaxSec is refused unless the
+// same command carries a bound — timeout <n>, --property=RuntimeMaxSec=<n>
+// or PC_PROBE_BOUNDED=1; incident 2026-11-11, a backgrounded `while :; do`
+// probe survived its turn because a background job in this harness ignores
+// SIGINT, so kill -INT is a no-op, and burned one core for 11.5 h) and
 // ./pnpm-lockfile-guard.ts (where a repo carries a pnpm-lock.yaml,
 // an npm install verb — install/i/ci/add — is refused: "this repo uses
 // pnpm: run pnpm install --frozen-lockfile (one global store)"; the
@@ -110,7 +117,9 @@
 // matrix over real lockfile fixtures) and
 // ./prelaunch-compat-guard.test.ts (the consumers-header and
 // compatibility-demand block/allow matrix, incl. the #228 design
-// brief).
+// brief) and ./probe-scope-guard.test.ts (the unbounded-probe
+// block/allow matrix, the incident red/green pair, the fake-bound
+// cases and the pinned raw-command gap).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -170,6 +179,10 @@ import {
 	prelaunchCompatPlugin,
 	prelaunchCompatRules,
 } from "./prelaunch-compat-guard.ts";
+import {
+	probeScopeGuardPlugin,
+	probeScopeGuardRules,
+} from "./probe-scope-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -293,6 +306,7 @@ export default defineConfig({
 		bwCliGuardPlugin,
 		pnpmLockfilePlugin,
 		prelaunchCompatPlugin,
+		probeScopeGuardPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -348,6 +362,8 @@ export default defineConfig({
 		// The consumers header and the pre-launch compatibility rule: a
 		// brief may not assume an obligation nobody has (pc-tenant #228).
 		...prelaunchCompatRules,
+		// An ad-hoc probe may not outlive its turn (incident 2026-11-11).
+		...probeScopeGuardRules,
 		...criticalPathSlipRules,
 		...openWorkGateRules,
 		...threatModelRules,
