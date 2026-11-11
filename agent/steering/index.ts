@@ -172,6 +172,10 @@ import {
 } from "./secret-file-read-guard.ts";
 import { bwCliGuardPlugin, bwCliGuardRules } from "./bw-cli-guard.ts";
 import {
+	reconcileAcceptPlugin,
+	reconcileAcceptRules,
+} from "./reconcile-accept-guard.ts";
+import {
 	pnpmLockfilePlugin,
 	pnpmLockfileRules,
 } from "./pnpm-lockfile-guard.ts";
@@ -304,6 +308,7 @@ export default defineConfig({
 		criticalPathLabelGuardPlugin,
 		secretFileReadGuardPlugin,
 		bwCliGuardPlugin,
+		reconcileAcceptPlugin,
 		pnpmLockfilePlugin,
 		prelaunchCompatPlugin,
 		probeScopeGuardPlugin,
@@ -372,6 +377,7 @@ export default defineConfig({
 		...criticalPathLabelRules,
 		...secretFileReadGuardRules,
 		...bwCliGuardRules,
+		...reconcileAcceptRules,
 		...pnpmLockfileRules,
 	],
 });
