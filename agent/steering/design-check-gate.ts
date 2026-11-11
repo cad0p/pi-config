@@ -39,6 +39,20 @@
  * whose result:, run-on and dirty lines grep clean). Every check fails
  * closed.
  *
+ * The absorb-head green-run relaxation. A brief that reviews the absorb
+ * head H' may cite the CI run produced on the head H the absorb was built
+ * from (`absorb-of: <40-hex>`): with `absorb-of: H` present exactly once,
+ * H different from `head:`, and EVERY `green-run:` summary naming H, the
+ * run-on check accepts H in place of H'. That is sound because
+ * `tools/merge-pr.sh absorb` reports `absorb-check: PASS` (the PR delta is
+ * byte-identical to the reviewed head) and the pass carries the reviewed
+ * verdicts forward in its own `absorb-check: PASS ... reviewed=<H>` line,
+ * so the merge bar does not need the ~13-16 min container run on H'. The
+ * reviewed head must still be the PR's current head; without `absorb-of:`
+ * a summary on another sha refuses with the unchanged message, and a
+ * summary that names no sha, a dirty live-worktree run, and a malformed or
+ * repeated `absorb-of:` line all still refuse.
+ *
  * Absorb exemption (owner ruling 2026-11-08, "ideally this process should
  * not require me"): a capped PR must still take in main before it merges,
  * and when merge-pr.sh's absorb check asks for a trio, that trio reviews
@@ -124,6 +138,7 @@ import {
 	designCheckPath,
 	designCheckStatus,
 	firstBriefWrite,
+	headerBlock,
 	headerReason,
 	isGatedKind,
 	parseBriefHeader,
@@ -230,13 +245,24 @@ function roundCapRefusal(header: BriefHeader): string | null {
 	);
 }
 
-/** The `absorb-of:` value in the brief's leading lines, or null if absent. */
-function absorbOfValue(content: string): string | null {
-	for (const line of content.split(/\r?\n/).slice(0, 20)) {
+/** Every `absorb-of:` value in the brief's header block, in order. */
+function absorbOfValues(content: string): string[] {
+	const values: string[] = [];
+	for (const line of headerBlock(content)) {
 		const m = /^absorb-of:\s*(.*?)\s*$/i.exec(line);
-		if (m) return m[1] ?? "";
+		if (m) values.push(m[1] ?? "");
 	}
-	return null;
+	return values;
+}
+
+/** Every `green-run:` path in the brief's header block, in order. */
+function greenRunValues(content: string): string[] {
+	const values: string[] = [];
+	for (const line of headerBlock(content)) {
+		const m = /^green-run:\s*(.*?)\s*$/i.exec(line);
+		if (m !== null && (m[1] ?? "") !== "") values.push(m[1] ?? "");
+	}
+	return values;
 }
 
 /**
@@ -285,7 +311,11 @@ function writeBlockReason(write: BriefWrite): string | null {
 	if (!header.splitOfValid) {
 		return `split-of must be a PR ref ('split-of: <owner>/<repo>#<n>'), not '${header.splitOf ?? ""}'.`;
 	}
-	const absorbOf = absorbOfValue(content);
+	const absorbOfs = absorbOfValues(content);
+	if (absorbOfs.length > 1) {
+		return `absorb-of must appear exactly once: this brief carries ${absorbOfs.length} 'absorb-of:' lines (${absorbOfs.join(", ")}); keep the one absorb merge commit.`;
+	}
+	const absorbOf = absorbOfs[0] ?? null;
 	if (absorbOf !== null && !/^[0-9a-f]{40}$/.test(absorbOf)) {
 		return `absorb-of must be the absorb merge commit as 40 lowercase hex ('absorb-of: <sha>'), not '${absorbOf}'.`;
 	}
@@ -295,7 +325,10 @@ function writeBlockReason(write: BriefWrite): string | null {
 		if (binding !== null) return binding;
 	}
 	if (header.kind === "lens") {
-		const lens = lensHeadRefusal(header.head, header.greenRun, header.pr);
+		const lens = lensHeadRefusal(header.head, header.greenRun, header.pr, {
+			absorbOf,
+			greenRuns: greenRunValues(content),
+		});
 		if (lens !== null) return lens;
 	}
 	// The fold's verdicts are checked before the cap: a round that is ahead

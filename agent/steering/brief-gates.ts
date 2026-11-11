@@ -187,7 +187,7 @@ function normalizeKey(key: string): string {
 }
 
 /** The leading header block: YAML frontmatter or leading `key: value` lines. */
-function headerBlock(content: string): string[] {
+export function headerBlock(content: string): string[] {
 	const lines = content.split(/\r?\n/);
 	if (lines[0]?.trim() === "---") {
 		const block: string[] = [];

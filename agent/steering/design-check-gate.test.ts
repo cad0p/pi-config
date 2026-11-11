@@ -38,6 +38,7 @@ import {
 	LENS_HEAD,
 	lensHeaderLines,
 	OTHER_HEAD,
+	passingSummary,
 	postLensVerdicts,
 	postedHeads,
 } from "./lens-test-stubs.ts";
@@ -422,6 +423,126 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 				cwd: "/tmp",
 			},
 			{ rule: "design-check-gate", reason: /absorb-of must be the absorb merge commit/ },
+		);
+	});
+
+	// The absorb-head green-run relaxation: the brief reviews the absorb head
+	// H' (the PR's current head) and cites the CI run produced on the head H
+	// the absorb was built from, declared in 'absorb-of: H'. The PR's delta is
+	// byte-identical to the reviewed head, so the fresh container run is not
+	// the bar.
+	const ABSORB_HEAD = OTHER_HEAD;
+	const THIRD_HEAD = "7".repeat(40);
+
+	/** A lens header carrying exactly the runs the case gives it (plus absorb-of). */
+	function absorbHeader(round: number, absorbOf: string, runs: string[]): string {
+		const lines = runs.map((path) => `green-run: ${path}\n`).join("");
+		return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${absorbOf}\n${lines}`;
+	}
+
+	it("allows a green-run on the absorb-of head when the brief reviews the absorb head", async () => {
+		designCheck(PR, 3);
+		const run = passingSummary(state, ABSORB_HEAD, "ci-absorb.txt");
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("p1-r4-absorb-lens.md"),
+				content: absorbHeader(4, ABSORB_HEAD, [run]),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("blocks an absorb-of brief whose second green-run names a different sha", async () => {
+		designCheck(PR, 3);
+		const absorbRun = passingSummary(state, ABSORB_HEAD, "ci-absorb.txt");
+		const thirdRun = passingSummary(state, THIRD_HEAD, "ci-third.txt");
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r4-absorb-two-runs.md"),
+					content: absorbHeader(4, ABSORB_HEAD, [absorbRun, thirdRun]),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /names neither head .* nor the absorb-of head/,
+			},
+		);
+	});
+
+	it("blocks a mismatched green-run with today's message when there is no absorb-of", async () => {
+		designCheck(PR, 3);
+		const run = passingSummary(state, ABSORB_HEAD, "ci-absorb.txt");
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r4-no-absorb.md"),
+					content: `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\ngreen-run: ${run}\n`,
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: new RegExp(
+					`the green-run summary .* did not run on head ${LENS_HEAD}: its 'run on: snapshot commit <sha> tree <tree>' line names another sha \\(a live-worktree run is never evidence\\)`,
+				),
+			},
+		);
+	});
+
+	it("blocks a malformed absorb-of sha (short hex)", async () => {
+		designCheck(PR, 3);
+		const run = passingSummary(state, ABSORB_HEAD, "ci-absorb.txt");
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r4-absorb-short.md"),
+					content: absorbHeader(4, "1234abc", [run]),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /absorb-of must be the absorb merge commit/,
+			},
+		);
+	});
+
+	it("blocks an absorb-of line that appears twice", async () => {
+		designCheck(PR, 3);
+		const run = passingSummary(state, ABSORB_HEAD, "ci-absorb.txt");
+		const content = `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${ABSORB_HEAD}\nabsorb-of: ${ABSORB_HEAD}\ngreen-run: ${run}\n`;
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r4-absorb-twice.md"), content },
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /absorb-of must appear exactly once/,
+			},
+		);
+	});
+
+	it("keeps the old binding when head equals absorb-of", async () => {
+		designCheck(PR, 3);
+		const run = passingSummary(state, THIRD_HEAD, "ci-third.txt");
+		const content = `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${LENS_HEAD}\ngreen-run: ${run}\n`;
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p1-r4-absorb-equal.md"), content },
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /did not run on head .*names another sha/,
+			},
 		);
 	});
 

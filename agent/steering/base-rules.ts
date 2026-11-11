@@ -28,6 +28,20 @@
  * commit <sha>` names that head and whose dirty-worktree lines all say no.
  * Those lines are read with greps, never a parser.
  *
+ * The absorb-head green-run relaxation. A brief that reviews the absorb
+ * head H' may cite CI produced on the head H the absorb was built from:
+ * when the header carries `absorb-of: H` (exactly once, 40 hex, H the
+ * absorb merge the binding above checks) and H differs from `head:`, a
+ * green-run summary whose `run on:` names H is accepted in place of H'.
+ * Every green-run summary in the brief must then name H - one summary on
+ * head and another on H is refused, not merely checked on the first. The
+ * absorb pass reports `absorb-check: PASS`, so the PR delta is
+ * byte-identical to the reviewed head and merge-pr.sh carries the reviewed
+ * verdicts forward; the bar does not need the fresh ~13-16 min container
+ * run on H'. The reviewed head must still be the PR's current head, and
+ * without `absorb-of:` the binding is unchanged (a summary on another sha
+ * refuses with the same message).
+ *
  * The gate record is read where the helper writes it:
  * `<evidence root>/<owner>/<repo>/<head>/<gate id>/manifest`, the RAW
  * owner/repo, one directory each (merge-pr.sh :10 evidence_root, :2656
@@ -662,10 +676,16 @@ function gateRecordForHead(ref: string, head: string): string | null {
 
 /**
  * The green-run half of R3: a tools/ci.sh summary whose result is PASS,
- * whose run sha is this head and whose dirty-worktree lines all say no.
- * The three reads are greps; nothing here parses the summary.
+ * whose run sha is `runOn` and whose dirty-worktree lines all say no.
+ * `runOn` is the reviewed head, or the `absorb-of:` head when the brief
+ * declares the absorb relaxation (lensHeadRefusal decides which). The three
+ * reads are greps; nothing here parses the summary.
  */
-function greenRunRefusal(path: string, head: string): string | null {
+function greenRunRefusal(
+	path: string,
+	head: string,
+	runOn: string = head,
+): string | null {
 	let text: string;
 	try {
 		text = readFileSync(path, "utf8");
@@ -678,10 +698,13 @@ function greenRunRefusal(path: string, head: string): string | null {
 	if (pass !== 1 || fail !== 1) {
 		return `the green-run summary ${path} does not hold exactly one 'result: PASS' (found ${pass} PASS of ${fail} result lines)`;
 	}
-	const runOn = new RegExp(
-		`^run on:\\s+snapshot commit ${head} tree [0-9a-f]{40}\\s*$`,
+	const bound = new RegExp(
+		`^run on:\\s+snapshot commit ${runOn} tree [0-9a-f]{40}\\s*$`,
 	);
-	if (!lines.some((line) => runOn.test(line.trim()))) {
+	if (!lines.some((line) => bound.test(line.trim()))) {
+		if (runOn !== head) {
+			return `the green-run summary ${path} did not run on head ${head}: its 'run on: snapshot commit <sha> tree <tree>' line names neither head ${head} nor the absorb-of head ${runOn} (a live-worktree run is never evidence)`;
+		}
 		return `the green-run summary ${path} did not run on head ${head}: its 'run on: snapshot commit <sha> tree <tree>' line names another sha (a live-worktree run is never evidence)`;
 	}
 	const dirty = lines.filter((line) => /^worktree dirty /.test(line.trim()));
@@ -695,14 +718,46 @@ function greenRunRefusal(path: string, head: string): string | null {
 	return null;
 }
 
+/** Does a summary's `run on:` line name this snapshot sha? */
+function summaryNamesSha(path: string, sha: string): boolean {
+	let text: string;
+	try {
+		text = readFileSync(path, "utf8");
+	} catch {
+		return false;
+	}
+	const bound = new RegExp(
+		`^run on:\\s+snapshot commit ${sha} tree [0-9a-f]{40}\\s*$`,
+	);
+	return text
+		.split("\n")
+		.some((line) => bound.test(line.trim()));
+}
+
+/** Every green-run path to check: the header's list, else the parsed value. */
+function greenRunPaths(greenRun: string | null, all?: string[]): string[] {
+	const paths = (all ?? []).filter((path) => path !== "");
+	if (paths.length > 0) return paths;
+	return greenRun === null || greenRun === "" ? [] : [greenRun];
+}
+
 /**
  * R1/R3: the lens brief's head must be the PR's current head and must have
- * a passing run bound to it. Returns the refusal, or null.
+ * a passing run bound to it. An `absorb-of:` head H may stand in for the
+ * run's sha when the brief reviews the absorb head H' (H !== H'), the
+ * brief declares `absorb-of: H`, and every green-run summary it carries
+ * names H. Returns the refusal, or null.
  */
 export function lensHeadRefusal(
 	head: string | null,
 	greenRun: string | null,
 	ref: string,
+	opts: {
+		/** The brief's `absorb-of:` sha, when the header carries one. */
+		absorbOf?: string | null;
+		/** Every `green-run:` path in the brief's header. */
+		greenRuns?: string[];
+	} = {},
 ): string | null {
 	if (head === null || !/^[0-9a-f]{40}$/.test(head)) {
 		return `a lens brief needs 'head: <40-hex>' in its header, naming the head it reviews (no round on a red or unpushed head): write 'head: ${head ?? "<sha>"}'`;
@@ -714,8 +769,36 @@ export function lensHeadRefusal(
 	if (current.sha !== head) {
 		return `the brief reviews head ${head} but ${ref} is at ${current.sha}: push the head, then write the brief (no round on an unpushed head)`;
 	}
-	if (greenRun !== null && greenRun !== "") {
-		return greenRunRefusal(greenRun, head);
+	const paths = greenRunPaths(greenRun, opts.greenRuns);
+	const absorbOf = opts.absorbOf ?? null;
+	// The relaxation only applies to an absorb brief whose reviewed head is
+	// not the absorb head: when they are equal the old binding applies.
+	const relaxed =
+		absorbOf !== null &&
+		absorbOf !== head &&
+		/^[0-9a-f]{40}$/.test(absorbOf);
+	let usesAbsorb = false;
+	for (const path of paths) {
+		const onHead = greenRunRefusal(path, head);
+		if (onHead === null) continue;
+		if (!relaxed) return onHead;
+		const onAbsorb = greenRunRefusal(path, head, absorbOf ?? "");
+		if (onAbsorb === null) {
+			usesAbsorb = true;
+			continue;
+		}
+		return onAbsorb;
 	}
+	// Once one summary relies on the absorb head, every summary must name it:
+	// a second run on another sha is not evidence for this brief.
+	if (usesAbsorb) {
+		const odd = paths.find(
+			(path) => !summaryNamesSha(path, absorbOf ?? ""),
+		);
+		if (odd !== undefined) {
+			return `every green-run summary in an absorb-of brief must name the absorb-of head ${absorbOf}, not merely one of them: ${odd} names another sha (a live-worktree run is never evidence)`;
+		}
+	}
+	if (paths.length > 0) return null;
 	return gateRecordForHead(ref, head);
 }
