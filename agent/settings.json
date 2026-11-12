@@ -128,6 +128,6 @@
     "{\"source\":\"npm:@cad0p/pi-usage\",\"scope\":\"user\"}": "0.11.5",
     "{\"source\":\"npm:@cad0p/pi-usage@next\",\"scope\":\"user\"}": "0.11.6-20261107.4",
     "{\"source\":\"npm:pi-context-view\",\"scope\":\"user\"}": "0.8.3",
-    "{\"source\":\"npm:@buyong/pi-devin\",\"scope\":\"user\"}": "0.1.14"
+    "{\"source\":\"npm:@buyong/pi-devin\",\"scope\":\"user\"}": "0.1.16"
   }
 }
