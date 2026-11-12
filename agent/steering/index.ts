@@ -103,7 +103,15 @@
 // rotate the cached session: `bw get password|totp|notes|item|attachment`,
 // `bw list items`, `bw export`, `bw unlock/login`, echo/printf of
 // BW_SESSION, and bare `bwbio <cmd>` without BW_SESSION are refused —
-// guide personal/guides/2026-10-07-bitwarden-cli-session-scoping).
+// guide personal/guides/2026-10-07-bitwarden-cli-session-scoping) and
+// ./queue-land-nudge.ts (a `--mode local` merge of a PR that is this
+// repo's merge queue entry is refused: the queue's own turn —
+// `queue land <repo>` — gates the rebuilt main+PR candidate and lands it,
+// so a main move no longer costs an absorb and a re-gate; PC_MERGE_LOCAL_OK=1
+// is the visible escape, and every unreadable state ALLOWS — a nudge, the
+// opposite policy from merge-guard's fail-closed refusal; pc-host #836 has
+// shipped the turn since 2026-11-10 and the gate-plus-pair is still what
+// sessions type).
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
@@ -119,7 +127,9 @@
 // compatibility-demand block/allow matrix, incl. the #228 design
 // brief) and ./probe-scope-guard.test.ts (the unbounded-probe
 // block/allow matrix, the incident red/green pair, the fake-bound
-// cases and the pinned raw-command gap).
+// cases and the pinned raw-command gap) and ./queue-land-nudge.test.ts
+// (the --mode local of the queue entry block/allow matrix, the
+// PC_MERGE_LOCAL_OK=1 escape, the fail-open states and the pinned gaps).
 
 import { defineConfig } from "@cad0p/pi-steering";
 import type { PredicateShape } from "@cad0p/pi-steering";
@@ -175,6 +185,10 @@ import {
 	reconcileAcceptPlugin,
 	reconcileAcceptRules,
 } from "./reconcile-accept-guard.ts";
+import {
+	queueLandNudgePlugin,
+	queueLandNudgeRules,
+} from "./queue-land-nudge.ts";
 import {
 	pnpmLockfilePlugin,
 	pnpmLockfileRules,
@@ -312,9 +326,13 @@ export default defineConfig({
 		pnpmLockfilePlugin,
 		prelaunchCompatPlugin,
 		probeScopeGuardPlugin,
+		queueLandNudgePlugin,
 	],
 	rules: [
 		...mergeGuardRules,
+		// pc-host #836's turn is the cheap path; the gate-plus-pair it
+		// replaces is what sessions still type (./queue-land-nudge.ts).
+		...queueLandNudgeRules,
 		// The primary-checkout guard owns the most specific message ("edit
 		// in a worktree") for the verbs the shipped no-main-commit /
 		// no-main-ref-write rails also refuse. Both are user rules, so

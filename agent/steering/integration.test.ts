@@ -278,7 +278,7 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + ref-write-guard + git-identity-guard + merge-guard + primary-checkout-guard + worktree-guard + brief-gate + rm-relative-guard + tsh-guard + critical-path-label-guard + secret-file-read-guard + bw-cli-guard + reconcile-accept-guard + pnpm-lockfile-guard + prelaunch-compat + probe-scope-guard plugins (opt-in since the monorepo split)", () => {
+	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + ref-write-guard + git-identity-guard + merge-guard + primary-checkout-guard + worktree-guard + brief-gate + rm-relative-guard + tsh-guard + critical-path-label-guard + secret-file-read-guard + bw-cli-guard + reconcile-accept-guard + pnpm-lockfile-guard + prelaunch-compat + probe-scope-guard + queue-land-nudge plugins (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
 		// is empty: plugins are opt-in and MUST be declared here. Since
 		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm
@@ -317,6 +317,9 @@ describe("global config — shape", () => {
 			"pnpm-lockfile-guard",
 			"prelaunch-compat",
 			"probe-scope-guard",
+			// pc-host #836's turn is the cheap path; the gate-plus-pair
+			// it replaces is what sessions still type (queue-land-nudge.ts).
+			"queue-land-nudge",
 		]);
 	});
 
