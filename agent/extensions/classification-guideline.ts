@@ -1,38 +1,10 @@
 /**
- * classification-guideline — the classifier rule lives in the system prompt's <rules>, not in AGENTS.md.
+ * classification-guideline — one <rules> bullet naming the ZDR classifier route.
  *
- * Why here: AGENTS.md is for how to behave in a repository, this is how to use harness tooling, so it
- * belongs to the prompt Pi builds rather than to a project's instructions. before_agent_start exposes
- * the structured options Pi renders, and promptGuidelines is its "<rules>" collection: mutating it is
- * the documented way to add a rule, and Pi diffs the resulting sections, so only the rules section is
- * patched instead of the whole prompt being replaced (a cache miss).
- *
- * Why the rule exists at all: `models.classify()` is the only LLM path inside a codemode script, and
- * the same model name is reachable through several providers. Bare `typesafe/jev` exists only on
- * cloudflare-workers-ai, but the OpenRouter rows (`typesafe/jev-1.13`, `jev-1.14`, `~typesafe/jev-latest`)
- * are listed first and look identical while carrying no retention commitment of ours. Workers AI is
- * the route whose data-usage page commits to zero data retention for standard inference.
- *
- * Why clef-flash specifically: it is Cloudflare-hosted (no third party in the path), billed in Workers
- * AI neurons so the free 10,000-a-day allocation covers it (~2.9M input tokens/day), and at $0.038/M
- * input with free output it is the cheapest of the family. `typesafe/jev` is the better model on paper
- * (32k context, calibrated probabilities, the same $0.042/M TypeSafe charges direct) but it is a
- * third-party row billed through AI Gateway Unified Billing: until credits are loaded it answers 402
- * code 2021 "Insufficient balance", so it stays out of the rule; the bulletin's job is to name the route
- * that works, not to teach a caveat.
- *
- * The default is Clef Flash, not Jev, for one reason: Workers AI's zero-data-retention commitment
- * applies today, while TypeSafe-direct ZDR is a per-organization request that is still open. Jev is the
- * better route on paper (64,000-token context against 24,576, no reseller fee, own-org custody) and the
- * two tie on accuracy (6/8 over the same eight findings, failing the same two), so the switch is one
- * string once the request is confirmed. pi also cannot price a Jev-direct call: the catalog carries no
- * cost for TypeSafe and modelOverrides applies to chat models only, so its spend is invisible in the
- * footer, while Clef Flash is billed in Workers AI neurons and accounted for.
- *
- * The wording is measured, not chosen: six runs per arm against opencode-go-11/deepseek-v4.1-flash:max
- * in an agent dir with no vault and no project instructions — no rule 0/6 named clef-flash, this rule
- * 6/6 named it and the provider, the longer "For classification tasks, use … from …" variant 6/6 and
- * 4/6. The two differ inside the noise (n=6), so the shorter one wins on length alone.
+ * Not in AGENTS.md: that file is repo behaviour, this is harness tooling. Mutating
+ * promptGuidelines is the documented way to add a <rules> bullet, and Pi diffs the
+ * sections, so only <rules> is patched instead of the whole prompt.
+ * Why this model, why the wording, and the eval behind it: pi-config#15.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
