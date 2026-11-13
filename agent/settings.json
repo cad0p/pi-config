@@ -90,7 +90,7 @@
   "theme": "light/dark",
   "externalEditor": "nvim",
   "enabledModels": [
-    "anthropic*/claude-opus-5-5:high",
+    "anthropic*/claude-fable-5-2:medium",
     "devin*/deepseek-v4-1-flash-1017:max",
     "opencode-go*/deepseek-v4.1-flash:max",
     "mistral*/deepseek-v4-1-flash-1017:max"
