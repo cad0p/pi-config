@@ -21,6 +21,13 @@
  * code 2021 "Insufficient balance", so it stays out of the rule; the bulletin's job is to name the route
  * that works, not to teach a caveat.
  *
+ * Jev direct is now the default because the account carries credits and the route is better on paper:
+ * 64,000-token context against Clef Flash's 24,576, no reseller fee, and ZDR by request on our own org.
+ * On accuracy the two tie (6/8 on the same items, failing the same two), so the model choice is decided
+ * by context and custody, not by the benchmark. Note that pi cannot price this call: the catalog has no
+ * cost for TypeSafe's direct provider and modelOverrides applies to chat models only, so Jev spend is
+ * invisible in the session footer. Clef Flash stays the fallback and is the priced, neuron-billed route.
+ *
  * The wording is measured, not chosen: six runs per arm against opencode-go-11/deepseek-v4.1-flash:max
  * in an agent dir with no vault and no project instructions — no rule 0/6 named clef-flash, this rule
  * 6/6 named it and the provider, the longer "For classification tasks, use … from …" variant 6/6 and
@@ -28,7 +35,7 @@
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-const BULLET = "For classification, use `@cf/cloudflare/clef-flash` on `cloudflare-workers-ai` (ZDR).";
+const BULLET = "For classification, use `jev-latest` from `typesafe` (ZDR).";
 
 export default function (pi: ExtensionAPI): void {
   pi.on("before_agent_start", async (event) => {
