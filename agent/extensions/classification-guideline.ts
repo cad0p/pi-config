@@ -18,12 +18,17 @@
  * input with free output it is the cheapest of the family. `typesafe/jev` is the better model on paper
  * (32k context, calibrated probabilities, the same $0.042/M TypeSafe charges direct) but it is a
  * third-party row billed through AI Gateway Unified Billing: until credits are loaded it answers 402
- * code 2021 "Insufficient balance", so naming it as the default would send every first call into an error.
+ * code 2021 "Insufficient balance", so it stays out of the rule; the bulletin's job is to name the route
+ * that works, not to teach a caveat.
+ *
+ * The wording is measured, not chosen: six runs per arm against opencode-go-11/deepseek-v4.1-flash:max
+ * in an agent dir with no vault and no project instructions — no rule 0/6 named clef-flash, this rule
+ * 6/6 named it and the provider, the longer "For classification tasks, use … from …" variant 6/6 and
+ * 4/6. The two differ inside the noise (n=6), so the shorter one wins on length alone.
  */
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
-const BULLET =
-  "Classification: `@cf/cloudflare/clef-flash` on `cloudflare-workers-ai` (ZDR); `typesafe/jev` needs AI Gateway credits.";
+const BULLET = "For classification, use `@cf/cloudflare/clef-flash` on `cloudflare-workers-ai` (ZDR).";
 
 export default function (pi: ExtensionAPI): void {
   pi.on("before_agent_start", async (event) => {
