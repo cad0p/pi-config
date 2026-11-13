@@ -14,7 +14,7 @@
     "@cad0p/pi-steering": "0.2.0-20260908.1",
     "@cad0p/pi-subagents-tintinweb": "0.22.0-20261112.1",
     "@cad0p/pi-timestamps": "0.2.0-20261102.0",
-    "@cad0p/pi-tree-navigator": "0.3.0-20261112.0",
+    "@cad0p/pi-tree-navigator": "0.3.0-20261113.0",
     "@cad0p/pi-usage": "^0.11.6-20261107.4",
     "@getpipher/vision": "^0.5.3",
     "mitsupi": "github:mitsuhiko/agent-stuff",
