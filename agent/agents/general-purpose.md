@@ -11,7 +11,7 @@ scoped_models:
   - devin*/swe-2:high
   # - opencode-go*/longcat-2.5-free:high
   # - devin*/deepseek-v4-1-flash-1017:max
-  - opencode-go*/deepseek-v4.1-flash:max
+  # - opencode-go*/deepseek-v4.1-flash:max
   - mistral*/deepseek-v4-1-flash-1017:max
   - openai-codex*/gpt-6-luna:max
   # - anthropic*/claude-sonnet-5-5:medium
