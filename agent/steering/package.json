@@ -16,7 +16,7 @@
     "typescript": "^5.4.5"
   },
   "scripts": {
-    "test": "node --test --experimental-strip-types '**/*.test.ts'",
+    "test": "PI_STEERING_SCRATCH_ROOT_FILE=/nonexistent node --test --experimental-strip-types '**/*.test.ts'",
     "typecheck": "tsc --noEmit"
   }
 }

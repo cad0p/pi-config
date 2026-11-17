@@ -143,6 +143,7 @@ import githubPlugin from "@cad0p/pi-steering-github";
 // alongside only produces duplicate-predicate warnings, which DISABLE
 // steering in strict mode (observed live). Single registration wins.
 import { devShmGuardPlugin, devShmRules } from "./dev-shm-guard.ts";
+import { sharedTmpGuardPlugin, sharedTmpRules } from "./shared-tmp-guard.ts";
 import { refWriteGuardPlugin, refWriteGuardRules } from "./ref-write-guard.ts";
 import { gitIdentityGuardPlugin, gitIdentityRules } from "./git-identity-guard.ts";
 import { mergeGuardPlugin, mergeGuardRules } from "./merge-guard.ts";
@@ -308,6 +309,7 @@ export default defineConfig({
 		agentDirPlugin,
 		agentConfigGuardPlugin,
 		devShmGuardPlugin,
+		sharedTmpGuardPlugin,
 		refWriteGuardPlugin,
 		gitIdentityGuardPlugin,
 		mergeGuardPlugin,
@@ -379,6 +381,7 @@ export default defineConfig({
 				"Do not mutate agent definitions or settings.json via shell — they control model selection and guardrails. Make the change manually or ask the user.",
 		},
 		...devShmRules,
+		...sharedTmpRules,
 		...refWriteGuardRules,
 		...gitIdentityRules,
 		...designCheckRules,
