@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
 import {
+	FORK_LOOP,
 	hasCgroupCap,
 	isLoadGeneratorShape,
 	isUncappedSyntheticLoad,
@@ -73,6 +74,67 @@ describe("synthetic-load-guard", () => {
 	it("blocks for((;;))", async () => {
 		await expectBlocks(harness, {
 			command: "bash -c 'for((;;)); do :; done'",
+		});
+	});
+
+	// --- fork loops (pc-host #1340) ------------------------------------------
+	// The 2026-11-18 specimen —
+	// `( while :; do nc -l 127.0.0.1 $PORT -q 0 < /dev/null & sleep 60 & done ) >/dev/null 2>&1 &`
+	// — ran for 1.9 h with 4302 live children: BOTH body commands are
+	// backgrounded, so the loop never blocks and the body is never empty
+	// (the #1273 patterns above only match an empty body). A `timeout`
+	// does not help either: the probe rail reads it as a DURATION bound and
+	// lets the fork storm through for its whole runtime, which is exactly
+	// how the specimen lasted 1.9 h. Only the cgroup cap is a cap.
+	it("RED: blocks a fork loop under a bare timeout (a timeout is not a cap)", async () => {
+		await expectBlocks(
+			harness,
+			{ command: "timeout 60 bash -c 'while :; do nc -l 1 & done'" },
+			{ rule: "no-uncapped-synthetic-load", reason: /#1340/ },
+		);
+	});
+	it("blocks a while-true fork loop in a shell payload", async () => {
+		await expectBlocks(harness, {
+			command: "bash -c 'while true; do x & done'",
+		});
+	});
+	it("blocks a for((;;)) fork loop in a shell payload", async () => {
+		await expectBlocks(harness, {
+			command: "bash -c 'for ((;;)); do x & done'",
+		});
+	});
+	// KNOWN GAP (see synthetic-load-guard.ts header): the engine hands a
+	// predicate ONE ref, never the raw tool-call text, and the walker
+	// extracts NO ref that carries the loop for this paste — measured refs
+	// are the nameless `PORT=18999` assignment, then `:`,
+	// `nc -l 127.0.0.1 $PORT -q 0` and `sleep 60`. The `&` operator
+	// and the `done` keyword belong to no ref, so no routed basename can
+	// reach the shape and no regex over a ref can fire. The write/edit
+	// content rules DO catch the same text (below), and the payload forms
+	// are caught by the three cases above. Flip this to expectBlocks once
+	// pi-steering exposes the raw command to a predicate — same engine gap
+	// probe-scope-guard pins for `(while :; do :; done) &`.
+	it("KNOWN GAP: allows the bare #1340 specimen pasted straight to bash", async () => {
+		await expectAllows(harness, {
+			command:
+				"PORT=18999\n( while :; do nc -l 127.0.0.1 $PORT -q 0 < /dev/null & sleep 60 & done ) >/dev/null 2>&1 &",
+		});
+	});
+	it("allows a constant-condition loop with a blocking body", async () => {
+		await expectAllows(harness, { command: "while :; do work; done" });
+	});
+	it("allows a while-read loop that backgrounds each iteration", async () => {
+		await expectAllows(harness, {
+			command: 'while read -r l; do process "$l" & done < /data/tmp/list',
+		});
+	});
+	it("allows a body joined with && (a separator, not a background job)", async () => {
+		await expectAllows(harness, { command: "while :; do a && b; done" });
+	});
+	it("allows the fork loop inside the capped unit recipe", async () => {
+		await expectAllows(harness, {
+			command:
+				"systemd-run --user --collect -p CPUQuota=200% -p RuntimeMaxSec=60 -p Nice=19 -- bash -c 'while :; do nc -l 1 & done'",
 		});
 	});
 
@@ -260,6 +322,34 @@ describe("synthetic-load-guard helpers", () => {
 			throw new Error("yes | head");
 		if (!isLoadGeneratorShape("bash /data/tmp/383-burn.sh"))
 			throw new Error("burn.sh");
+	});
+	it("sees the fork shape, not a blocking body", () => {
+		for (const fork of [
+			"while :; do nc -l 1 & done",
+			"while true; do x & done",
+			"for ((;;)); do x & done",
+			"bash -c while :; do nc -l 1 & done",
+			"while :; do\n  worker &\ndone",
+		]) {
+			if (!FORK_LOOP.test(fork))
+				throw new Error("fork loop missed: " + JSON.stringify(fork));
+			if (!isLoadGeneratorShape(fork))
+				throw new Error("fork loop not a shape: " + JSON.stringify(fork));
+		}
+		for (const blocking of [
+			"while :; do work; done",
+			"while :; do a && b; done",
+			"while read l; do x & done",
+			"while :; do\n  curl x &\n  wait\ndone",
+			"while :; do for i in 1 2; do y; done; done",
+		]) {
+			if (FORK_LOOP.test(blocking))
+				throw new Error("blocking loop flagged: " + JSON.stringify(blocking));
+			if (isLoadGeneratorShape(blocking))
+				throw new Error(
+					"blocking loop is a shape: " + JSON.stringify(blocking),
+				);
+		}
 	});
 	it("only the generators and wrappers are routed", () => {
 		for (const readOnly of ["cat", "grep", "pgrep", "ps", "ls"]) {
