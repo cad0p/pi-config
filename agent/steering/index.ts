@@ -202,6 +202,10 @@ import {
 	probeScopeGuardPlugin,
 	probeScopeGuardRules,
 } from "./probe-scope-guard.ts";
+import {
+	syntheticLoadGuardPlugin,
+	syntheticLoadGuardRules,
+} from "./synthetic-load-guard.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -328,6 +332,7 @@ export default defineConfig({
 		pnpmLockfilePlugin,
 		prelaunchCompatPlugin,
 		probeScopeGuardPlugin,
+		syntheticLoadGuardPlugin,
 		queueLandNudgePlugin,
 	],
 	rules: [
@@ -390,6 +395,9 @@ export default defineConfig({
 		...prelaunchCompatRules,
 		// An ad-hoc probe may not outlive its turn (incident 2026-11-11).
 		...probeScopeGuardRules,
+		// pc-host #1273: synthetic CPU load on the shared lane fails the
+		// gates; only a cgroup-capped systemd-run unit is allowed.
+		...syntheticLoadGuardRules,
 		...criticalPathSlipRules,
 		...openWorkGateRules,
 		...threatModelRules,

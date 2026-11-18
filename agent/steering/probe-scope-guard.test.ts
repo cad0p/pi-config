@@ -26,10 +26,13 @@ describe("probe-scope-guard", () => {
 				"bash -c 'trap \"echo RAN > /tmp/probe/r3\" EXIT; while :; do :; done' & p=$!; sleep 0.5; kill -INT $p",
 		});
 	});
-	it("GREEN: the same probe under a 600 s unit is allowed", async () => {
+	// The unit now also carries CPUQuota= — pc-host #1273's
+	// synthetic-load guard refuses a busy loop unless the SAME
+	// systemd-run caps cores as well as duration.
+	it("GREEN: the same probe under a 600 s capped unit is allowed", async () => {
 		await expectAllows(harness, {
 			command:
-				"systemd-run --user --wait --collect --pipe --unit=pc-probe-r3 --property=RuntimeMaxSec=600 -- bash -c 'trap \"echo RAN > /tmp/probe/r3\" EXIT; while :; do :; done' & p=$!; sleep 0.5; kill -INT $p",
+				"systemd-run --user --wait --collect --pipe --unit=pc-probe-r3 -p CPUQuota=200% --property=RuntimeMaxSec=600 -- bash -c 'trap \"echo RAN > /tmp/probe/r3\" EXIT; while :; do :; done' & p=$!; sleep 0.5; kill -INT $p",
 		});
 	});
 
@@ -104,14 +107,19 @@ describe("probe-scope-guard", () => {
 	});
 
 	// --- the bound shapes are allowed -------------------------------------
+	// N.B. the busy-loop payloads these tests used to carry
+	// (`timeout 600 bash -c 'while :; do :; done'`) are now refused by
+	// no-uncapped-synthetic-load (pc-host #1273): a timeout bounds
+	// duration, not cores. The bound semantics below are exercised on
+	// a detached-launch shape instead — a probe, not a load generator.
 	it("allows timeout <n>", async () => {
 		await expectAllows(harness, {
-			command: "timeout 600 bash -c 'while :; do :; done'",
+			command: "timeout 600 setsid bash v.sh",
 		});
 	});
 	it("allows timeout with an smhd suffix", async () => {
 		await expectAllows(harness, {
-			command: "timeout 30s bash -c 'while true; do :; done'",
+			command: "timeout 30s setsid bash v.sh",
 		});
 	});
 	it("allows the systemd-run RuntimeMaxSec recipe", async () => {
@@ -122,12 +130,12 @@ describe("probe-scope-guard", () => {
 	});
 	it("allows a PC_PROBE_BOUNDED=1 prefix", async () => {
 		await expectAllows(harness, {
-			command: "PC_PROBE_BOUNDED=1 bash -c 'while :; do :; done'",
+			command: "PC_PROBE_BOUNDED=1 setsid bash v.sh",
 		});
 	});
 	it("allows an exported PC_PROBE_BOUNDED=1", async () => {
 		await expectAllows(harness, {
-			command: "export PC_PROBE_BOUNDED=1 && bash -c 'while true; do :; done'",
+			command: "export PC_PROBE_BOUNDED=1 && setsid bash v.sh",
 		});
 	});
 
