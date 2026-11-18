@@ -1,4 +1,7 @@
-import { describe, it } from "node:test";
+import { after, before, describe, it } from "node:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
 import {
@@ -7,6 +10,26 @@ import {
 	isUncappedSyntheticLoad,
 	SYNTHETIC_LOAD_ROUTED,
 } from "./synthetic-load-guard.ts";
+
+// The shared-tmp guard is opt-in per machine: it arms when the file
+// named by PI_STEERING_SCRATCH_ROOT_FILE (default
+// ~/.config/pi-steering/scratch-root) exists, and this host HAS opted
+// in — /data/tmp paths in the cases below would trip no-shared-tmp-bash
+// before this guard even runs. Pin the switch OFF for the whole file so
+// the matrix does not depend on the host setting (same seam as
+// shared-tmp-guard.test.ts).
+const scratchDir = mkdtempSync(join(tmpdir(), "synthetic-load-guard-"));
+const offFile = join(scratchDir, "absent");
+const prevScratch = process.env.PI_STEERING_SCRATCH_ROOT_FILE;
+before(() => {
+	process.env.PI_STEERING_SCRATCH_ROOT_FILE = offFile;
+});
+after(() => {
+	if (prevScratch === undefined)
+		delete process.env.PI_STEERING_SCRATCH_ROOT_FILE;
+	else process.env.PI_STEERING_SCRATCH_ROOT_FILE = prevScratch;
+	rmSync(scratchDir, { recursive: true, force: true });
+});
 
 describe("synthetic-load-guard", () => {
 	const harness = loadHarness({ config });
