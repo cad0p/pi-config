@@ -131,6 +131,11 @@ describe("worktree-guard: the classification", () => {
 		assert.equal(badDestination(PRIMARY + "-x"), true);
 		assert.equal(badDestination("/home/pier/personal/github/new-repo"), false);
 		assert.equal(namesAWorktree(PRIMARY), false);
+		// Named after the cloned repo: its own primary, even as <primary>-x.
+		const base = PRIMARY.slice(PRIMARY.lastIndexOf("/") + 1);
+		assert.equal(badDestination(PRIMARY + "-x", base + "-x"), false);
+		assert.equal(badDestination(PRIMARY + "-x", base), true);
+		assert.equal(badDestination("/data/tmp/" + base + "-x", base + "-x"), true);
 	});
 
 	it("threads a cd through a wrapper payload", () => {
@@ -200,6 +205,17 @@ describe("worktree-guard: the rule", () => {
 
 	it("allows git worktree lock", async () => {
 		await allowed("git -C " + PRIMARY + " worktree lock --reason keep /tmp/x");
+	});
+
+	it("allows a clone named after its own repo next to a shorter primary", async () => {
+		const base = PRIMARY.slice(PRIMARY.lastIndexOf("/") + 1);
+		await allowed("git clone git@github.com:cad0p/" + base + "-x.git " + PRIMARY + "-x");
+		await allowed("cd " + PRIMARY.slice(0, PRIMARY.lastIndexOf("/")) + " && git clone https://github.com/cad0p/" + base + "-x.git");
+	});
+
+	it("still refuses a clone of the primary's repo into <primary>-<slug>", async () => {
+		const base = PRIMARY.slice(PRIMARY.lastIndexOf("/") + 1);
+		await blocked("git clone git@github.com:cad0p/" + base + ".git " + PRIMARY + "-x");
 	});
 
 	it("allows a clone at a fresh primary name", async () => {

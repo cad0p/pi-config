@@ -19,7 +19,10 @@
  *   - `git clone` whose destination is under a scratch root
  *     (/data/tmp, /tmp, /var/tmp, /dev/shm) or is
  *     `<area>/github/<existing-primary>-<anything>` (a clone used as a
- *     worktree). A new primary at a fresh name is allowed.
+ *     worktree). A new primary at a fresh name is allowed, and so is a
+ *     clone into a directory named exactly after the cloned repo: that is
+ *     the repo's own primary even when its name extends another's
+ *     (`pi-steering` next to `pi`).
  *   - a Goldmine or `~/.pi` worktree of any kind: there are no vault
  *     worktrees. Writers commit on main in the vault and in the agent
  *     dir, their own paths only - the message says so verbatim.
@@ -138,7 +141,13 @@ export function isVaultOrAgentDir(path: string): boolean {
 /** The worktree or clone a git invocation would create, move or delete. */
 export type WorktreeCall =
 	| { kind: "worktree"; verb: string; repo: string | null }
-	| { kind: "clone"; dest: string | null; repo: string | null };
+	| {
+			kind: "clone";
+			dest: string | null;
+			repo: string | null;
+			/** The cloned repo's name (the url's basename, no .git). */
+			name?: string | null;
+	  };
 
 /**
  * Classify one git invocation. `null` means "not a worktree verb this
@@ -162,6 +171,8 @@ export function worktreeCall(
 		const positionals = call.rest.filter((w) => !isFlag(w));
 		const url = positionals[0] ?? "";
 		const explicit = positionals[1];
+		const name =
+			basename(url.replace(/[\/]+$/, "")).replace(/\.git$/, "") || null;
 		let dest: string | null = null;
 		if (explicit !== undefined) {
 			dest =
@@ -170,11 +181,10 @@ export function worktreeCall(
 						? resolve(explicit)
 						: null
 					: resolve(baseCwd, explicit);
-		} else if (url !== "" && baseCwd !== null) {
-			const name = basename(url.replace(/[\/]+$/, "")).replace(/\.git$/, "");
-			dest = name === "" ? null : resolve(baseCwd, name);
+		} else if (name !== null && baseCwd !== null) {
+			dest = resolve(baseCwd, name);
 		}
-		return { kind: "clone", dest, repo: call.repo };
+		return { kind: "clone", dest, repo: call.repo, name };
 	}
 	return null;
 }
@@ -193,9 +203,16 @@ export function namesAWorktree(dest: string): boolean {
 }
 
 /** Is the destination one this guard refuses? */
-export function badDestination(dest: string | null): boolean {
+export function badDestination(
+	dest: string | null,
+	cloneName: string | null = null,
+): boolean {
 	if (dest === null) return false;
 	if (SCRATCH_ROOTS.some((root) => under(dest, root))) return true;
+	// A clone into a directory named exactly after the cloned repo is that
+	// repo's own primary, even when the name extends another primary's
+	// (cloning cad0p/pi-steering next to the pi primary).
+	if (cloneName !== null && basename(resolve(dest)) === cloneName) return false;
 	return namesAWorktree(dest);
 }
 
@@ -285,7 +302,7 @@ function callsOf(ctx: PredicateContext): WorktreeCall[] {
 
 /** Does this call have to be refused? */
 export function refused(call: WorktreeCall): boolean {
-	if (call.kind === "clone") return badDestination(call.dest);
+	if (call.kind === "clone") return badDestination(call.dest, call.name);
 	if (ALLOWED_VERBS.has(call.verb)) return false;
 	if (REFUSED_VERBS.has(call.verb)) return true;
 	// An unknown verb on `git worktree` fails closed: a future verb that
