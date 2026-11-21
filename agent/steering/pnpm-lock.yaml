@@ -12,11 +12,11 @@ importers:
         specifier: 0.7.0-20260814.2
         version: 0.7.0-20260814.2(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.85.1)(@sinclair/typebox@0.34.52)
       '@cad0p/pi-steering':
-        specifier: 0.2.0-20260908.1
-        version: 0.2.0-20260908.1(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))
+        specifier: 0.2.0-20261121.0
+        version: 0.2.0-20261121.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))
       '@cad0p/pi-steering-github':
         specifier: 0.1.0-20260909.0
-        version: 0.1.0-20260909.0(@cad0p/pi-steering@0.2.0-20260908.1(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.85.1)(@sinclair/typebox@0.34.52)
+        version: 0.1.0-20260909.0(@cad0p/pi-steering@0.2.0-20261121.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.85.1)(@sinclair/typebox@0.34.52)
       '@earendil-works/pi-coding-agent':
         specifier: 0.85.1
         version: 0.85.1(ws@8.21.3)(zod@4.4.3)
@@ -173,8 +173,8 @@ packages:
     peerDependencies:
       '@cad0p/pi-steering': 0.2.0-20260908.1
 
-  '@cad0p/pi-steering@0.2.0-20260908.1':
-    resolution: {integrity: sha512-5AW7YgtOlypVvIWb766+iDTdiDAIQBakRjCg+ol1/y+ugnA/Y/yatRDTo+/+MN3mbabrXk6ggpGPRXkHBKmItA==}
+  '@cad0p/pi-steering@0.2.0-20261121.0':
+    resolution: {integrity: sha512-uoPzVSTfFMkCip4EnYO9DiFCSAamdnIk70CwdCmRY73Dg7xhq19WP3w2pettXqfS2hhpsBLyM4HoWqABEeUJ/g==}
     engines: {node: '>=22.19.0'}
     hasBin: true
     peerDependencies:
@@ -1142,21 +1142,21 @@ snapshots:
       '@earendil-works/pi-tui': 0.85.1
       '@sinclair/typebox': 0.34.52
 
-  '@cad0p/pi-steering-flags@0.1.1-20260909.0(@cad0p/pi-steering@0.2.0-20260908.1(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3)))':
+  '@cad0p/pi-steering-flags@0.1.1-20260909.0(@cad0p/pi-steering@0.2.0-20261121.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3)))':
     dependencies:
-      '@cad0p/pi-steering': 0.2.0-20260908.1(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))
+      '@cad0p/pi-steering': 0.2.0-20261121.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))
 
-  '@cad0p/pi-steering-github@0.1.0-20260909.0(@cad0p/pi-steering@0.2.0-20260908.1(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.85.1)(@sinclair/typebox@0.34.52)':
+  '@cad0p/pi-steering-github@0.1.0-20260909.0(@cad0p/pi-steering@0.2.0-20261121.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3)))(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.85.1)(@sinclair/typebox@0.34.52)':
     dependencies:
       '@cad0p/pi-napkin': 0.7.0-20260814.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))(@earendil-works/pi-tui@0.85.1)(@sinclair/typebox@0.34.52)
-      '@cad0p/pi-steering': 0.2.0-20260908.1(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))
-      '@cad0p/pi-steering-flags': 0.1.1-20260909.0(@cad0p/pi-steering@0.2.0-20260908.1(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3)))
+      '@cad0p/pi-steering': 0.2.0-20261121.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))
+      '@cad0p/pi-steering-flags': 0.1.1-20260909.0(@cad0p/pi-steering@0.2.0-20261121.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3)))
     transitivePeerDependencies:
       - '@earendil-works/pi-coding-agent'
       - '@earendil-works/pi-tui'
       - '@sinclair/typebox'
 
-  '@cad0p/pi-steering@0.2.0-20260908.1(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))':
+  '@cad0p/pi-steering@0.2.0-20261121.0(@earendil-works/pi-coding-agent@0.85.1(ws@8.21.3)(zod@4.4.3))':
     dependencies:
       '@cad0p/unbash-walker': 0.1.0-20260904.0
       '@earendil-works/pi-coding-agent': 0.85.1(ws@8.21.3)(zod@4.4.3)
