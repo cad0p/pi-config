@@ -15,7 +15,7 @@
 # "nothing happens", as before, minus the imports.
 PATCH_ID="0009-pi-devin-lazy-effect"
 PATCH_TITLE="pi-devin: load Effect, protobufjs and the runtime only when the session uses Devin"
-PATCH_UPSTREAM="buYoung/pi-packages (not filed; issue draft: /data/tmp/pimem/devin/issue-draft.md; present in @buyong/pi-devin 0.1.16)"
+PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/91 (present in @buyong/pi-devin 0.1.16)"
 PATCH_REMOVE_WHEN="upstream registers the provider, commands and session hooks from a non-Effect entry point with a cached model list and imports the runtime on first use; or the author rejects the change and the package is dropped from enabledModels"
 
 PATCH_ROOTS="${PI_AGENT_DIR}/npm/node_modules/@buyong/pi-devin"
