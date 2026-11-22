@@ -30,10 +30,32 @@
  *      'cat ~/.tsh/current-profile', 'ls ~/.tsh', and
  *      'cp -a ~/.tsh /data/tmp/x' (source under the home, destination
  *      outside) are all fine.
- *   4. tsh-needs-proxy              — 'tsh ssh|scp|ls|status|proxy|db|kube'
+ *   4. tsh-discovery-all-clusters   — 'tsh ls|status|clusters' against the
+ *      shared home is refused outright, with or without a pin: a listing
+ *      of ONE cluster looks authoritative and is how the 2026-11-22
+ *      incident happened (H4 listed teleport-admin only, saw pc-host-01,
+ *      and concluded pc-control was unreachable — pc-control is a node in
+ *      the SECOND cluster, teleport-control.piercloud.net:443). The
+ *      message names both clusters, the nodes+planes in each, and the
+ *      read-only helper that asks every profile: 'tsh-discover'.
+ *      An isolated TELEPORT_HOME keeps the old semantics (naming is fine:
+ *      that home holds one profile by construction).
+ *   5. tsh-node-wrong-cluster       — 'tsh ssh|scp' naming a node that the
+ *      known node->cluster map places in a different cluster than the
+ *      pinned proxy is refused with the right proxy. Static map (see
+ *      NODE_CLUSTERS): the client home does not carry node->cluster, and
+ *      'tsh ls' hides nodes the user is denied (pc-admin,
+ *      pc-control-mail). Unknown node names and unknown proxy pins fall
+ *      through — this rule only refuses a pair it can name.
+ *   6. tsh-needs-proxy              — 'tsh ssh|scp|proxy|db|kube'
  *      must carry --proxy= or a TELEPORT_PROXY= assignment while it runs
  *      against the shared home. An isolated TELEPORT_HOME (a single
  *      profile, e.g. the per-run copies in /data/tmp) needs no pin.
+ *      (ls/status left this set: rule 4 refuses them whenever the home
+ *      is shared, so the pin is moot there.)
+ *
+ * Teleport discovery is cross-cluster — see the incident notes in
+ * ~/.pi/agent/bin/tsh-discover (read-only, every profile in the home).
  *
  * How the environment is read — via the walker/envTracker, never by
  * re-parsing the shell: 'export TELEPORT_HOME=...' lands in
@@ -102,6 +124,18 @@ declare global {
 		 * from the home never match). Boolean leaf.
 		 */
 		writesSharedTsh: PredicateShape<boolean>;
+		/**
+		 * when.tshDiscoverySubcommand — the ref runs 'tsh ls', 'tsh
+		 * status' or 'tsh clusters' (the cluster-scoped listings).
+		 * Boolean leaf.
+		 */
+		tshDiscoverySubcommand: PredicateShape<boolean>;
+		/**
+		 * when.tshNodeWrongCluster — the ref runs 'tsh ssh|scp' against a
+		 * KNOWN cluster proxy and names a node the static map places in
+		 * the OTHER cluster. Boolean leaf.
+		 */
+		tshNodeWrongCluster: PredicateShape<boolean>;
 	}
 }
 
@@ -224,25 +258,35 @@ export const usesSharedTshHome = definePredicate<BooleanLeafArgs>((args, ctx) =>
 });
 
 /**
- * The 'tsh <subcommand>' run of this ref. Direct tsh refs take their first
- * non-flag positional; timeout refs (not a walker wrapper) carry the
+ * This ref's tsh argv, split at the subcommand. Direct tsh refs take their
+ * first non-flag positional; timeout refs (not a walker wrapper) carry the
  * wrapped argv, so the token after 'tsh' is the subcommand.
  */
+function tshArgv(ctx: {
+	input?: { tool?: string; basename?: string };
+	command: { positionals: () => string[] };
+}): { sub?: string | undefined; rest: string[] } {
+	if (ctx.input?.tool !== "bash") return { rest: [] };
+	const basename = ctx.input?.basename;
+	const pos = ctx.command.positionals();
+	let start: number;
+	if (basename === "tsh") start = 0;
+	else if (basename === "timeout") {
+		const i = pos.indexOf("tsh");
+		if (i < 0) return { rest: [] };
+		start = i + 1;
+	} else return { rest: [] };
+	const idx = pos.findIndex((p, j) => j >= start && !p.startsWith("-"));
+	if (idx < 0) return { rest: [] };
+	return { sub: pos[idx], rest: pos.slice(idx + 1) };
+}
+
+/** The 'tsh <subcommand>' run of this ref (undefined for other binaries). */
 function tshSubcommand(ctx: {
 	input?: { tool?: string; basename?: string };
 	command: { positionals: () => string[] };
 }): string | undefined {
-	if (ctx.input?.tool !== "bash") return undefined;
-	const basename = ctx.input?.basename;
-	const pos = ctx.command.positionals();
-	const firstNonFlag = (from: number): string | undefined =>
-		pos.slice(from).find((p) => !p.startsWith("-"));
-	if (basename === "tsh") return firstNonFlag(0);
-	if (basename === "timeout") {
-		const i = pos.indexOf("tsh");
-		return i < 0 ? undefined : firstNonFlag(i + 1);
-	}
-	return undefined;
+	return tshArgv(ctx).sub;
 }
 
 /** Unwrap the bare-string / { pattern } forms of tshSubcommandIs. */
@@ -401,6 +445,167 @@ export const writesSharedTsh = definePredicate<BooleanLeafArgs>((args, ctx) => {
 	return hit === expected;
 });
 
+// ---------------------------------------------------------------------
+// Cross-cluster discovery (incident 2026-11-22)
+// ---------------------------------------------------------------------
+
+/**
+ * The two Teleport clusters this laptop's client is logged into, by host
+ * (the port is always 443; profiles spell it 'host:443'). The cluster list
+ * is NOT hard-coded as a source of truth for discovery — the shared home
+ * holds one profile yaml per proxy and tsh-discover walks those. These two
+ * names only let the node map below be compared against a --proxy pin.
+ */
+const ADMIN_PROXY_HOST = "teleport-admin.piercloud.net";
+const CONTROL_PROXY_HOST = "teleport-control.piercloud.net";
+
+/**
+ * node -> cluster (plus the node's plane label).
+ *
+ * SOURCE: the 2026-11-22 cluster facts in the H4 board (~L1989-1993):
+ *   teleport-admin.piercloud.net: pc-host-01 (plane host), pc-admin (plane
+ *     admin; pier is denied by design, seat pc-admin-super + MFA tap)
+ *   teleport-control.piercloud.net:443: pc-control (plane control, role
+ *     pc-control-near-root -> login deploy), pc-control-mail (plane mail).
+ *
+ * The map is STATIC and INCOMPLETE by construction, and cannot be derived
+ * from the client state: '~/.tsh/<proxy>.yaml' names only the proxy + user,
+ * and 'tsh ls' must be asked one cluster at a time (and hides nodes the
+ * user is denied on — on 2026-11-22 'tsh ls --proxy=teleport-admin' listed
+ * pc-host-01 only, and pc-control-mail was invisible in its own cluster).
+ * So the node rule below fires ONLY for a name listed here: an unlisted
+ * node name, or a pin to an unknown proxy, falls through to the pinned
+ * command (fail-open on the unknown).
+ */
+const NODE_CLUSTERS: Readonly<
+	Record<string, { cluster: string; plane: string }>
+> = {
+	"pc-host-01": { cluster: ADMIN_PROXY_HOST, plane: "host" },
+	"pc-admin": { cluster: ADMIN_PROXY_HOST, plane: "admin" },
+	"pc-control": { cluster: CONTROL_PROXY_HOST, plane: "control" },
+	"pc-control-mail": { cluster: CONTROL_PROXY_HOST, plane: "mail" },
+};
+
+/** Subcommands that list ONE cluster's view of the world. */
+const DISCOVERY_SUBCOMMANDS = new Set(["ls", "status", "clusters"]);
+
+/** Bare host of a proxy value ('https://host:443/' -> 'host'). */
+function proxyHost(raw: string | undefined): string | undefined {
+	if (typeof raw !== "string") return undefined;
+	const stripped = raw.trim().replace(/^https?:\/\//, "");
+	const host = stripped.split(":")[0];
+	return host === undefined || host === "" ? undefined : host.toLowerCase();
+}
+
+/**
+ * The proxy this ref pins: --proxy=<v> / --proxy <v> (on the tsh ref or
+ * inside a timeout-wrapped argv), else a TELEPORT_PROXY prefix assignment,
+ * else an exported TELEPORT_PROXY.
+ */
+function pinnedProxy(ctx: {
+	input?: {
+		args?: ReadonlyArray<{ value?: string; text?: string }>;
+		envAssignments?: ReadonlyArray<{ value?: string; text?: string }>;
+	};
+	walkerState?: { env?: { get?: (key: string) => string | undefined } };
+}): string | undefined {
+	const args = ctx.input?.args ?? [];
+	for (let i = 0; i < args.length; i++) {
+		const tok = args[i]?.value ?? args[i]?.text ?? "";
+		if (tok.startsWith("--proxy=")) return tok.slice("--proxy=".length);
+		if (tok === "--proxy") {
+			const next = args[i + 1]?.value ?? args[i + 1]?.text;
+			if (typeof next === "string" && next !== "") return next;
+		}
+	}
+	const fromPrefix = prefixValue(ctx, "TELEPORT_PROXY");
+	if (fromPrefix !== undefined && fromPrefix.trim() !== "") return fromPrefix;
+	const fromEnv = ctx.walkerState?.env?.get?.("TELEPORT_PROXY");
+	return typeof fromEnv === "string" && fromEnv.trim() !== ""
+		? fromEnv
+		: undefined;
+}
+
+/**
+ * Node names this ssh/scp call targets: ssh -> its first operand (the
+ * target; the rest is the remote command), scp -> every operand that carries
+ * a 'host:' side. 'user@' prefixes and a trailing dot are dropped.
+ */
+function nodeCandidates(
+	sub: string,
+	rest: readonly string[],
+): string[] {
+	const name = (tok: string): string | undefined => {
+		let t = tok.trim();
+		if (t === "") return undefined;
+		if (sub === "scp") {
+			const colon = t.indexOf(":");
+			if (colon <= 0) return undefined; // a local path
+			t = t.slice(0, colon);
+		}
+		const at = t.lastIndexOf("@");
+		if (at >= 0) t = t.slice(at + 1);
+		t = t.replace(/\.$/, "").toLowerCase();
+		return t === "" ? undefined : t;
+	};
+	const toks = sub === "ssh" ? rest.slice(0, 1) : rest;
+	return toks.map(name).filter((v): v is string => v !== undefined);
+}
+
+/**
+ * The (node, cluster, plane) triple when this ssh/scp call names a node the
+ * map places in a DIFFERENT cluster than the pinned proxy; undefined when
+ * the call is fine, unpinned, or beyond what the map can judge.
+ */
+function wrongClusterNode(ctx: {
+	input?: {
+		tool?: string;
+		basename?: string;
+		args?: ReadonlyArray<{ value?: string; text?: string }>;
+	};
+	command: { positionals: () => string[] };
+	walkerState?: { env?: { get?: (key: string) => string | undefined } };
+}): { node: string; cluster: string; plane: string } | undefined {
+	const { sub, rest } = tshArgv(ctx);
+	if (sub !== "ssh" && sub !== "scp") return undefined;
+	const pin = proxyHost(pinnedProxy(ctx));
+	// Only the two clusters the map covers; an unknown pin (a leaf cluster,
+	// a future third one) means this map cannot judge the call.
+	if (pin !== ADMIN_PROXY_HOST && pin !== CONTROL_PROXY_HOST) return undefined;
+	for (const node of nodeCandidates(sub, rest)) {
+		const where = NODE_CLUSTERS[node];
+		if (where !== undefined && where.cluster !== pin)
+			return { node, cluster: where.cluster, plane: where.plane };
+	}
+	return undefined;
+}
+
+/**
+ * when.tshDiscoverySubcommand — 'tsh ls|status|clusters'. These list ONE
+ * cluster (the pinned or current one), which is exactly the narrow view
+ * that produced the 2026-11-22 false "no access" conclusion.
+ */
+export const tshDiscoverySubcommand = definePredicate<BooleanLeafArgs>(
+	(args, ctx) => {
+		const expected = unwrapBooleanLeafArg(args);
+		if (expected === undefined) return false;
+		const sub = tshSubcommand(ctx);
+		return (sub !== undefined && DISCOVERY_SUBCOMMANDS.has(sub)) === expected;
+	},
+);
+
+/**
+ * when.tshNodeWrongCluster — 'tsh ssh|scp' pinned to one known cluster while
+ * naming a node the map places in the other.
+ */
+export const tshNodeWrongCluster = definePredicate<BooleanLeafArgs>(
+	(args, ctx) => {
+		const expected = unwrapBooleanLeafArg(args);
+		if (expected === undefined) return false;
+		return (wrongClusterNode(ctx) !== undefined) === expected;
+	},
+);
+
 /** The owner's message, verbatim (brief tsh-guard-impl, rule 1). */
 const LOGIN_REASON =
 	"tsh login changes the shared Teleport client state (~/.tsh: current-profile, per-proxy yaml user: field, keys) that every session on this laptop uses. The owner does the logins himself — ask him (one question) for a tap. To work against an isolated home instead, set TELEPORT_HOME to a path other than ~/.tsh (e.g. TELEPORT_HOME=/data/tmp/tshhome-x/.tsh tsh login).";
@@ -412,7 +617,20 @@ const PROFILE_WRITE_REASON =
 	"Do not write into the shared Teleport client state (~/.tsh: current-profile, per-proxy yaml user: field, keys) — every session on this laptop shares it, and another session's login/logout changes what it means. Reads are fine (cat, ls, cp -a ~/.tsh /data/tmp/x). The owner manages ~/.tsh himself; ask him (one question) for a change. For an isolated run, copy ~/.tsh into a TELEPORT_HOME under $TMPDIR and write there.";
 
 const PROXY_REASON =
-	"tsh ssh/scp/ls/status/proxy/db/kube against the shared Teleport home (~/.tsh) needs an explicit --proxy= so the command cannot drift onto whatever profile another session left behind. Pin it: tsh --proxy=teleport-admin.piercloud.net:443 <subcommand> ... (or TELEPORT_PROXY=... tsh ...). An isolated TELEPORT_HOME with a single profile needs no pin.";
+	"tsh ssh/scp/proxy/db/kube against the shared Teleport home (~/.tsh) needs an explicit --proxy= so the command cannot drift onto whatever profile another session left behind. Pin it: tsh --proxy=teleport-admin.piercloud.net:443 <subcommand> ... (or TELEPORT_PROXY=... tsh ...). An isolated TELEPORT_HOME with a single profile needs no pin.";
+
+const DISCOVERY_REASON =
+	"tsh ls, tsh status and tsh clusters each show the ONE cluster you pinned (or whatever profile another session left current) — and pinning --proxy makes that narrow view look authoritative. Incident 2026-11-22: H4 ran only 'tsh ls --proxy=teleport-admin.piercloud.net', saw only pc-host-01, and concluded there was no access to the pc-control machine; the P3 lanes inherited the false conclusion. pc-control is a node in the SECOND cluster (tsh --proxy=teleport-control.piercloud.net:443 ssh --user=pier deploy@pc-control). The two clusters: teleport-admin.piercloud.net — pc-host-01 (plane host), pc-admin (plane admin; pier is denied by design, seat pc-admin-super + MFA tap); teleport-control.piercloud.net:443 — pc-control (plane control, role pc-control-near-root -> login deploy), pc-control-mail (plane mail). Discover every cluster at once with the read-only helper: tsh-discover (it runs tsh status + tsh ls for EVERY profile yaml in the shared home and prints 'NOT READABLE: <reason>' for a cluster whose cert expired — ask the owner for a login tap). A node absent from every cluster is unreachable via Teleport; absent from one cluster proves nothing.";
+
+/** Fallback text; the rule's reason function names the node when it can. */
+const NODE_WRONG_CLUSTER_REASON =
+	"Teleport nodes live in ONE cluster, and --proxy selects the cluster. pc-host-01 and pc-admin are in teleport-admin.piercloud.net; pc-control and pc-control-mail are in teleport-control.piercloud.net:443. Pin the proxy of the cluster that holds the node you are targeting (tsh --proxy=teleport-control.piercloud.net:443 ssh --user=pier deploy@pc-control), and list every cluster before concluding a machine is unreachable: tsh-discover.";
+
+const nodeWrongClusterReason = (ctx: Parameters<typeof wrongClusterNode>[0]) => {
+	const hit = wrongClusterNode(ctx);
+	if (hit === undefined) return NODE_WRONG_CLUSTER_REASON;
+	return `'${hit.node}' is a node in ${hit.cluster}:443 (plane ${hit.plane}), not in the cluster you pinned — a wrong-cluster lookup fails as 'not found' and reads like an unreachable machine (incident 2026-11-22: 'tsh ls --proxy=teleport-admin.piercloud.net' listed pc-host-01 only, and the missing pc-control was taken as 'no access'). Re-pin: tsh --proxy=${hit.cluster}:443 ssh --user=pier deploy@${hit.node} ... (or the matching scp form), and drop the wrong --proxy / TELEPORT_PROXY value. Discover every cluster first: tsh-discover.`;
+};
 
 export const tshGuardRules = [
 	{
@@ -451,6 +669,19 @@ export const tshGuardRules = [
 		reason: PROFILE_WRITE_REASON,
 	},
 	{
+		// A one-cluster listing is never authoritative (2026-11-22), so it
+		// is refused even when pinned — before tsh-needs-proxy, whose
+		// "pin the proxy" advice is what made the narrow view look right.
+		name: "tsh-discovery-all-clusters",
+		tool: "bash" as const,
+		command: ["tsh", "timeout"] as const,
+		when: {
+			tshDiscoverySubcommand: true,
+			usesSharedTshHome: true,
+		},
+		reason: DISCOVERY_REASON,
+	},
+	{
 		name: "tsh-needs-proxy",
 		tool: "bash" as const,
 		command: ["tsh", "timeout"] as const,
@@ -460,6 +691,18 @@ export const tshGuardRules = [
 			usesSharedTshHome: true,
 		},
 		reason: PROXY_REASON,
+	},
+	{
+		// Static node->cluster map (see NODE_CLUSTERS); only a pair it can
+		// name is refused, an unknown node or proxy pin falls through.
+		name: "tsh-node-wrong-cluster",
+		tool: "bash" as const,
+		command: ["tsh", "timeout"] as const,
+		when: {
+			tshNodeWrongCluster: true,
+			usesSharedTshHome: true,
+		},
+		reason: nodeWrongClusterReason,
 	},
 ];
 
@@ -498,5 +741,7 @@ export const tshGuardPlugin = {
 		tshReadCommand,
 		noTshProxyPin,
 		writesSharedTsh,
+		tshDiscoverySubcommand,
+		tshNodeWrongCluster,
 	},
 } as const satisfies Plugin;

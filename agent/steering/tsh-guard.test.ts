@@ -17,9 +17,14 @@ const WRITE = "no-shared-tsh-profile-write";
 const EDIT = "no-shared-tsh-profile-edit";
 const BASH_WRITE = "no-shared-tsh-bash-write";
 const PROXY = "tsh-needs-proxy";
+const DISCOVERY = "tsh-discovery-all-clusters";
+const WRONG_CLUSTER = "tsh-node-wrong-cluster";
 
 const SHARED = "/home/pier/.tsh";
 const PROXY_HOST = "teleport-admin.piercloud.net:443";
+// The second cluster (incident 2026-11-22): pc-control and pc-control-mail
+// live here, not behind the admin proxy.
+const CONTROL_HOST = "teleport-control.piercloud.net:443";
 
 describe("tsh-guard", () => {
 	const harness = loadHarness({ config });
@@ -216,11 +221,13 @@ describe("tsh-guard", () => {
 	it("blocks tsh scp without a pin", async () => {
 		await expectBlocks(harness, { command: "tsh scp f host:/tmp" }, { rule: PROXY });
 	});
+	// ls/status moved to tsh-discovery-all-clusters (rule 4 stays for the
+	// other profile reads: ssh/scp/proxy/db/kube).
 	it("blocks tsh ls without a pin", async () => {
-		await expectBlocks(harness, { command: "tsh ls" }, { rule: PROXY });
+		await expectBlocks(harness, { command: "tsh ls" }, { rule: DISCOVERY });
 	});
 	it("blocks tsh status without a pin", async () => {
-		await expectBlocks(harness, { command: "tsh status" }, { rule: PROXY });
+		await expectBlocks(harness, { command: "tsh status" }, { rule: DISCOVERY });
 	});
 	it("blocks tsh proxy ssh without a pin", async () => {
 		await expectBlocks(harness, { command: "tsh proxy ssh host true" }, { rule: PROXY });
@@ -236,8 +243,10 @@ describe("tsh-guard", () => {
 			command: "tsh --user=pier ssh host true",
 		}, { rule: PROXY });
 	});
+	// The command was 'tsh status' until 2026-11-22 — status now belongs to
+	// tsh-discovery-all-clusters, so the chain coverage uses ssh.
 	it("blocks tsh ssh in a && chain", async () => {
-		await expectBlocks(harness, { command: "cd /data/tmp && tsh status" }, { rule: PROXY });
+		await expectBlocks(harness, { command: "cd /data/tmp && tsh ssh host true" }, { rule: PROXY });
 	});
 	it("blocks timeout 30 tsh ssh without a pin", async () => {
 		await expectBlocks(harness, { command: "timeout 30 tsh ssh host true" }, { rule: PROXY });
@@ -279,8 +288,10 @@ describe("tsh-guard", () => {
 			command: "TELEPORT_HOME=/data/tmp/tshhome-574/.tsh tsh ssh host true",
 		});
 	});
-	it("allows tsh --proxy=… status", async () => {
-		await expectAllows(harness, { command: `tsh --proxy=${PROXY_HOST} status` });
+	// Was an allow before 2026-11-22; a pinned status is the narrow view
+	// that produced the false "no access" conclusion, so it blocks too.
+	it("blocks tsh --proxy=… status (pinned, one cluster)", async () => {
+		await expectBlocks(harness, { command: `tsh --proxy=${PROXY_HOST} status` }, { rule: DISCOVERY });
 	});
 	it("allows tsh version", async () => {
 		await expectAllows(harness, { command: "tsh version" });
@@ -305,3 +316,158 @@ describe("tsh-guard", () => {
 		});
 	});
 });
+
+// ---------------------------------------------------------------------
+// Cross-cluster discovery (incident 2026-11-22, H4-BOARD ~L1989-1993)
+// ---------------------------------------------------------------------
+describe("tsh-guard — cross-cluster discovery", () => {
+	const harness = loadHarness({ config });
+
+	// ---- tsh-discovery-all-clusters: a one-cluster listing is refused ----
+
+	it("blocks bare tsh ls (current-profile decides the cluster)", async () => {
+		await expectBlocks(harness, { command: "tsh ls" }, {
+			rule: DISCOVERY,
+			reason: /tsh-discover/,
+		});
+	});
+	it("blocks tsh ls --proxy=teleport-admin… (the incident command)", async () => {
+		await expectBlocks(harness, {
+			command: "tsh ls --proxy=teleport-admin.piercloud.net",
+		}, { rule: DISCOVERY });
+	});
+	it("names both clusters and the pc-control node in the reason", async () => {
+		await expectBlocks(harness, { command: "tsh ls" }, {
+			rule: DISCOVERY,
+			reason: /teleport-admin\.piercloud\.net[\s\S]*teleport-control\.piercloud\.net[\s\S]*pc-control/,
+		});
+	});
+	it("blocks a pinned tsh ls on the second cluster too", async () => {
+		await expectBlocks(harness, {
+			command: `tsh ls --proxy=${CONTROL_HOST}`,
+		}, { rule: DISCOVERY });
+	});
+	it("blocks tsh status (the other one-cluster listing)", async () => {
+		await expectBlocks(harness, { command: "tsh status" }, { rule: DISCOVERY });
+	});
+	it("blocks tsh clusters (leaf list of the pinned cluster)", async () => {
+		await expectBlocks(harness, { command: "tsh clusters" }, { rule: DISCOVERY });
+	});
+	it("blocks timeout 30 tsh ls --proxy=…", async () => {
+		await expectBlocks(harness, {
+			command: `timeout 30 tsh ls --proxy=${CONTROL_HOST}`,
+		}, { rule: DISCOVERY });
+	});
+	it("blocks tsh ls inside a && chain", async () => {
+		await expectBlocks(harness, {
+			command: `cd /data/tmp && tsh ls --proxy=${PROXY_HOST}`,
+		}, { rule: DISCOVERY });
+	});
+	it("blocks bash -c 'tsh ls'", async () => {
+		await expectBlocks(harness, { command: "bash -c 'tsh ls'" }, { rule: DISCOVERY });
+	});
+	it("blocks an unresolvable TELEPORT_HOME ls (fail-closed: counts as shared)", async () => {
+		await expectBlocks(harness, { command: "TELEPORT_HOME=$ISOLATED tsh ls" }, {
+			rule: DISCOVERY,
+		});
+	});
+	it("blocks tsh --proxy=… ls --format=json", async () => {
+		await expectBlocks(harness, {
+			command: `tsh --proxy=${PROXY_HOST} ls --format=json`,
+		}, { rule: DISCOVERY });
+	});
+
+	// ---- allows: isolated home, the helper itself, non-discovery verbs ----
+
+	it("allows tsh ls on an isolated TELEPORT_HOME", async () => {
+		await expectAllows(harness, { command: "TELEPORT_HOME=/data/tmp/x/.tsh tsh ls" });
+	});
+	it("allows a pinned tsh status on an isolated TELEPORT_HOME", async () => {
+		await expectAllows(harness, {
+			command: `TELEPORT_HOME=/data/tmp/x/.tsh tsh --proxy=${CONTROL_HOST} status`,
+		});
+	});
+	it("allows the helper tsh-discover", async () => {
+		await expectAllows(harness, { command: "tsh-discover" });
+	});
+	it("allows the helper by absolute path", async () => {
+		await expectAllows(harness, {
+			command: "/home/pier/.pi/agent/bin/tsh-discover",
+		});
+	});
+	it("allows a bare list of the teleport home", async () => {
+		await expectAllows(harness, { command: "ls ~/.tsh" });
+	});
+
+	// ---- tsh-node-wrong-cluster: a node in the other cluster ----
+
+	it("blocks pc-control behind the admin proxy (the incident pair)", async () => {
+		await expectBlocks(harness, {
+			command: `tsh --proxy=${PROXY_HOST} ssh --user=pier deploy@pc-control`,
+		}, { rule: WRONG_CLUSTER });
+	});
+	it("names the right proxy and the node in the reason", async () => {
+		await expectBlocks(harness, {
+			command: `tsh --proxy=${PROXY_HOST} ssh deploy@pc-control`,
+		}, { rule: WRONG_CLUSTER, reason: /teleport-control\.piercloud\.net:443/ });
+	});
+	it("blocks pc-host-01 behind the control proxy", async () => {
+		await expectBlocks(harness, {
+			command: `tsh --proxy=${CONTROL_HOST} ssh pier@pc-host-01`,
+		}, { rule: WRONG_CLUSTER });
+	});
+	it("blocks pc-control-mail behind the admin proxy", async () => {
+		await expectBlocks(harness, {
+			command: `TELEPORT_PROXY=${PROXY_HOST} tsh ssh deploy@pc-control-mail`,
+		}, { rule: WRONG_CLUSTER });
+	});
+	it("blocks an scp whose node side is in the other cluster", async () => {
+		await expectBlocks(harness, {
+			command: `tsh --proxy=${CONTROL_HOST} scp deploy@pc-host-01:/etc/motd /data/tmp/motd`,
+		}, { rule: WRONG_CLUSTER });
+	});
+	it("blocks sudo -u pier tsh ssh (wrapped, still placed)", async () => {
+		await expectBlocks(harness, {
+			command: `sudo -u pier tsh --proxy=${PROXY_HOST} ssh deploy@pc-control`,
+		}, { rule: WRONG_CLUSTER });
+	});
+
+	// ---- allows: right pin, unknown node, unknown pin, isolated home ----
+
+	it("allows pc-control behind the control proxy", async () => {
+		await expectAllows(harness, {
+			command: `tsh --proxy=${CONTROL_HOST} ssh --user=pier deploy@pc-control`,
+		});
+	});
+	it("allows pc-control-mail behind the control proxy", async () => {
+		await expectAllows(harness, {
+			command: `tsh --proxy=${CONTROL_HOST} ssh deploy@pc-control-mail`,
+		});
+	});
+	it("allows pc-host-01 behind the admin proxy", async () => {
+		await expectAllows(harness, {
+			command: `tsh --proxy=${PROXY_HOST} ssh deploy@pc-host-01 true`,
+		});
+	});
+	it("allows an unknown node name (the map is incomplete by design)", async () => {
+		await expectAllows(harness, {
+			command: `tsh --proxy=${PROXY_HOST} ssh deploy@some-future-node true`,
+		});
+	});
+	it("allows an unknown proxy pin (map cannot judge another cluster)", async () => {
+		await expectAllows(harness, {
+			command: "tsh --proxy=teleport-leaf.piercloud.net:443 ssh deploy@pc-control true",
+		});
+	});
+	it("allows a wrong-cluster node on an isolated TELEPORT_HOME", async () => {
+		await expectAllows(harness, {
+			command: `TELEPORT_HOME=/data/tmp/x/.tsh tsh --proxy=${PROXY_HOST} ssh deploy@pc-control true`,
+		});
+	});
+	it("blocks an unpinned wrong-cluster node with tsh-needs-proxy", async () => {
+		await expectBlocks(harness, {
+			command: "tsh ssh --user=pier deploy@pc-control",
+		}, { rule: PROXY });
+	});
+});
+
