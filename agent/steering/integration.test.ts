@@ -311,6 +311,9 @@ describe("global config — shape", () => {
 			"brief-threat-model",
 			"rm-relative-guard",
 			"tsh-guard",
+			// Goldmine is one checkout shared by concurrent sessions:
+			// no autostash, and a commit names its own paths.
+			"goldmine-shared-guard",
 			"critical-path-label-guard",
 			"secret-file-read-guard",
 			"bw-cli-guard",
@@ -918,12 +921,26 @@ describe("global config — gh-repo-create-needs-seed (repo create must seed)", 
 });
 
 describe("global config — real-path guard (this machine)", () => {
-	it("end-to-end: git commit on main at the real Goldmine path is allowed", async () => {
+	it("end-to-end: a scoped git commit on main at the real Goldmine path is allowed", async () => {
 		// The full evaluator against the REAL Goldmine vault on this
 		// machine. With the plugin's dynamic detection this is also a
 		// coverage-matrix check: Goldmine carries a `.napkin/` dir in
 		// the repo, so the walk-up must resolve it.
-		const { block, rule } = await evaluateBash(REAL_GOLDMINE, "git commit -m 'note'");
+		//
+		// The path is explicit since the 2026-11-22 shared-checkout
+		// incidents: a note commit names its own file (goldmine-commit-
+		// needs-pathspec), because a bare `git commit` swept another
+		// session's STAGED edit into a foreign commit at 22:57:10Z.
+		const { block, rule } = await evaluateBash(
+			REAL_GOLDMINE,
+			"git commit -m 'note' -- personal/notes/an-example-note.md",
+		);
 		assert.equal(block, false, `expected allow at real path ${REAL_GOLDMINE}, got block by ${rule}`);
+	});
+
+	it("end-to-end: an unscoped git commit at the real Goldmine path is refused", async () => {
+		const { block, rule } = await evaluateBash(REAL_GOLDMINE, "git commit -m 'note'");
+		assert.equal(block, true, "expected the shared-checkout rail to block");
+		assert.equal(rule, "goldmine-commit-needs-pathspec");
 	});
 });

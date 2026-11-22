@@ -112,6 +112,19 @@
 // opposite policy from merge-guard's fail-closed refusal; pc-host #836 has
 // shipped the turn since 2026-11-10 and the gate-plus-pair is still what
 // sessions type).
+// ./goldmine-shared-guard.ts (the vault
+// /home/pier/personal/github/Goldmine is ONE checkout shared by many
+// concurrent sessions: a `git pull --autostash` sweeps another session's
+// in-progress edit into a stash and a pathspec-less `git commit` sweeps
+// its staged work into a foreign commit — measured 2026-11-22. R1
+// goldmine-no-autostash refuses autostash pulls/rebases, a bare stash and
+// a pathspec-less `stash push`; R2 goldmine-commit-needs-pathspec refuses
+// a commit with no `--` paths (and `--only` without paths), `commit -a`,
+// `add -A/--all`, `add .`; both teach the scoped form, both read the
+// walker's cwd and `git -C`, and both re-read a `sh -c` payload; the
+// vault's gm-commit.sh helper stays allowed (it uses commit-tree and
+// never pulls, stashes or stages). Tests:
+// ./goldmine-shared-guard.test.ts.)
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
@@ -173,6 +186,10 @@ import {
 	rmRelativeGuardRules,
 } from "./rm-relative-guard.ts";
 import { tshGuardPlugin, tshGuardRules } from "./tsh-guard.ts";
+import {
+	goldmineSharedGuardPlugin,
+	goldmineSharedGuardRules,
+} from "./goldmine-shared-guard.ts";
 import {
 	criticalPathLabelGuardPlugin,
 	criticalPathLabelRules,
@@ -325,6 +342,7 @@ export default defineConfig({
 		threatModelRequiredPlugin,
 		rmRelativeGuardPlugin,
 		tshGuardPlugin,
+		goldmineSharedGuardPlugin,
 		criticalPathLabelGuardPlugin,
 		secretFileReadGuardPlugin,
 		bwCliGuardPlugin,
@@ -402,6 +420,8 @@ export default defineConfig({
 		...openWorkGateRules,
 		...threatModelRules,
 		...rmRelativeGuardRules,
+		// The vault is a shared checkout: scoped commit, no autostash.
+		...goldmineSharedGuardRules,
 		...tshGuardRules,
 		...criticalPathLabelRules,
 		...secretFileReadGuardRules,
