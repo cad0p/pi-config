@@ -90,9 +90,7 @@
   "theme": "light/dark",
   "externalEditor": "nvim",
   "enabledModels": [
-    "anthropic*/claude-opus-5-5:high",
-    "devin*/swe-2:high",
-    "mistral*/deepseek-v4-1-flash-1017:max"
+    "anthropic*/claude-opus-5-5:high"
   ],
   "defaultProjectTrust": "always",
   "compaction": {
