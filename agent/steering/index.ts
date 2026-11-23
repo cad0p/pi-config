@@ -92,6 +92,21 @@
 // or PC_PROBE_BOUNDED=1; incident 2026-11-11, a backgrounded `while :; do`
 // probe survived its turn because a background job in this harness ignores
 // SIGINT, so kill -INT is a no-op, and burned one core for 11.5 h) and
+// ./unit-name-guard.ts (2026-11-23, measured in one hour: lane H4
+// named a full CI run pc-gate-xbx1 — every lane reads pc-gate-* as "a gate
+// is running" (owner rule r) and held its CI queue for the whole run — and
+// unit a2-four.service ran an untracked
+// ~/.local/state/h4-orchestration/tmp-1319/a2-four.sh whose body did a
+// 'git worktree add' outside pc-wt, invisible to every guard. R1
+// unit-name-gate-reserved refuses a systemd-run unit named pc-gate-/pc-land-
+// /pc-q*/pc-preflight- unless the same command runs merge-run.sh or
+// merge-pr.sh with gate|queue|land|preflight|absorb; R2
+// systemd-run-no-script-execstart refuses a systemd-run whose command is
+// 'bash <path>' / 'sh <path>' / the path itself for a script under
+// /data/tmp, ~/.local/state/h4-orchestration or ~/.cache — write the
+// command inline (bash -c '...') so the guards see it; tracked tools
+// (tools/*.sh, Goldmine Scripts/orchestration/*) stay allowed. Tests:
+// ./unit-name-guard.test.ts.) and
 // ./pnpm-lockfile-guard.ts (where a repo carries a pnpm-lock.yaml,
 // an npm install verb — install/i/ci/add — is refused: "this repo uses
 // pnpm: run pnpm install --frozen-lockfile (one global store)"; the
@@ -144,7 +159,10 @@
 // compatibility-demand block/allow matrix, incl. the #228 design
 // brief) and ./probe-scope-guard.test.ts (the unbounded-probe
 // block/allow matrix, the incident red/green pair, the fake-bound
-// cases and the pinned raw-command gap) and ./queue-land-nudge.test.ts
+// cases and the pinned raw-command gap) and ./unit-name-guard.test.ts
+// (the reserved-unit-name and script-ExecStart block/allow matrices, the
+// two 2026-11-23 specimens, and the pinned textual gaps) and
+// ./queue-land-nudge.test.ts
 // (the --mode local of the queue entry block/allow matrix, the
 // PC_MERGE_LOCAL_OK=1 escape, the fail-open states and the pinned gaps).
 
@@ -223,6 +241,10 @@ import {
 	probeScopeGuardPlugin,
 	probeScopeGuardRules,
 } from "./probe-scope-guard.ts";
+import {
+	unitNameGuardPlugin,
+	unitNameGuardRules,
+} from "./unit-name-guard.ts";
 import {
 	syntheticLoadGuardPlugin,
 	syntheticLoadGuardRules,
@@ -354,6 +376,10 @@ export default defineConfig({
 		pnpmLockfilePlugin,
 		prelaunchCompatPlugin,
 		probeScopeGuardPlugin,
+		// The reserved gate/land/queue unit names, and no script ExecStart
+		// (2026-11-23: pc-gate-xbx1 held every lane's CI queue; a2-four.sh
+		// hid a worktree add from the guards).
+		unitNameGuardPlugin,
 		syntheticLoadGuardPlugin,
 		queueLandNudgePlugin,
 	],
@@ -417,6 +443,10 @@ export default defineConfig({
 		...prelaunchCompatRules,
 		// An ad-hoc probe may not outlive its turn (incident 2026-11-11).
 		...probeScopeGuardRules,
+		// pc-gate-/pc-land-/pc-q*/pc-preflight- names are the merge tools'
+		// (owner rule r), and a systemd-run ExecStart may not hide its work
+		// in a /data/tmp or state-dir script (2026-11-23).
+		...unitNameGuardRules,
 		// pc-host #1273: synthetic CPU load on the shared lane fails the
 		// gates; only a cgroup-capped systemd-run unit is allowed.
 		...syntheticLoadGuardRules,
