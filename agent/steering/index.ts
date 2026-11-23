@@ -64,9 +64,13 @@
 // incident 2026-11-07 rm in the wrong cwd deleted pc-tenant/.local) and
 // ./tsh-guard.ts (no agent may change the shared Teleport client state
 // ~/.tsh: no login/logout without an isolated TELEPORT_HOME, no
-// write/edit/cp/mv/rm/tee/sed -i into it, and tsh ssh/scp/ls/status/
-// proxy/db/kube need --proxy= or TELEPORT_PROXY= on the shared home —
-// owner ruling 2026-11-08) and
+// write/edit/cp/mv/rm/tee/sed -i into it, tsh ssh/scp/proxy/db/kube need
+// --proxy= or TELEPORT_PROXY= on the shared home — owner ruling
+// 2026-11-08 — and, since the 2026-11-22 discovery incident, a
+// shared-home bare 'tsh ls' (no --all/-R) is refused: list every cluster
+// with the native 'tsh ls --all' instead (status is read-only and always
+// passes), and a tsh ssh/scp naming a known node of the other cluster is
+// refused with the right proxy) and
 // ./critical-path-label-guard.ts (agents never apply or remove the
 // owner's critical-path label on a cad0p/pc-* repo: the merge queue's
 // actor check binds the flag to account 14107574, which agent sessions
