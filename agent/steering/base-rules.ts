@@ -42,6 +42,22 @@
  * without `absorb-of:` the binding is unchanged (a summary on another sha
  * refuses with the same message).
  *
+ * A merge-train gate counts for its member heads (pc-tenant #603). A train
+ * gates ONE candidate commit - main plus every piece, bottom first - so its
+ * manifest sits under the candidate head and never under a member head, and
+ * the head-keyed read below could not see it: every member PR's lens brief
+ * was refused with "no gate-record comment bound to head <H>" while the
+ * train's PASS gate, whose binding comment the helper posts on every member
+ * PR, was the green run for exactly that head. The train manifests are read
+ * for the same gate ids, under any head directory of the PR's repo, and one
+ * of them accepts the brief when it is a PASS gate (`result: PASS` exactly
+ * once), its `repo:` line is this PR's repo, it is a train gate (one
+ * `train-gate-kind:` line) and its `train-pieces: <pr>:<head> ...` line
+ * lists this brief's PR number with this brief's head. Nothing else
+ * widens: a FAIL train manifest, a manifest that lists the head for another
+ * PR, and a head absent from every train piece line all still refuse, and
+ * the refusal names the head and the pieces it looked for and found.
+ *
  * The gate record is read where the helper writes it:
  * `<evidence root>/<owner>/<repo>/<head>/<gate id>/manifest`, the RAW
  * owner/repo, one directory each (merge-pr.sh :10 evidence_root, :2656
@@ -79,7 +95,7 @@
  */
 
 import { execFileSync } from "node:child_process";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 
@@ -635,10 +651,104 @@ function prComments(
 	return { ok: true, out: result.out };
 }
 
+/** Every head directory of this repo in the evidence tree (a train gate sits
+ * under its candidate head, so the heads are enumerated, not derived). */
+function evidenceHeads(ownerRepo: string): string[] {
+	const parts = repoParts(ownerRepo);
+	if (!parts.ok) return [];
+	let names: string[];
+	try {
+		names = readdirSync(join(evidenceRoot(), parts.owner, parts.repo));
+	} catch {
+		return [];
+	}
+	return names.filter((name) => /^[0-9a-f]{40}$/.test(name));
+}
+
+/** The `<pr>:<head>` pieces a manifest's `train-pieces:` line lists. */
+function trainPiecesOf(lines: string[]): Array<{ pr: string; head: string }> {
+	const pieces: Array<{ pr: string; head: string }> = [];
+	for (const line of lines) {
+		const match = /^train-pieces:\s*(.*?)\s*$/.exec(line);
+		if (match === null) continue;
+		for (const token of (match[1] ?? "").split(/\s+/)) {
+			const piece = /^([0-9]+):([0-9a-f]{40})$/.exec(token);
+			if (piece !== null) {
+				pieces.push({ pr: piece[1] ?? "", head: piece[2] ?? "" });
+			}
+		}
+	}
+	return pieces;
+}
+
+/**
+ * The merge-train half of R3 (pc-tenant #603): a train gates one candidate
+ * commit, so its PASS manifest is written under the candidate head and never
+ * under a member head. It accepts this brief when it is the PR's repo, it is
+ * a train gate, it is a PASS gate, and its `train-pieces:` line lists this
+ * brief's PR number with this brief's head. Everything else refuses, and the
+ * refusal names the head and the train pieces that were found.
+ */
+function trainGateForHead(
+	ref: string,
+	head: string,
+	ids: string[],
+): { ok: true } | { ok: false; looked: string } {
+	const parts = splitPr(ref);
+	if (parts === null) return { ok: false, looked: `not a PR ref: ${ref}` };
+	const heads = evidenceHeads(parts.repo);
+	const seen: string[] = [];
+	for (const id of ids) {
+		if (!safeSegment(id)) continue;
+		for (const candidate of heads) {
+			const manifest = gateEvidenceManifest(parts.repo, candidate, id);
+			if (!manifest.ok) continue;
+			let text: string;
+			try {
+				text = readFileSync(manifest.path, "utf8");
+			} catch {
+				continue;
+			}
+			const lines = text.split("\n").map((line) => line.trim());
+			// A plain gate of another head is not evidence for this one, and a
+			// manifest that does not name this repo is another repo's run with
+			// the same PR number.
+			if (!lines.includes(`repo: ${parts.repo}`)) continue;
+			if (lines.filter((line) => /^train-gate-kind: /.test(line)).length !== 1) {
+				continue;
+			}
+			const pieces = trainPiecesOf(lines);
+			if (pieces.length === 0) continue;
+			const listed = pieces.map((piece) => `${piece.pr}:${piece.head}`).join(" ");
+			// Exactly one PASS: a FAIL manifest, and one whose result cannot be
+			// read, are not a green run for anybody.
+			const green = lines.filter((line) => line === "result: PASS").length === 1;
+			seen.push(
+				`${id} under ${candidate} is ${green ? "PASS" : "not PASS"} and lists ${listed}`,
+			);
+			if (!green) continue;
+			if (
+				pieces.some(
+					(piece) => piece.pr === parts.number && piece.head === head,
+				)
+			) {
+				return { ok: true };
+			}
+		}
+	}
+	const looked =
+		seen.length === 0
+			? `no merge-train gate manifest of the PR's gate record(s) (${ids.join(", ")}) lists any piece in ${join(evidenceRoot(), ...parts.repo.split("/"))}`
+			: `no merge-train gate manifest lists '${parts.number}:${head}' as a PASS gate (${seen.join("; ")})`;
+	return { ok: false, looked };
+}
+
 /**
  * The gate-record half of R3: a gate-record comment on the PR whose gate
  * manifest names this head. The gate posts `<!-- local-ci-gate:<id> -->`
- * only on a pass, and the manifest it keeps is what names the head.
+ * only on a pass, and the manifest it keeps is what names the head, or - for
+ * a merge train - a manifest under the candidate head that lists this PR and
+ * head as one of its pieces.
  */
 function gateRecordForHead(ref: string, head: string): string | null {
 	const parts = splitPr(ref);
@@ -670,6 +780,14 @@ function gateRecordForHead(ref: string, head: string): string | null {
 		}
 		const lines = text.split("\n").map((line) => line.trim());
 		if (lines.includes(`head: ${head}`)) return null;
+	}
+	// No manifest under this head. A merge train's gate is written under its
+	// candidate head and names each member PR and head it carried, so it is
+	// read from there before the head is called red (pc-tenant #603).
+	if (ids.length > 0) {
+		const train = trainGateForHead(ref, head, ids);
+		if (train.ok) return null;
+		return `${ref} has no gate-record comment bound to head ${head}, and ${train.looked}, and the brief carries no 'green-run: <path>' (no round on a red or unpushed head)`;
 	}
 	return `${ref} has no gate-record comment bound to head ${head}, and the brief carries no 'green-run: <path>' (no round on a red or unpushed head)`;
 }

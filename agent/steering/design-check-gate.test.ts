@@ -750,6 +750,132 @@ describe("design-check-gate — a fold needs its verdicts posted", () => {
 	});
 });
 
+describe("design-check-gate — a merge-train gate counts for its member heads", () => {
+	// pc-tenant #603: a train gates ONE candidate commit, so its manifest sits
+	// under the candidate head and never under a member head. The helper posts
+	// its binding comment (and so the marker) on every member PR, which is how
+	// the rule finds it, and `train-pieces:` is what names the member heads.
+	const TRAIN_GATE = "g20261124T073540Z-2326198";
+	const TRAIN_CANDIDATE = "7".repeat(40);
+	const TRAIN_TREE = "8".repeat(40);
+	const OTHER_PIECE = "9".repeat(40);
+
+	/** A lens brief with a head and no green-run: the gate-record path decides. */
+	function trainBrief(): string {
+		return `pr: ${PR}\nround: 2\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\n`;
+	}
+
+	/**
+	 * The train gate's manifest, under its candidate head, plus the binding
+	 * comment the helper posts on each member PR (its marker is the gate id).
+	 */
+	function trainGate(
+		opts: { result?: string; pieces?: string } = {},
+	): void {
+		const { result = "PASS", pieces = `650:${LENS_HEAD}` } = opts;
+		const dir = join(
+			state,
+			"pc-merge",
+			"evidence",
+			"cad0p",
+			"pc-host",
+			TRAIN_CANDIDATE,
+			TRAIN_GATE,
+		);
+		mkdirSync(dir, { recursive: true });
+		writeFileSync(
+			join(dir, "manifest"),
+			[
+				"repo: cad0p/pc-host",
+				"pr: 650",
+				`head: ${TRAIN_CANDIDATE}`,
+				`tree: ${TRAIN_TREE}`,
+				`result: ${result}`,
+				`gate-run: ${TRAIN_GATE}`,
+				"train-gate-kind: candidate",
+				`train-pieces: ${pieces}`,
+				"",
+			].join("\n"),
+		);
+		const cfgPath = join(state, "stubs", "gh.json");
+		const cfg = JSON.parse(readFileSync(cfgPath, "utf8")) as {
+			comments?: Array<{ body: string }>;
+		};
+		cfg.comments = [
+			...(cfg.comments ?? []),
+			{
+				body: `<!-- local-ci-gate:${TRAIN_GATE} -->\nlocal-ci a,b tree ${TRAIN_TREE} gate ${TRAIN_GATE}\ntrain-gate-kind: candidate\ntrain-pieces: ${pieces}`,
+			},
+		];
+		writeFileSync(cfgPath, JSON.stringify(cfg));
+	}
+
+	it("accepts the train's PASS gate that lists this PR's head", async () => {
+		trainGate({
+			pieces: `598:${OTHER_PIECE} 650:${LENS_HEAD}`,
+		});
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("p1-r2-lens-train.md"),
+				content: trainBrief(),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("still refuses a train gate whose result is FAIL", async () => {
+		trainGate({ result: "FAIL", pieces: `650:${LENS_HEAD}` });
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r2-lens-train-fail.md"),
+					content: trainBrief(),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /is not PASS and lists 650:/,
+			},
+		);
+	});
+
+	it("still refuses a train gate that lists this head for another PR", async () => {
+		trainGate({ pieces: `598:${LENS_HEAD}` });
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r2-lens-train-other.md"),
+					content: trainBrief(),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason:
+					/no merge-train gate manifest lists '650:1111[\s\S]*is PASS and lists 598:/,
+			},
+		);
+	});
+
+	it("still refuses when no train gate lists this head at all", async () => {
+		trainGate({ pieces: `598:${OTHER_PIECE} 595:${"6".repeat(40)}` });
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1-r2-lens-train-absent.md"),
+					content: trainBrief(),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /no merge-train gate manifest lists '650:1111/ },
+		);
+	});
+});
+
 describe("design-check-gate — verdict consistency (causing vs verdict)", () => {
 	it("blocks causing: yes with verdict: continue", async () => {
 		designCheck(
