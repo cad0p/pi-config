@@ -86,6 +86,9 @@ describe("unit-name-guard — the pure helpers", () => {
 		);
 		assert.equal(runsMergeToolVerb("tools/merge-pr.sh preflight cad0p/pc-host"), true);
 		assert.equal(runsMergeToolVerb("tools/merge-pr.sh absorb cad0p/pc-host 7"), true);
+		assert.equal(runsMergeToolVerb("tools/merge-pr.sh train-gate cad0p/pc-tenant 598:aa 603:bb"), true);
+		assert.equal(runsMergeToolVerb("tools/merge-pr.sh train cad0p/pc-tenant"), true);
+		assert.equal(runsMergeToolVerb("tools/merge-pr.sh trainx cad0p/pc-tenant"), false);
 		// no verb after the tool
 		assert.equal(runsMergeToolVerb("merge-run.sh r1 note.md -- dispatch"), false);
 		// no merge tool at all

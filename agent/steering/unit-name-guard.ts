@@ -92,13 +92,21 @@ export const SYSTEMD_RUN = "systemd-run";
 export const RESERVED_UNIT_NAME =
 	/^pc-(?:gate|land|preflight)(?:[-_.]|$)|^pc-q/;
 
-/** The verbs a real gate/queue/land/preflight unit runs (merge-run.sh / merge-pr.sh). */
+/**
+ * The verbs a real gate/queue/land/preflight unit runs (merge-run.sh / merge-pr.sh).
+ * train-gate / train (2026-11-24): the merge train's one full-set gate and its
+ * in-order land (merge-pr.sh run_train_gate / run_train; ruling
+ * design-checks/cad0p--pc-tenant-flake-cycle.md). They ARE merge-tool gates, so
+ * the reserved pc-gate- name is theirs, as for 'gate'.
+ */
 export const MERGE_VERBS = [
 	"gate",
 	"queue",
 	"land",
 	"preflight",
 	"absorb",
+	"train-gate",
+	"train",
 ] as const;
 
 /** The merge tools whose invocation releases rule A. */
