@@ -126,6 +126,12 @@ if [[ "\$(jq -r --arg p "\$pr" '.fail[\$p] // false' "\$cfg")" == true ]]; then
   echo "error: the lens round count failed (rc 5): a lens bucket row names no head" >&2
   exit 2
 fi
+note="\$(jq -r --arg p "\$pr" '(.absorb_only[\$p] // []) | join(" ")' "\$cfg")"
+if [[ -n "\$note" ]]; then
+  kept="\$(jq -r --arg p "\$pr" '(.rounds[\$p] // []) | length' "\$cfg")"
+  dropped="\$(jq -r --arg p "\$pr" '(.absorb_only[\$p] // []) | length' "\$cfg")"
+  printf 'note: %s of %s lens rounds reviewed only the absorb of main and do not count (owner ruling 2026-11-11: an absorber round is not a real round): %s\n' "\$dropped" "\$((kept + dropped))" "\$note" >&2
+fi
 jq -r --arg p "\$pr" '(.rounds[\$p] // []) | to_entries[] | "\\(.key + 1) \\(.value)"' "\$cfg"
 `;
 
@@ -140,7 +146,10 @@ function stub(dir: string, name: string, body: string): string {
 /**
  * Install the stubs under `root` and point the module's seams at them.
  * The gh stub answers for PR 650 (the suites' PR) with `LENS_HEAD` as its
- * head; the helper stub prints no rounds; the git stub has no commits.
+ * head; the helper stub prints no rounds; the git stub has no commits. The
+ * helper stub can also print merge-pr.sh's absorb-only note on stderr (a
+ * `absorb_only` list in its config), which is the only place a fold brief
+ * can learn that a head was an absorb-only round.
  */
 export function installLensStubs(root: string): void {
 	const bin = join(root, "stubs");

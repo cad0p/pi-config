@@ -392,18 +392,31 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	});
 
 	it("keeps a round-6 fold capped even with absorb-of (folds are split pieces)", async () => {
+		// An absorb-only fold is still a fold: the owner decision (2026-11-25)
+		// makes one code fix free inside the absorb round, it does not exempt the
+		// PR from the round-5 split. Exactly one of fold-of / absorb-of, so this
+		// brief names the absorb round alone.
 		designCheck(PR, 5);
-		postLensVerdicts(state, postedHeads(6));
+		const counted = postedHeads(6);
+		const absorbHead = postedHeads(7)[6] ?? LENS_HEAD;
+		postLensVerdicts(state, [...counted, absorbHead]);
+		const path = join(state, "stubs", "helper.json");
+		const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+			rounds: Record<string, string[]>;
+			absorb_only?: Record<string, string[]>;
+		};
+		cfg.rounds["650"] = counted;
+		cfg.absorb_only = {
+			...(cfg.absorb_only ?? {}),
+			"650": [`7 ${absorbHead}`],
+		};
+		writeFileSync(path, JSON.stringify(cfg));
 		await expectBlocks(
 			harness,
 			{
 				write: {
 					path: briefPath("p1-r6-absorb-fold.md"),
-					content: foldHeader(
-						6,
-						postedHeads(6)[0] ?? LENS_HEAD,
-						`absorb-of: ${"c".repeat(40)}\n`,
-					),
+					content: `pr: ${PR}\nround: 6\nkind: fold\n${CONSUMERS}\nabsorb-of: ${absorbHead}\n`,
 				},
 				cwd: "/tmp",
 			},
@@ -1039,5 +1052,158 @@ describe("design-check-gate — bash surface", () => {
 		const path = briefPath("top-level-gap.md");
 		const command = `cat > ${path} <<'EOF'\n${header(PR, 3)}EOF`;
 		await expectAllows(harness, { command, cwd: "/tmp" });
+	});
+});
+
+describe("design-check-gate — a fold may name an absorb-only round (owner decision 2026-11-25)", () => {
+	// pc-tenant #616: review round 1 at ac306734..., then an absorb of main at
+	// e2f362b5... whose Lens verdicts are posted and whose findings are
+	// note-only. merge-pr.sh counts ONE round and names the absorb round in its
+	// note line, so a fold of those findings has no `fold-of:` head to name:
+	// the owner decision (2026-11-25 04h3xZ) makes it the absorb round, not a
+	// new one. The round must equal the counted rounds, so a note-only fold
+	// never moves it, and a code fold on an absorb is the one free fix.
+
+	const REVIEW_HEAD = postedHeads(2)[0] ?? LENS_HEAD;
+	const ABSORB_HEAD = postedHeads(2)[1] ?? OTHER_HEAD;
+	const BOTH = /carries both 'fold-of: .* and 'absorb-of:/;
+	const USE_ABSORB = /or 'absorb-of: <sha>' when the folded round is the absorb of main/;
+	const ABSORB_NOT_POSTED =
+		/the absorb-of head [0-9a-f]{40} has no 'Lens: <lens>: CLEAN\|FINDINGS\(<n>\) @/;
+	const COUNTED_ROUND = /is one of the \d+ counted review round\(s\) on .*: a fold of a counted round names it with 'fold-of:/;
+	const ROUND_WRONG = /is not the PR's counted review round: the absorb round adds none, so .* is at round 1/;
+	const HELPER_FAILED = /absorb-only rounds of .* could not be read from .*absorb-only round \(fail closed\)/;
+
+	/** A fold brief naming the absorb round in `absorb-of:` (nothing else). */
+	function absorbFoldHeader(round: number, absorbOf: string = ABSORB_HEAD): string {
+		return `pr: ${PR}\nround: ${round}\nkind: fold\n${CONSUMERS}\nabsorb-of: ${absorbOf}\n`;
+	}
+
+	/** The stub helper's absorb-only rounds for the suite's PR: a note on stderr. */
+	function setAbsorbOnly(pairs: Array<[number, string]>): void {
+		const path = join(state, "stubs", "helper.json");
+		const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+			absorb_only?: Record<string, string[]>;
+		};
+		cfg.absorb_only = {
+			...(cfg.absorb_only ?? {}),
+			"650": pairs.map(([round, head]) => `${round} ${head}`),
+		};
+		writeFileSync(path, JSON.stringify(cfg));
+	}
+
+	/** #616's shape on the stub PR: one counted round, one absorb-only round. */
+	function pcTenant616Shape(): void {
+		postLensVerdicts(state, [REVIEW_HEAD, ABSORB_HEAD]);
+		setHelperRounds(1); // the helper's counted list: REVIEW_HEAD only
+		setAbsorbOnly([[2, ABSORB_HEAD]]);
+	}
+
+	it("allows a fold of an absorb-only round (pc-tenant #616's shape)", async () => {
+		pcTenant616Shape();
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("p616-r1-absorb-fold.md"),
+				content: absorbFoldHeader(1),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("blocks an absorb-of head with no posted Lens comment", async () => {
+		setHelperRounds(1);
+		setAbsorbOnly([[2, ABSORB_HEAD]]);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p616-r1-absorb-fold.md"),
+					content: absorbFoldHeader(1),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: ABSORB_NOT_POSTED },
+		);
+	});
+
+	it("blocks an absorb-of head that is a counted review round", async () => {
+		postLensVerdicts(state, [REVIEW_HEAD]);
+		setHelperRounds(1); // REVIEW_HEAD is the helper's counted round
+		setAbsorbOnly([[2, ABSORB_HEAD]]);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p616-r1-absorb-fold.md"),
+					content: absorbFoldHeader(1, REVIEW_HEAD),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: COUNTED_ROUND },
+		);
+	});
+
+	it("blocks a fold brief carrying both fold-of and absorb-of", async () => {
+		pcTenant616Shape();
+		const content = `pr: ${PR}\nround: 1\nkind: fold\n${CONSUMERS}\nfold-of: ${REVIEW_HEAD}\nabsorb-of: ${ABSORB_HEAD}\n`;
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p616-r1-absorb-fold.md"), content },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: BOTH },
+		);
+	});
+
+	it("blocks a fold brief carrying neither fold-of nor absorb-of", async () => {
+		pcTenant616Shape();
+		const content = `pr: ${PR}\nround: 2\nkind: fold\n${CONSUMERS}\n`;
+		await expectBlocks(
+			harness,
+			{
+				write: { path: briefPath("p616-r2-fold.md"), content },
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: USE_ABSORB },
+		);
+	});
+
+	it("blocks an absorb-of fold whose round is not the counted round", async () => {
+		pcTenant616Shape();
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p616-r2-absorb-fold.md"),
+					content: absorbFoldHeader(2),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: ROUND_WRONG },
+		);
+	});
+
+	it("fails closed when the helper's rounds cannot be read", async () => {
+		postLensVerdicts(state, [REVIEW_HEAD, ABSORB_HEAD]);
+		setHelperRounds(1);
+		setAbsorbOnly([[2, ABSORB_HEAD]]);
+		const path = join(state, "stubs", "helper.json");
+		const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+			fail: Record<string, boolean>;
+		};
+		cfg.fail["650"] = true;
+		writeFileSync(path, JSON.stringify(cfg));
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p616-r1-absorb-fold.md"),
+					content: absorbFoldHeader(1),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: HELPER_FAILED },
+		);
 	});
 });

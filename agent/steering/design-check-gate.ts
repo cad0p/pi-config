@@ -83,6 +83,26 @@
  * A comment read that fails refuses (fail closed). lens / impl / land /
  * design-check briefs are unaffected.
  *
+ * A fold may name an absorb-only round (owner decision 2026-11-25 04h3xZ:
+ * note-only fixes are never a round; after an absorb review the FIRST code
+ * fix is free - it is part of the absorb round, not a review round - and
+ * the free fix resets with each new absorb). merge-pr.sh counts a round
+ * only when it authored code, so an absorb round that carried note-only
+ * findings is dropped from its list (owner ruling 2026-11-11) and the
+ * `fold-of:` rule above would refuse that fold forever: the helper's list
+ * can never name the head. Such a fold carries `absorb-of: <40-hex>`
+ * instead of `fold-of:` (exactly one of the two). It is accepted only
+ * when that head has a posted `Lens: ... @ <head>` comment (read from the
+ * PR's comments, never the helper's counted list) AND the helper's own
+ * `rounds` output names it as an absorb-only round (its `note: ... do not
+ * count ...: <n> <sha>` line); a helper read that fails refuses. Its round
+ * must EQUAL the PR's counted review rounds - an absorb adds none - so a
+ * note-only fold never moves the round and a code fold on an absorb is the
+ * one free fix, which merge-pr.sh does not yet model (its counting of that
+ * fix commit is a separate escalation design). A brief with both lines, or
+ * neither, is refused with a message naming the one to use. Every
+ * `fold-of:` behaviour and message is unchanged.
+ *
  * Verdict consistency. The design check's `causing:` answer and its
  * verdict must agree: `causing: yes` means the design IS the source of
  * the churn, so `verdict: continue` contradicts the answer (that is how
@@ -115,6 +135,7 @@
  * (documented in brief-gates.ts).
  */
 
+import { spawnSync } from "node:child_process";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -122,7 +143,9 @@ import type { PredicateContext } from "@cad0p/pi-steering";
 import type { BriefWrite, DesignCheckStatus } from "./brief-gates.ts";
 import {
 	absorbBindingRefusal,
+	ghBin,
 	lensHeadRefusal,
+	mergeHelper,
 	pieceIsSmaller,
 	pathsOutsideParent,
 	postedLensRounds,
@@ -266,15 +289,212 @@ function greenRunValues(content: string): string[] {
 }
 
 /**
+ * The first non-blank line of every PR comment, extracted by jq exactly as
+ * base-rules.ts does it for its comment fallback (lens_bucket_json's own
+ * split, drop CR, skip blank, trim). Kept here because an `absorb-of:` fold
+ * reads the PR's comments even when the helper carries the `rounds`
+ * subcommand: the helper's counted list drops the absorb-only round this
+ * fold must see, so its list is the wrong answer for that check.
+ */
+const FIRST_LINE_JQ =
+	'.[] | [.body // "" | split("\\n")[] | gsub("\\r"; "") | select(test("\\\\S")) | gsub("^\\\\s+|\\\\s+$"; "")][0] // ""';
+
+/**
+ * A posted lens verdict's first line: merge-pr.sh's lens_bucket_json shape
+ * (`(CLEAN|FINDINGS(n)) @ <40-hex>`, case-insensitive, whitespace around
+ * the @), anchored on the line - the same shape base-rules.ts counts.
+ */
+const LENS_VERDICT_LINE =
+	/^Lens:.*?(?:CLEAN|FINDINGS\([0-9]+\))\s*@\s*([0-9a-f]{40})$/i;
+
+/** The first line of a command's output, trimmed; "" when it printed none. */
+function firstOutputLine(stdout: string | null, stderr: string | null): string {
+	const err = (stderr ?? "").trim();
+	const out = (stdout ?? "").trim();
+	return ((err !== "" ? err : out).split("\n")[0] ?? "").trim();
+}
+
+/**
+ * The heads carrying a posted `Lens: ... @ <head>` comment on the PR: the
+ * comment count postedLensRounds falls back to, read here directly (a
+ * `Maintainer:` first line is skipped, as the helper's bucket skips the
+ * maintainer's own passes). A read that fails is an error (fail closed).
+ */
+function postedLensCommentHeads(
+	header: BriefHeader,
+): { ok: true; heads: string[] } | { ok: false; err: string } {
+	if (header.owner === null || header.repo === null || header.number === null) {
+		return { ok: false, err: `not a PR ref: ${header.pr ?? "<none>"}` };
+	}
+	const result = spawnSync(
+		ghBin(),
+		[
+			"api",
+			"--paginate",
+			`repos/${header.owner}/${header.repo}/issues/${header.number}/comments`,
+			"--jq",
+			FIRST_LINE_JQ,
+		],
+		{ encoding: "utf8", timeout: 60_000 },
+	);
+	if (result.error !== undefined) {
+		return { ok: false, err: result.error.message || "gh api could not run" };
+	}
+	if (result.status !== 0) {
+		return {
+			ok: false,
+			err:
+				firstOutputLine(result.stdout, result.stderr) ||
+				`gh api returned ${result.status ?? -1}`,
+		};
+	}
+	const heads: string[] = [];
+	for (const line of (result.stdout ?? "").split("\n")) {
+		const first = line.trim();
+		if (first === "" || /^Maintainer:/i.test(first)) continue;
+		const match = LENS_VERDICT_LINE.exec(first);
+		const head = match?.[1]?.toLowerCase() ?? "";
+		if (head !== "" && !heads.includes(head)) heads.push(head);
+	}
+	return { ok: true, heads };
+}
+
+/**
+ * The `<round> <head>` pairs a `note:` line ends with, oldest first
+ * (merge-pr.sh authored_rounds prints its drops as `<n> <sha> <n> <sha>`).
+ * Walks back from the end so the prose before the pairs - which carries
+ * colons and dates - cannot be mistaken for one.
+ */
+function trailingRoundPairs(line: string): string[] {
+	const tokens = line.trim().split(/\s+/).filter((token) => token !== "");
+	const heads: string[] = [];
+	for (let i = tokens.length - 1; i >= 1; i -= 2) {
+		if (!/^[0-9a-f]{40}$/.test(tokens[i] ?? "")) break;
+		if (!/^[1-9][0-9]*$/.test(tokens[i - 1] ?? "")) break;
+		heads.unshift(tokens[i] ?? "");
+	}
+	return heads;
+}
+
+/**
+ * The helper's `rounds` output, both halves: the counted rounds on stdout
+ * and the absorb-only rounds its `note: ... do not count ...: <n> <sha>`
+ * line names on stderr (merge-pr.sh authored_rounds). A run that fails, a
+ * stdout line that is not `<round> <40-hex>`, or an absorb note that names
+ * no pair is an error: `absorb-of:` narrows the round rule, so a read it
+ * cannot make leaves the fold refused (fail closed).
+ */
+function helperRoundsAndAbsorbOnly(header: BriefHeader):
+	| { ok: true; heads: string[]; absorbOnly: string[] }
+	| { ok: false; err: string } {
+	if (header.owner === null || header.repo === null || header.number === null) {
+		return { ok: false, err: `not a PR ref: ${header.pr ?? "<none>"}` };
+	}
+	const result = spawnSync(
+		mergeHelper(),
+		["rounds", `${header.owner}/${header.repo}`, String(header.number)],
+		{ encoding: "utf8", timeout: 60_000 },
+	);
+	if (result.error !== undefined) {
+		return {
+			ok: false,
+			err: result.error.message || `${mergeHelper()} rounds could not run`,
+		};
+	}
+	if (result.status !== 0) {
+		return {
+			ok: false,
+			err:
+				firstOutputLine(result.stdout, result.stderr) ||
+				`${mergeHelper()} rounds failed`,
+		};
+	}
+	const heads: string[] = [];
+	for (const line of (result.stdout ?? "").split("\n")) {
+		if (line.trim() === "") continue;
+		const match = /^[1-9][0-9]* ([0-9a-f]{40})$/.exec(line.trim());
+		if (match === null) {
+			return {
+				ok: false,
+				err: `the round count is not a '<round> <40-hex>' list: ${line.trim()}`,
+			};
+		}
+		heads.push(match[1] ?? "");
+	}
+	const absorbOnly: string[] = [];
+	for (const line of (result.stderr ?? "").split("\n")) {
+		const note = line.trim();
+		if (!/^note:/i.test(note) || !/do not count/i.test(note)) continue;
+		const pairs = trailingRoundPairs(note);
+		if (pairs.length === 0) {
+			return {
+				ok: false,
+				err: `the helper's absorb-only note names no '<round> <sha>' pair: ${note}`,
+			};
+		}
+		for (const head of pairs) {
+			if (!absorbOnly.includes(head)) absorbOnly.push(head);
+		}
+	}
+	return { ok: true, heads, absorbOnly };
+}
+
+/**
+ * A fold of an absorb-only round (owner decision 2026-11-25): the head must
+ * carry a posted Lens: verdict AND the helper's own output must name it as
+ * an absorb-only round, and the round must be the PR's counted review
+ * rounds - an absorb adds none, so the free code fix stays in that round.
+ */
+function absorbFoldRefusal(
+	header: BriefHeader,
+	absorbOf: string,
+): string | null {
+	const pr = header.pr ?? "";
+	const posted = postedLensCommentHeads(header);
+	if (!posted.ok) {
+		return `the lens verdicts posted on ${pr} could not be read (${posted.err}); a fold may not fold rounds that cannot be shown posted (fail closed)`;
+	}
+	if (!posted.heads.includes(absorbOf)) {
+		return `the absorb-of head ${absorbOf} has no 'Lens: <lens>: CLEAN|FINDINGS(<n>) @ ${absorbOf}' comment on ${pr}: post that round's verdicts on the PR first, then write the fold brief`;
+	}
+	const helper = helperRoundsAndAbsorbOnly(header);
+	if (!helper.ok) {
+		return `the absorb-only rounds of ${pr} could not be read from ${mergeHelper()} (${helper.err}); 'absorb-of: ${absorbOf}' is accepted only when the helper names that head as an absorb-only round (fail closed)`;
+	}
+	if (!helper.absorbOnly.includes(absorbOf)) {
+		return helper.heads.includes(absorbOf)
+			? `the absorb-of head ${absorbOf} is one of the ${helper.heads.length} counted review round(s) on ${pr}: a fold of a counted round names it with 'fold-of: ${absorbOf}', not 'absorb-of:'`
+			: `the helper's rounds for ${pr} name ${absorbOf} neither as a counted round nor as an absorb-only one (its note line names ${helper.absorbOnly.length === 0 ? "none" : helper.absorbOnly.join(", ")}): post the absorb round's Lens verdicts on the PR, or name a counted round with 'fold-of:'`;
+	}
+	const round = header.round;
+	if (round !== null && round !== helper.heads.length) {
+		return `round ${round} on ${pr} is not the PR's counted review round: the absorb round adds none, so ${pr} is at round ${helper.heads.length}; write 'round: ${helper.heads.length}' in the fold brief (owner decision 2026-11-25: a note-only fix is never a round)`;
+	}
+	return null;
+}
+
+/**
  * A fold folds verdicts that are already posted (owner 2026-11-08): the
  * header's `fold-of:` head must carry a posted Lens: verdict on the PR, and
  * the round may not run more than one past the rounds posted there, so
  * merge-pr.sh's design_check_rounds cannot fall behind the review chain
  * (pc-host #622: 15 rounds, 4 posted). A comment read that fails refuses.
+ * An absorb-only round is folded with `absorb-of:` instead (owner decision
+ * 2026-11-25): exactly one of the two lines, never both.
  */
-function foldVerdictRefusal(header: BriefHeader): string | null {
+function foldVerdictRefusal(
+	header: BriefHeader,
+	absorbOf: string | null,
+): string | null {
 	if (header.kind !== "fold" || header.pr === null) return null;
 	const foldOf = header.foldOf;
+	if (foldOf !== null && absorbOf !== null) {
+		return `a fold brief carries both 'fold-of: ${foldOf}' and 'absorb-of: ${absorbOf}': write exactly one - 'fold-of: <40-hex>' for a counted review round, or 'absorb-of: <40-hex>' for the absorb of main whose round the helper does not count (owner decision 2026-11-25: a note-only fix is never a round)`;
+	}
+	if (foldOf === null && absorbOf === null) {
+		return `a fold brief needs 'fold-of: <40-hex>' in its header, naming the head whose lens verdicts it folds (every review round must be posted on the PR before the next fold brief): write 'fold-of: <sha>' for a counted review round, or 'absorb-of: <sha>' when the folded round is the absorb of main (owner decision 2026-11-25: a note-only fix is never a round)`;
+	}
+	if (absorbOf !== null) return absorbFoldRefusal(header, absorbOf);
 	if (foldOf === null || !/^[0-9a-f]{40}$/.test(foldOf)) {
 		return `a fold brief needs 'fold-of: <40-hex>' in its header, naming the head whose lens verdicts it folds (every review round must be posted on the PR before the next fold brief): write 'fold-of: ${foldOf ?? "<sha>"}'`;
 	}
@@ -333,7 +553,7 @@ function writeBlockReason(write: BriefWrite): string | null {
 	}
 	// The fold's verdicts are checked before the cap: a round that is ahead
 	// of what is posted is the diagnosis the author can act on.
-	const fold = foldVerdictRefusal(header);
+	const fold = foldVerdictRefusal(header, absorbOf);
 	if (fold !== null) return fold;
 	if (!absorbLens) {
 		const capped = roundCapRefusal(header);
