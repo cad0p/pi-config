@@ -8,6 +8,7 @@ skills: true
 allowed_subagents: all
 model: opencode-go/deepseek-v4.1-flash
 scoped_models: 
+  - devin*/swe-2-1-xhigh:xhigh
   - devin*/swe-2:high
   # - opencode-go*/longcat-2.5-free:high
   # - anthropic*/claude-sonnet-5-5:medium
