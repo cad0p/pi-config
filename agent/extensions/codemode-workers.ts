@@ -17,5 +17,5 @@
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 export default function (_pi: ExtensionAPI): void {
-  process.env.PI_CODEMODE_MAX_WORKERS ??= "6";
+  process.env.PI_CODEMODE_MAX_WORKERS ??= "16";
 }
