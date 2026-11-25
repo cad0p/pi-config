@@ -26,7 +26,12 @@
  * that head, or a `green-run: <path>` header naming a tools/ci.sh
  * summary.txt whose `result:` line is PASS, whose `run on: snapshot
  * commit <sha>` names that head and whose dirty-worktree lines all say no.
- * Those lines are read with greps, never a parser.
+ * Those lines are read with greps, never a parser. The optional
+ * `@ <40-hex>` trailer on the value is a consistency check, not decoration:
+ * it must equal the sha the summary's own `run on:` line names AND the head
+ * this round may cite (`head:`, or `absorb-of:` when the header declares
+ * one), and a trailer that is not exactly 40 lowercase hex is refused as
+ * malformed.
  *
  * The absorb-head green-run relaxation. A brief that reviews the absorb
  * head H' may cite CI produced on the head H the absorb was built from:
@@ -98,6 +103,7 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
+import { type GreenRunValue, greenRunPath } from "./brief-gates.ts";
 
 /**
  * Whether the round count comes from merge-pr.sh's `rounds` subcommand.
@@ -307,7 +313,7 @@ function oneLine(result: Run): string {
 }
 
 /** `owner/repo#n` split into its parts, or null. */
-function splitPr(ref: string): { repo: string; number: string } | null {
+export function splitPr(ref: string): { repo: string; number: string } | null {
 	const match = /^([A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+)#([0-9]+)$/.exec(ref.trim());
 	return match === null
 		? null
@@ -852,11 +858,86 @@ function summaryNamesSha(path: string, sha: string): boolean {
 		.some((line) => bound.test(line.trim()));
 }
 
-/** Every green-run path to check: the header's list, else the parsed value. */
-function greenRunPaths(greenRun: string | null, all?: string[]): string[] {
-	const paths = (all ?? []).filter((path) => path !== "");
-	if (paths.length > 0) return paths;
-	return greenRun === null || greenRun === "" ? [] : [greenRun];
+/**
+ * Every green-run value to check: the header's list, else the parsed value.
+ * Both carry what the header wrote, so both are read with greenRunPath: the
+ * `@ <head>` trailer an annotated value carries is not part of the path
+ * (reading it whole refused a readable summary as "cannot be read") and is
+ * held to the summary and the round by greenRunTrailerRefusal.
+ */
+function greenRunValues(
+	greenRun: string | null,
+	all?: string[],
+): GreenRunValue[] {
+	const values = (all ?? [])
+		.map(greenRunPath)
+		.filter((value) => value.path !== "" || value.malformed !== null);
+	if (values.length > 0) return values;
+	return greenRun === null || greenRun === ""
+		? []
+		: [greenRunPath(greenRun)];
+}
+
+/** The shas a summary's `run on: snapshot commit <sha> tree <tree>` lines name. */
+function summaryRunOnShas(text: string): string[] {
+	const shas: string[] = [];
+	for (const line of text.split("\n")) {
+		const match =
+			/^run on:\s+snapshot commit ([0-9a-f]{40}) tree [0-9a-f]{40}\s*$/.exec(
+				line.trim(),
+			);
+		const sha = match?.[1] ?? "";
+		if (sha !== "" && !shas.includes(sha)) shas.push(sha);
+	}
+	return shas;
+}
+
+/**
+ * A `green-run:` value's `@ <head>` trailer is held to the run it names:
+ * it must equal the sha in the summary's own `run on:` line and the head
+ * this round may cite - the reviewed `head:`, or the `absorb-of:` sha when
+ * the header declares one. A trailer that is not 40 lowercase hex is
+ * malformed, and a summary with no `run on:` line cannot hold one. A value
+ * with no trailer is today's behaviour (this returns null). Returns the
+ * refusal, or null.
+ */
+function greenRunTrailerRefusal(
+	value: GreenRunValue,
+	head: string,
+	absorbOf: string | null,
+): string | null {
+	if (value.malformed !== null) {
+		return `the green-run summary ${value.path} carries a malformed head trailer '@ ${value.malformed}': a trailer must be exactly the 40 lowercase hex head the run was made on, not '${value.malformed}' (fail closed)`;
+	}
+	const claimed = value.head;
+	if (claimed === null) return null;
+	const absorbHead =
+		absorbOf !== null && /^[0-9a-f]{40}$/.test(absorbOf) ? absorbOf : null;
+	const allowed = absorbHead ?? head;
+	const cited =
+		absorbHead === null
+			? `head ${head}`
+			: `the absorb-of head ${absorbHead}`;
+	let text: string;
+	try {
+		text = readFileSync(value.path, "utf8");
+	} catch {
+		// greenRunRefusal names the summary that does not read; a trailer
+		// cannot be held to a file that cannot be read.
+		return null;
+	}
+	const ranOn = summaryRunOnShas(text);
+	if (ranOn.length === 0) {
+		return `the green-run summary ${value.path} is annotated '@ ${claimed}' but carries no 'run on: snapshot commit <sha> tree <tree>' line: the trailer must equal the sha the summary ran on, and this summary names none (the brief claims ${claimed}, this round may cite ${allowed} only, as ${cited})`;
+	}
+	const names = ranOn.join(", ");
+	if (!ranOn.includes(claimed)) {
+		return `the green-run summary ${value.path} is annotated '@ ${claimed}' but its own 'run on: snapshot commit' line names ${names}: the trailer must equal the sha the summary ran on (the brief claims ${claimed}, the summary ran on ${names}, and this round may cite ${allowed} only, as ${cited})`;
+	}
+	if (claimed !== allowed) {
+		return `the green-run trailer '@ ${claimed}' on ${value.path} is not the head this round may cite: the brief claims ${claimed}, the summary ran on ${names}, and this round may cite ${allowed} only, as ${cited}`;
+	}
+	return null;
 }
 
 /**
@@ -864,7 +945,9 @@ function greenRunPaths(greenRun: string | null, all?: string[]): string[] {
  * a passing run bound to it. An `absorb-of:` head H may stand in for the
  * run's sha when the brief reviews the absorb head H' (H !== H'), the
  * brief declares `absorb-of: H`, and every green-run summary it carries
- * names H. Returns the refusal, or null.
+ * names H. A `green-run:` value's `@ <head>` trailer must equal both the
+ * sha its summary ran on and the head this round may cite ('head:', or H).
+ * Returns the refusal, or null.
  */
 export function lensHeadRefusal(
 	head: string | null,
@@ -887,20 +970,52 @@ export function lensHeadRefusal(
 	if (current.sha !== head) {
 		return `the brief reviews head ${head} but ${ref} is at ${current.sha}: push the head, then write the brief (no round on an unpushed head)`;
 	}
-	const paths = greenRunPaths(greenRun, opts.greenRuns);
+	const values = greenRunValues(greenRun, opts.greenRuns);
 	const absorbOf = opts.absorbOf ?? null;
 	// The relaxation only applies to an absorb brief whose reviewed head is
-	// not the absorb head: when they are equal the old binding applies.
-	const relaxed =
+	// not the absorb head: when they are equal the old binding applies. It is
+	// further narrowed to a MERGE head (pc-host #1626): the relaxation exists
+	// because an absorb carries no code of its own, while the one free code fix
+	// on an absorb is a single-parent commit and does carry code - so a brief
+	// whose head is that fix must carry its own green run on the fix itself, and
+	// a read this cannot make leaves the brief refused (fail closed).
+	let relaxed =
 		absorbOf !== null &&
 		absorbOf !== head &&
 		/^[0-9a-f]{40}$/.test(absorbOf);
+	if (relaxed) {
+		// The narrowing is DECIDABLE only one way, so it is drawn that way: the
+		// free code fix after an absorb is the head whose ONE parent is the
+		// `absorb-of:` head (pc-host #1626). Such a head carries code, so its own
+		// green run on itself is owed and the absorb head's run cannot stand in.
+		// A head that is not that child - a reviewed head, an absorb merge - keeps
+		// today's rule untouched, and a read this cannot make leaves the rule as it
+		// was: the restriction rests on a fact about the head's parent, not on the
+		// absence of a read.
+		const parts = splitPr(ref);
+		const clone =
+			parts === null
+				? { ok: false as const, err: "not a PR ref: " + ref }
+				: repoClone(parts.repo);
+		if (clone.ok) {
+			const headParents = commitParents(head, clone.path);
+			if (
+				headParents.ok &&
+				headParents.parents.length === 1 &&
+				headParents.parents[0] === absorbOf
+			) {
+				return "head " + head + " is the one commit on the absorb-of head " + absorbOf + ": that is the one free code fix, which carries code, so its 'green-run:' must name " + head + " itself and not the absorb head";
+			}
+		}
+	}
 	let usesAbsorb = false;
-	for (const path of paths) {
-		const onHead = greenRunRefusal(path, head);
+	for (const value of values) {
+		const trailer = greenRunTrailerRefusal(value, head, absorbOf);
+		if (trailer !== null) return trailer;
+		const onHead = greenRunRefusal(value.path, head);
 		if (onHead === null) continue;
 		if (!relaxed) return onHead;
-		const onAbsorb = greenRunRefusal(path, head, absorbOf ?? "");
+		const onAbsorb = greenRunRefusal(value.path, head, absorbOf ?? "");
 		if (onAbsorb === null) {
 			usesAbsorb = true;
 			continue;
@@ -910,13 +1025,13 @@ export function lensHeadRefusal(
 	// Once one summary relies on the absorb head, every summary must name it:
 	// a second run on another sha is not evidence for this brief.
 	if (usesAbsorb) {
-		const odd = paths.find(
-			(path) => !summaryNamesSha(path, absorbOf ?? ""),
+		const odd = values.find(
+			(value) => !summaryNamesSha(value.path, absorbOf ?? ""),
 		);
 		if (odd !== undefined) {
-			return `every green-run summary in an absorb-of brief must name the absorb-of head ${absorbOf}, not merely one of them: ${odd} names another sha (a live-worktree run is never evidence)`;
+			return `every green-run summary in an absorb-of brief must name the absorb-of head ${absorbOf}, not merely one of them: ${odd.path} names another sha (a live-worktree run is never evidence)`;
 		}
 	}
-	if (paths.length > 0) return null;
+	if (values.length > 0) return null;
 	return gateRecordForHead(ref, head);
 }

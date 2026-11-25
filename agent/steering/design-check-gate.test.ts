@@ -42,6 +42,10 @@ import {
 	postLensVerdicts,
 	postedHeads,
 } from "./lens-test-stubs.ts";
+import { visionSectionText } from "./vision-review.ts";
+
+/** The VISION REVIEW section every lens brief carries (pc-host #983). */
+const VISION = visionSectionText();
 
 const harness = loadHarness({ config });
 
@@ -74,7 +78,7 @@ const CONSUMERS =
 	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
 
 function header(pr: string, round: number, kind = "lens", extra = ""): string {
-	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}`;
+	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}\n${VISION}\n`;
 }
 
 /**
@@ -411,6 +415,17 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 			"650": [`7 ${absorbHead}`],
 		};
 		writeFileSync(path, JSON.stringify(cfg));
+		// The absorb is the PR's head: \`absorb-of:\` is a head binding (pc-host
+		// #1626), so a brief naming an absorb the PR has moved past is refused by
+		// that rule and never reaches the cap this case measures.
+		const ghPath = join(state, "stubs", "gh.json");
+		const gh = JSON.parse(readFileSync(ghPath, "utf8")) as {
+			default_head: string;
+			prs: Record<string, { head: string }>;
+		};
+		gh.default_head = absorbHead;
+		gh.prs["650"] = { ...(gh.prs["650"] ?? {}), head: absorbHead };
+		writeFileSync(ghPath, JSON.stringify(gh));
 		await expectBlocks(
 			harness,
 			{
@@ -450,7 +465,7 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	/** A lens header carrying exactly the runs the case gives it (plus absorb-of). */
 	function absorbHeader(round: number, absorbOf: string, runs: string[]): string {
 		const lines = runs.map((path) => `green-run: ${path}\n`).join("");
-		return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${absorbOf}\n${lines}`;
+		return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${absorbOf}\n${lines}${VISION}\n`;
 	}
 
 	it("allows a green-run on the absorb-of head when the brief reviews the absorb head", async () => {
@@ -493,7 +508,7 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 			{
 				write: {
 					path: briefPath("p1-r4-no-absorb.md"),
-					content: `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\ngreen-run: ${run}\n`,
+					content: `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\ngreen-run: ${run}\n${VISION}\n`,
 				},
 				cwd: "/tmp",
 			},
@@ -528,7 +543,7 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	it("blocks an absorb-of line that appears twice", async () => {
 		designCheck(PR, 3);
 		const run = passingSummary(state, ABSORB_HEAD, "ci-absorb.txt");
-		const content = `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${ABSORB_HEAD}\nabsorb-of: ${ABSORB_HEAD}\ngreen-run: ${run}\n`;
+		const content = `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${ABSORB_HEAD}\nabsorb-of: ${ABSORB_HEAD}\ngreen-run: ${run}\n${VISION}\n`;
 		await expectBlocks(
 			harness,
 			{
@@ -545,7 +560,7 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	it("keeps the old binding when head equals absorb-of", async () => {
 		designCheck(PR, 3);
 		const run = passingSummary(state, THIRD_HEAD, "ci-third.txt");
-		const content = `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${LENS_HEAD}\ngreen-run: ${run}\n`;
+		const content = `pr: ${PR}\nround: 4\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${LENS_HEAD}\ngreen-run: ${run}\n${VISION}\n`;
 		await expectBlocks(
 			harness,
 			{
@@ -775,7 +790,7 @@ describe("design-check-gate — a merge-train gate counts for its member heads",
 
 	/** A lens brief with a head and no green-run: the gate-record path decides. */
 	function trainBrief(): string {
-		return `pr: ${PR}\nround: 2\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\n`;
+		return `pr: ${PR}\nround: 2\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\n${VISION}\n`;
 	}
 
 	/**
@@ -1074,6 +1089,28 @@ describe("design-check-gate — a fold may name an absorb-only round (owner deci
 	const ROUND_WRONG = /is not the PR's counted review round: the absorb round adds none, so .* is at round 1/;
 	const HELPER_FAILED = /absorb-only rounds of .* could not be read from .*absorb-only round \(fail closed\)/;
 
+	/** The stub PR's head, moved: the absorb-of binding is a head binding (pc-host #1626). */
+	function setPrHead(sha: string): void {
+		const path = join(state, "stubs", "gh.json");
+		const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+			default_head: string;
+			prs: Record<string, { head: string }>;
+		};
+		cfg.default_head = sha;
+		cfg.prs["650"] = { ...(cfg.prs["650"] ?? {}), head: sha };
+		writeFileSync(path, JSON.stringify(cfg));
+	}
+
+	/** A commit the git stub reads with the parents the case gives it. */
+	function setCommitParents(sha: string, parents: string[]): void {
+		const path = join(state, "stubs", "git.json");
+		const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+			commits: Record<string, { parents: string[] }>;
+		};
+		cfg.commits[sha] = { parents };
+		writeFileSync(path, JSON.stringify(cfg));
+	}
+
 	/** A fold brief naming the absorb round in `absorb-of:` (nothing else). */
 	function absorbFoldHeader(round: number, absorbOf: string = ABSORB_HEAD): string {
 		return `pr: ${PR}\nround: ${round}\nkind: fold\n${CONSUMERS}\nabsorb-of: ${absorbOf}\n`;
@@ -1097,6 +1134,9 @@ describe("design-check-gate — a fold may name an absorb-only round (owner deci
 		postLensVerdicts(state, [REVIEW_HEAD, ABSORB_HEAD]);
 		setHelperRounds(1); // the helper's counted list: REVIEW_HEAD only
 		setAbsorbOnly([[2, ABSORB_HEAD]]);
+		// The absorb is the PR's head, which is what `absorb-of:` is bound to
+		// (pc-host #1626): an absorb the PR has moved past is no longer an anchor.
+		setPrHead(ABSORB_HEAD);
 	}
 
 	it("allows a fold of an absorb-only round (pc-tenant #616's shape)", async () => {
@@ -1182,6 +1222,54 @@ describe("design-check-gate — a fold may name an absorb-only round (owner deci
 			},
 			{ rule: "design-check-gate", reason: ROUND_WRONG },
 		);
+	});
+
+	it("blocks an absorb-of head the PR has moved past", async () => {
+		// The free code fix is pushed on top of the absorb: the absorb is no
+		// longer the head, so it is no longer an anchor - the fold of the fix's
+		// findings names the fix itself.
+		const FIX_HEAD = postedHeads(4)[3] ?? OTHER_HEAD;
+		postLensVerdicts(state, [REVIEW_HEAD, ABSORB_HEAD, FIX_HEAD]);
+		setHelperRounds(1);
+		setAbsorbOnly([[2, ABSORB_HEAD]]);
+		setCommitParents(FIX_HEAD, [ABSORB_HEAD]);
+		setPrHead(FIX_HEAD);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("p1626-r1-absorb-fold.md"),
+					content: absorbFoldHeader(1),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /is not the head of .*the one free code fix rides in the absorb round/,
+			},
+		);
+	});
+
+	it("allows a fold of the free fix's own findings (pc-host #1626's shape)", async () => {
+		// The helper no longer lists the fix as a round, but it is a dropped head
+		// with ONE parent: the free code fix on the absorb, whose re-check fold is
+		// the next review round.
+		const FIX_HEAD = postedHeads(4)[3] ?? OTHER_HEAD;
+		postLensVerdicts(state, [REVIEW_HEAD, ABSORB_HEAD, FIX_HEAD]);
+		setHelperRounds(1);
+		setAbsorbOnly([
+			[2, ABSORB_HEAD],
+			[3, FIX_HEAD],
+		]);
+		setCommitParents(FIX_HEAD, [ABSORB_HEAD]);
+		setPrHead(FIX_HEAD);
+		await expectAllows(harness, {
+			write: {
+				path: briefPath("p1626-r2-fold.md"),
+				content: `pr: ${PR}\nround: 2\nkind: fold\n${CONSUMERS}\nfold-of: ${FIX_HEAD}\n`,
+			},
+			cwd: "/tmp",
+		});
 	});
 
 	it("fails closed when the helper's rounds cannot be read", async () => {

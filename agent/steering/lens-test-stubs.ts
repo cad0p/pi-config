@@ -126,6 +126,14 @@ if [[ "\$(jq -r --arg p "\$pr" '.fail[\$p] // false' "\$cfg")" == true ]]; then
   echo "error: the lens round count failed (rc 5): a lens bucket row names no head" >&2
   exit 2
 fi
+if [[ "\${2:-}" == "--absorb-only" ]]; then
+  # Both kinds of drop, bare, one head per line (pc-host #1626): the pairs the
+  # config holds as '<round> <head>' print as the head alone, because the reader
+  # classifies a head by its parent count in the git stub, never by this text.
+  pr="\$4"
+  jq -r --arg p "\$pr" '(.absorb_only[\$p] // []) | .[] | split(" ") | last' "\$cfg"
+  exit 0
+fi
 note="\$(jq -r --arg p "\$pr" '(.absorb_only[\$p] // []) | join(" ")' "\$cfg")"
 if [[ -n "\$note" ]]; then
   kept="\$(jq -r --arg p "\$pr" '(.rounds[\$p] // []) | length' "\$cfg")"

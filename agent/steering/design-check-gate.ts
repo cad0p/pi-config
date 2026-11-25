@@ -143,14 +143,18 @@ import type { PredicateContext } from "@cad0p/pi-steering";
 import type { BriefWrite, DesignCheckStatus } from "./brief-gates.ts";
 import {
 	absorbBindingRefusal,
+	commitParents,
 	ghBin,
 	lensHeadRefusal,
 	mergeHelper,
 	pieceIsSmaller,
 	pathsOutsideParent,
 	postedLensRounds,
+	prHead,
+	repoClone,
 	roundsCount,
 	roundsFromHelper,
+	splitPr,
 } from "./base-rules.ts";
 import type { BriefHeader } from "./brief-gates.ts";
 import {
@@ -360,32 +364,22 @@ function postedLensCommentHeads(
 }
 
 /**
- * The `<round> <head>` pairs a `note:` line ends with, oldest first
- * (merge-pr.sh authored_rounds prints its drops as `<n> <sha> <n> <sha>`).
- * Walks back from the end so the prose before the pairs - which carries
- * colons and dates - cannot be mistaken for one.
- */
-function trailingRoundPairs(line: string): string[] {
-	const tokens = line.trim().split(/\s+/).filter((token) => token !== "");
-	const heads: string[] = [];
-	for (let i = tokens.length - 1; i >= 1; i -= 2) {
-		if (!/^[0-9a-f]{40}$/.test(tokens[i] ?? "")) break;
-		if (!/^[1-9][0-9]*$/.test(tokens[i - 1] ?? "")) break;
-		heads.unshift(tokens[i] ?? "");
-	}
-	return heads;
-}
-
-/**
- * The helper's `rounds` output, both halves: the counted rounds on stdout
- * and the absorb-only rounds its `note: ... do not count ...: <n> <sha>`
- * line names on stderr (merge-pr.sh authored_rounds). A run that fails, a
- * stdout line that is not `<round> <40-hex>`, or an absorb note that names
- * no pair is an error: `absorb-of:` narrows the round rule, so a read it
- * cannot make leaves the fold refused (fail closed).
+ * The helper's `rounds` output, both halves: the counted rounds on stdout,
+ * and on stderr nothing that is parsed. The dropped heads are read from
+ * `rounds --absorb-only` instead and classified by GIT, never by the note's
+ * prose (pc-host #1626): the list is the complement of the counted rounds -
+ * every dropped head, bare, both kinds - and the parent count says which one
+ * a head is, two parents for an absorb merge and one for the free code fix on
+ * it. Prose is exactly what a second reader drifts on: the free-fix note line
+ * is deliberately worded without "do not count", so a parser keyed on that
+ * phrase cannot silently read a fix as an absorb. A run that fails, a stdout
+ * line that is not `<round> <40-hex>`, a `--absorb-only` line that is not a
+ * bare head, or a head that cannot be read in the repo's clone is an error:
+ * `absorb-of:` narrows the round rule, so a read it cannot make leaves the
+ * fold refused (fail closed).
  */
 function helperRoundsAndAbsorbOnly(header: BriefHeader):
-	| { ok: true; heads: string[]; absorbOnly: string[] }
+	| { ok: true; heads: string[]; absorbOnly: string[]; freeFixes: string[] }
 	| { ok: false; err: string } {
 	if (header.owner === null || header.repo === null || header.number === null) {
 		return { ok: false, err: `not a PR ref: ${header.pr ?? "<none>"}` };
@@ -421,22 +415,81 @@ function helperRoundsAndAbsorbOnly(header: BriefHeader):
 		}
 		heads.push(match[1] ?? "");
 	}
+	const parts = splitPr(header.pr ?? "");
+	if (parts === null) {
+		return { ok: false, err: "not a PR ref: " + (header.pr ?? "<none>") };
+	}
+	const clone = repoClone(parts.repo);
+	if (!clone.ok) return { ok: false, err: clone.err };
+	const drops = spawnSync(
+		mergeHelper(),
+		[
+			"rounds",
+			"--absorb-only",
+			header.owner + "/" + header.repo,
+			String(header.number),
+		],
+		{ encoding: "utf8", timeout: 60_000 },
+	);
+	if (drops.error !== undefined) {
+		return {
+			ok: false,
+			err:
+				drops.error.message ||
+				mergeHelper() + " rounds --absorb-only could not run",
+		};
+	}
+	if (drops.status !== 0) {
+		return {
+			ok: false,
+			err:
+				firstOutputLine(drops.stdout, drops.stderr) ||
+				mergeHelper() + " rounds --absorb-only failed",
+		};
+	}
 	const absorbOnly: string[] = [];
-	for (const line of (result.stderr ?? "").split("\n")) {
-		const note = line.trim();
-		if (!/^note:/i.test(note) || !/do not count/i.test(note)) continue;
-		const pairs = trailingRoundPairs(note);
-		if (pairs.length === 0) {
+	const freeFixes: string[] = [];
+	for (const line of (drops.stdout ?? "").split("\n")) {
+		const head = line.trim();
+		if (head === "") continue;
+		if (!/^[0-9a-f]{40}$/.test(head)) {
 			return {
 				ok: false,
-				err: `the helper's absorb-only note names no '<round> <sha>' pair: ${note}`,
+				err:
+					"the helper's --absorb-only list is not a bare head per line: " +
+					head,
 			};
 		}
-		for (const head of pairs) {
-			if (!absorbOnly.includes(head)) absorbOnly.push(head);
+		if (absorbOnly.includes(head) || freeFixes.includes(head)) continue;
+		const parents = commitParents(head, clone.path);
+		if (!parents.ok) {
+			return {
+				ok: false,
+				err:
+					"the dropped head " +
+					head +
+					" could not be read in the " +
+					parts.repo +
+					" clone (" +
+					parents.err +
+					"): the parent count is the only thing that tells an absorb round from the free fix on it (fail closed)",
+			};
+		}
+		if (parents.parents.length === 2) absorbOnly.push(head);
+		else if (parents.parents.length === 1) freeFixes.push(head);
+		else {
+			return {
+				ok: false,
+				err:
+					"the dropped head " +
+					head +
+					" has " +
+					String(parents.parents.length) +
+					" parents; a dropped head is the two-parent absorb merge or the one-parent free fix on it",
+			};
 		}
 	}
-	return { ok: true, heads, absorbOnly };
+	return { ok: true, heads, absorbOnly, freeFixes };
 }
 
 /**
@@ -465,6 +518,17 @@ function absorbFoldRefusal(
 		return helper.heads.includes(absorbOf)
 			? `the absorb-of head ${absorbOf} is one of the ${helper.heads.length} counted review round(s) on ${pr}: a fold of a counted round names it with 'fold-of: ${absorbOf}', not 'absorb-of:'`
 			: `the helper's rounds for ${pr} name ${absorbOf} neither as a counted round nor as an absorb-only one (its note line names ${helper.absorbOnly.length === 0 ? "none" : helper.absorbOnly.join(", ")}): post the absorb round's Lens verdicts on the PR, or name a counted round with 'fold-of:'`;
+	}
+	// The absorb is a standing anchor only while it IS the head (pc-host #1626):
+	// once the free code fix is pushed, a second 'absorb-of: <absorb>' fold would
+	// fold a head that is no longer the PR's, and the fix rides in the absorb
+	// round, so the fold of the fix's own findings names the fix with 'fold-of:'.
+	const current = prHead(pr);
+	if (!current.ok) {
+		return "the head of " + pr + " could not be read (" + current.err + "); 'absorb-of: " + absorbOf + "' is accepted only while the PR head is still that absorb (fail closed)";
+	}
+	if (current.sha !== absorbOf) {
+		return "the absorb-of head " + absorbOf + " is not the head of " + pr + " (it is at " + current.sha + "): the one free code fix rides in the absorb round, so a fold of its findings names the fix with 'fold-of: " + current.sha + "' at round " + String(helper.heads.length + 1);
 	}
 	const round = header.round;
 	if (round !== null && round !== helper.heads.length) {
@@ -502,7 +566,16 @@ function foldVerdictRefusal(
 	if (!posted.ok) {
 		return `the lens verdicts posted on ${header.pr} could not be read (${posted.err}); a fold may not fold rounds that cannot be shown posted (fail closed)`;
 	}
-	if (!posted.heads.includes(foldOf)) {
+	// The accepted heads are the counted rounds AND the one free code fix a
+	// passed absorb round carries (pc-host #1626): the helper drops the fix from
+	// its counted list by design, so a fold of the fix's re-check findings would
+	// otherwise be refused forever with "has no Lens comment" - the comment is
+	// there, the helper just no longer lists the head as a round.
+	const helper = helperRoundsAndAbsorbOnly(header);
+	if (!helper.ok) {
+		return "the dropped heads of " + String(header.pr) + " could not be read from " + mergeHelper() + " (" + helper.err + "); 'fold-of: " + foldOf + "' is accepted for a counted round or for the free code fix of an absorb round (fail closed)";
+	}
+	if (!posted.heads.includes(foldOf) && !helper.freeFixes.includes(foldOf)) {
 		return `the fold-of head ${foldOf} has no 'Lens: <lens>: CLEAN|FINDINGS(<n>) @ ${foldOf}' comment on ${header.pr}: post that round's verdicts on the PR first, then write the fold brief`;
 	}
 	const round = header.round;
