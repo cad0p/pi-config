@@ -68,6 +68,7 @@ Status as of 2026-11-11, after `@buyong/pi-devin` 0.1.16. Five of the six pi-dev
 
 | id | what it fixes | upstream | remove when |
 |---|---|---|---|
+| `0009-pi-devin-lazy-effect` | every pi process paid ~+35 MB steady for Effect/protobufjs even without Devin; now the provider, commands and hooks register from plain code, the list comes from `models-store.json`, and Effect loads on first Devin use. Cold catalog refresh (stored list missing, >24 h old, or `/devin refresh`) and the daily account check run in a short-lived Node child | [buYoung/pi-packages#91](https://github.com/buYoung/pi-packages/issues/91) open; the owner invited a PR | upstream ships a lazy entry point that still refreshes the catalog while cold |
 | `0003-pi-devin-cache-warming` | extension forces `{ action: "stop" }` on cache warming for every devin model; with it removed pi decides, opt-in per model in `models.json` (`promptCache` + `cost`, today only `claude-opus-5-5`) | local only: 0.1.16 still stops warming on purpose (server TTL unverified) | **critical, keep.** Without it every pause longer than the cache TTL re-sends the lead's whole Opus prefix uncached against the Devin quota. Remove only if upstream lets pi decide warming for devin models |
 
 ### Removed after 0.1.16

@@ -13,6 +13,14 @@
 # startSession so the session that triggered the load gets attached; the two command bodies are exported for the
 # same reason. Behaviour for a session that uses Devin is unchanged; behaviour for a session that never does is
 # "nothing happens", as before, minus the imports.
+#
+# v2 (2026-11-25): the cold stub must not freeze the catalog. v1's refreshModels() only re-read the store, and the
+# real provider's registration refresh is offline, so the Devin list stayed at whatever a loaded process last fetched
+# (SWE-2.1 never appeared; debugging note 2026-11-25-pi-devin-swe-2-1-missing-lazy-stub-froze-the-catalog). Now a
+# cold refreshModels() with network fetches when the stored list is missing, older than 24 h, or forced, and the
+# daily account check (oauth.refresh) runs cold too, both in a short-lived Node child that exits when done: a worker
+# thread leaves its Effect graph resident in pi (+50 MB measured after terminate + GC). /devin refresh forces the
+# fetch (cold: stub handler; loaded: a branch in devinCommand). No Node child (single-file build, Bun) -> in-process.
 PATCH_ID="0009-pi-devin-lazy-effect"
 PATCH_TITLE="pi-devin: load Effect, protobufjs and the runtime only when the session uses Devin"
 PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/91 (present in @buyong/pi-devin 0.1.16)"
@@ -35,10 +43,17 @@ NEW_DEVIN_INDEX=$(cat <<'DEVIN_INDEX_EOF'
  * a Devin model selected or restored, /devin, /devin-fusion, a sign-in, or a Devin stream. Before that, the
  * model list is served from Pi's own stored catalog (models-store.json) and the Effect runtime is never built.
  * The upstream file is the same registerDevinExtension(pi, productionEnvironment(...)) call at the bottom of ensureLoaded().
+ *
+ * The stored catalog would never change while the extension is cold, so the two network jobs Pi asks of a cold provider run
+ * in a short-lived child process that exits when done (a worker thread would leave its Effect graph resident here):
+ * - the catalog refresh, when Pi allows network and the stored list is older than a day, is missing, or /devin refresh forces it;
+ * - the daily account check Pi runs as an OAuth refresh (pi-devin never renews the token; it re-checks the account).
+ * A Pi that cannot start a Node child (a single-file build or Bun) loads the extension in-process instead.
  */
+import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { getAgentDir } from "@earendil-works/pi-coding-agent";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import type { AssistantMessage, AssistantMessageEventStream, Model } from "@earendil-works/pi-ai";
@@ -60,7 +75,13 @@ interface StoredModel {
 function storedDevinModels(): StoredModel[] {
   try {
     const store = JSON.parse(readFileSync(join(getAgentDir(), "models-store.json"), "utf8")) as Record<string, { models?: unknown }>;
-    const models = store?.devin?.models;
+    return publishedModels(store?.devin?.models);
+  } catch { return []; }
+}
+
+/** The entries of a list this extension published (stored or just persisted), with the same checks for both. */
+function publishedModels(models: unknown): StoredModel[] {
+  try {
     if (!Array.isArray(models)) return [];
     return models.filter((model): model is StoredModel => Boolean(model) && typeof model === "object"
       && (model as StoredModel).provider === "devin" && (model as StoredModel).api === DEVIN_API
@@ -91,8 +112,136 @@ function scopeOf(credential: unknown): { baseUrl: string; scope: string } | unde
   return { baseUrl, scope: createHash("sha256").update(baseUrl + "\0" + value.access).digest("hex") };
 }
 
+/** How old the stored catalog may get before a cold provider fetches it again. The loaded catalog keeps its own 5 minutes. */
+const CATALOG_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+const CHILD_TIMEOUT_MS = 60_000;
+const PACKAGE_ROOT = new URL("./", import.meta.url).href;
+
+/**
+ * The child's program. It loads this package's TypeScript with Node's own type stripper (Node does not strip types under
+ * node_modules by itself), refuses any runtime import of Pi's packages, builds the catalog and sign-in services of
+ * ProviderLive without inference, answers one request over IPC and exits. Plain JS on purpose: no template literals.
+ */
+const CHILD_SOURCE = String.raw`
+import { readFileSync } from "node:fs";
+import { registerHooks, stripTypeScriptTypes } from "node:module";
+const root = process.argv[1];
+registerHooks({
+  resolve(specifier, context, next) {
+    if (specifier.startsWith("@earendil-works/")) throw new Error("pi-devin refresh process: runtime import of " + specifier + " from " + context.parentURL);
+    const fromEval = !context.parentURL || /\[eval\d*\]$/.test(context.parentURL);
+    return next(specifier, fromEval ? { ...context, parentURL: new URL("index.ts", root).href } : context);
+  },
+  load(url, context, next) {
+    if (url.startsWith("file:") && url.endsWith(".ts")) return { format: "module", source: stripTypeScriptTypes(readFileSync(new URL(url), "utf8")), shortCircuit: true };
+    return next(url, context);
+  },
+});
+process.on("disconnect", () => process.exit(0));
+const load = (path) => import(new URL(path, root).href);
+async function run(request) {
+  const { Layer, ManagedRuntime } = await import("effect");
+  const [device, http, platform, files, accounts, guard, login, auth, remote, catalog, clients, lifetime, runs, changes, config] = await Promise.all([
+    "src/core/services/device-identity.ts", "src/core/services/http-transport.ts", "src/core/services/platform.ts",
+    "src/pi/adapters/storage/files.ts", "src/pi/features/accounts/service.ts", "src/pi/features/auth/guard.ts",
+    "src/pi/features/auth/login.ts", "src/pi/features/auth/state.ts", "src/pi/features/catalog/remote.ts",
+    "src/pi/features/catalog/service.ts", "src/pi/features/clients/service.ts", "src/pi/features/lifetime/service.ts",
+    "src/pi/features/runs/service.ts", "src/pi/features/usage/changes.ts", "src/pi/app/config.ts",
+  ].map(load));
+  const agentDir = request.agentDir;
+  const environment = Layer.mergeAll(
+    Layer.succeed(config.ExtensionConfig, { isFusionChild: request.isFusionChild, now: Date.now, login: {}, agentDir: () => agentDir }),
+    http.NodeHttpTransport(),
+    Layer.succeed(login.LoginTransport, http.nodeTransport()),
+    files.FusionSettingsFile(files.fusionSettingsPath(agentDir)),
+    files.DisplaySettingsFile(files.devinSettingsPath(agentDir)),
+    files.UsageStoreFile(files.accountUsagePath(agentDir)),
+  ).pipe(Layer.provideMerge(Layer.mergeAll(device.NodeDeviceIdentitySource.pipe(Layer.provide(platform.NodePlatformLayer)), platform.NodePlatformLayer)));
+  const state = Layer.mergeAll(lifetime.ProviderLifetimeLive, auth.AuthStateLive, changes.UsageChangesLive, runs.RunsLive);
+  const services = login.AccountLoginLive.pipe(
+    Layer.provideMerge(catalog.ModelCatalogLive), Layer.provideMerge(remote.RemoteCatalogLive), Layer.provideMerge(guard.CredentialGuardLive),
+    Layer.provideMerge(accounts.AccountsLive), Layer.provideMerge(clients.DevinClientsLive), Layer.provideMerge(state),
+  );
+  const runtime = ManagedRuntime.make(services.pipe(Layer.provideMerge(environment)));
+  try {
+    if (request.kind === "oauth-refresh") {
+      const accountLogin = await runtime.runPromise(login.AccountLogin);
+      return { credential: await runtime.runPromise(accountLogin.refresh(request.credential, new AbortController().signal)) };
+    }
+    const models = await runtime.runPromise(catalog.ModelCatalog);
+    let persist;
+    await runtime.runPromise(models.refresh({
+      credential: request.credential, stored: request.stored, baseUrl: request.baseUrl, allowNetwork: true, force: request.force,
+      signal: new AbortController().signal,
+      publish: async (publication) => { if (publication.persist) persist = publication.persist; publication.update?.(); return true; },
+    }));
+    return { persist };
+  } finally {
+    await runtime.dispose();
+  }
+}
+process.once("message", async (request) => {
+  let reply;
+  try { reply = { ok: true, value: await run(request) }; }
+  catch (error) { reply = { ok: false, error: error instanceof Error ? error.message : String(error) }; }
+  process.send(reply, () => process.exit(0));
+});
+`;
+
+/** A child needs a Node executable: not a single-file build (its execPath is Pi itself) and not Bun. */
+function canStartChild(): boolean {
+  return !("bun" in process.versions) && /^node(js)?(\.exe)?$/i.test(basename(process.execPath));
+}
+
+type ChildRequest = { kind: "catalog"; credential: unknown; stored?: unknown; baseUrl?: string; force?: boolean } | { kind: "oauth-refresh"; credential: unknown };
+
+/** Runs one request in a fresh child. Rejects on its error, a timeout, an exit without a reply, or `signal`. */
+function runInChild(request: ChildRequest, isFusionChild: boolean, signal?: AbortSignal): Promise<any> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) return reject(signal.reason);
+    const child = spawn(process.execPath, ["--disable-warning=ExperimentalWarning", "--input-type=module", "-e", CHILD_SOURCE, PACKAGE_ROOT], {
+      stdio: ["ignore", "ignore", "pipe", "ipc"], serialization: "advanced", windowsHide: true,
+    });
+    let stderr = "", settled = false;
+    child.stderr?.on("data", (chunk) => { if (stderr.length < 4096) stderr += String(chunk); });
+    const finish = (settle: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+      settle();
+    };
+    const onAbort = () => { child.kill(); finish(() => reject(signal!.reason)); };
+    const timer = setTimeout(() => { child.kill(); finish(() => reject(new Error("The Devin refresh process timed out."))); }, CHILD_TIMEOUT_MS);
+    signal?.addEventListener("abort", onAbort, { once: true });
+    child.once("message", (reply: { ok: boolean; value?: unknown; error?: string }) =>
+      finish(() => reply.ok ? resolve(reply.value) : reject(new Error(reply.error))));
+    child.once("error", (error) => finish(() => reject(error)));
+    child.once("exit", (code) => finish(() => reject(new Error(`The Devin refresh process exited (${code}) without a reply. ${stderr.trim()}`.trim()))));
+    child.send({ ...request, agentDir: getAgentDir(), isFusionChild });
+  });
+}
+
+/** Resolves with `promise`, or rejects as soon as `signal` aborts; the shared work keeps running for the other callers. */
+function untilAborted<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise((resolve, reject) => {
+    const onAbort = () => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then((value) => { signal.removeEventListener("abort", onAbort); resolve(value); },
+      (error) => { signal.removeEventListener("abort", onAbort); reject(error); });
+  });
+}
+
+interface RefreshContext {
+  credential?: unknown; stored?: { checkedAt?: unknown }; baseUrl?: string; allowNetwork?: boolean; force?: boolean; signal?: AbortSignal;
+  publish(publication: { persist?: { models: unknown[]; checkedAt: number }; update?: () => void }): Promise<boolean>;
+}
+
 type LoadedExtension = {
   provider: {
+    refreshModels(context: RefreshContext): Promise<void>;
     auth: { oauth: { login(...args: never[]): Promise<unknown>; refresh(...args: never[]): Promise<unknown>; toAuth(...args: never[]): Promise<unknown> } };
     stream(model: Model<any>, context: never, options?: never): AssistantMessageEventStream;
     streamSimple(model: Model<any>, context: never, options?: never): AssistantMessageEventStream;
@@ -108,6 +257,7 @@ export default function devinExtension(pi: ExtensionAPI): void {
   let models = storedDevinModels();
   let loaded: LoadedExtension | undefined;
   let loading: Promise<LoadedExtension> | undefined;
+  let catalogFetch: Promise<{ persist?: unknown } | undefined> | undefined;
   const disposers: (() => void)[] = [];
 
   const ensureLoaded = (): Promise<LoadedExtension> => {
@@ -162,7 +312,11 @@ export default function devinExtension(pi: ExtensionAPI): void {
   const oauth = {
     name: "Devin account",
     login: async (...args: never[]) => (await ensureLoaded()).provider.auth.oauth.login(...args),
-    refresh: async (...args: never[]) => (await ensureLoaded()).provider.auth.oauth.refresh(...args),
+    // The daily account check. Cold, it runs in a child; loaded, the extension does it itself.
+    refresh: async (current: unknown, signal?: AbortSignal) => {
+      if (loaded || !canStartChild()) return (await ensureLoaded()).provider.auth.oauth.refresh(current as never, signal as never);
+      return (await runInChild({ kind: "oauth-refresh", credential: current }, isFusionChild, signal)).credential;
+    },
     toAuth: async (...args: never[]) => (await ensureLoaded()).provider.auth.oauth.toAuth(...args),
   };
 
@@ -177,8 +331,19 @@ export default function devinExtension(pi: ExtensionAPI): void {
       return candidates.filter((model) => model.provider === "devin" && model.api === DEVIN_API
         && model.baseUrl === target.baseUrl && model.devin?.scope === target.scope);
     },
-    // No publication: getModels() is the list, and the refresh that would fetch the catalog runs once the runtime exists.
-    refreshModels: async () => { models = storedDevinModels(); },
+    // Offline, the stored list is the list. With network, a missing, day-old or forced list is fetched in a child and published.
+    refreshModels: async (context?: RefreshContext) => {
+      models = storedDevinModels();
+      if (!context?.allowNetwork || context.signal?.aborted || !scopeOf(context.credential)) return;
+      const checkedAt = context.stored?.checkedAt;
+      const isFresh = models.length > 0 && typeof checkedAt === "number" && Date.now() - checkedAt < CATALOG_MAX_AGE_MS;
+      if (isFresh && !context.force) return;
+      if (loaded || !canStartChild()) return (await ensureLoaded()).provider.refreshModels(context);
+      catalogFetch ??= runInChild({ kind: "catalog", credential: context.credential, stored: context.stored, baseUrl: context.baseUrl, force: context.force }, isFusionChild)
+        .finally(() => { catalogFetch = undefined; });
+      const persist = (await untilAborted(catalogFetch, context.signal))?.persist as { models: unknown[]; checkedAt: number } | undefined;
+      if (persist) await context.publish({ persist, update: () => { models = publishedModels(persist.models); } });
+    },
     stream: (model: Model<any>, context: never, options?: never) => streamThrough("stream", model, context, options),
     streamSimple: (model: Model<any>, context: never, options?: never) => streamThrough("streamSimple", model, context, options),
   } as never);
@@ -201,10 +366,24 @@ export default function devinExtension(pi: ExtensionAPI): void {
   on("model_select", (event, context) => {
     if ((event as unknown as { model?: Model<any> }).model?.provider === "devin") warm(context);
   });
+  /** /devin refresh: Pi's own forced refresh of this provider, with the result as a notification. */
+  const refreshCommand = async (context: ExtensionContext) => {
+    const registry = context.modelRegistry as unknown as {
+      refresh(options: object): Promise<{ errors?: Map<string, Error & { cause?: unknown }> }>; getAll(): { provider: string }[];
+    };
+    const result = await registry.refresh({ providers: ["devin"], allowNetwork: true, force: true });
+    const failure = result?.errors?.get("devin");
+    const count = registry.getAll().filter((model) => model.provider === "devin").length;
+    context.ui.notify(failure ? `Devin model list refresh failed: ${(failure.cause as Error | undefined)?.message ?? failure.message}`
+      : `Devin model list refreshed: ${count} models.`, failure ? "error" : "info");
+  };
+
   if (isLead) {
     pi.registerCommand("devin", {
       description: "Show Devin usage and change display settings (recommended models only, usage in the status line); saved globally",
       handler: async (args, context) => {
+        // Cold: Pi's refresh reaches refreshModels above, which fetches in a child. Loaded: the same branch in devinCommand.
+        if (!loaded && args.trim() === "refresh") return refreshCommand(context as ExtensionContext);
         const extension = await ensureLoaded();
         const command = await import("./src/pi/adapters/pi/devin-command.ts");
         const runtime = extension.runtime as { runPromise<A>(effect: A): Promise<unknown> };
@@ -242,6 +421,17 @@ s!  return \{ provider, runtime \};!  return { provider, runtime, startSession }
 # the two command bodies the entry point calls after the load
 s{\nconst devinCommand = \(}{\n// local patch 0009: the entry point calls this after the lazy load.
 export const devinCommand = (};
+# /devin refresh once the extension is loaded (the cold entry point handles it itself)
+s{const USAGE = "Usage: /devin, /devin recommended}{const USAGE = "Usage: /devin, /devin refresh, /devin recommended};
+s{(  const tokens = args\.trim\(\)\.split\(/\\s\+/\)\.filter\(Boolean\);\n)(  if \(tokens\.length\) \{)}{$1  // local patch 0009: fetch the model list now (the cold entry point refreshes it on its own at most daily).
+  if (tokens.length === 1 && tokens[0] === "refresh") {
+    const result = yield* Effect.tryPromise({ try: () => ctx.modelRegistry.refresh({ providers: ["devin"], allowNetwork: true, force: true }), catch: toDevinFailure });
+    const failure = result.errors.get("devin") as (Error & { cause?: Error }) | undefined;
+    const count = ctx.modelRegistry.getAll().filter((model) => model.provider === "devin").length;
+    ctx.ui.notify(failure ? "Devin model list refresh failed: " + (failure.cause?.message ?? failure.message) : "Devin model list refreshed: " + count + " models.", failure ? "error" : "info");
+    return;
+  }
+$2};
 s{\nconst fusionCommand = \(}{\n// local patch 0009: the entry point calls this after the lazy load.
 export const fusionCommand = (};
 DEVIN_PERL_EOF
