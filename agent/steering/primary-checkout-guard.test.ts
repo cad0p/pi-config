@@ -319,17 +319,31 @@ describe("primary-checkout guard — the allowed read + sync surface", () => {
 		`cd ${PRIMARY} && git branch --show-current`,
 		`cd ${PRIMARY} && git switch main`,
 		`cd ${PRIMARY} && git checkout main`,
-		`cd ${PRIMARY} && git worktree add /data/tmp/wt/pc-host-x -b x`,
 		`cd ${PRIMARY} && git worktree list`,
-		`cd ${PRIMARY} && git worktree prune`,
 		`git -C ${PRIMARY} fetch --prune origin`,
-		`git -C ${PRIMARY} worktree add /data/tmp/wt/pc-host-y -b y`,
 	]) {
 		it(`allows: ${command}`, async () => {
 			await expectAllows(loadHarness({ config, host: host() }), {
 				command,
 				cwd: OTHER,
 			});
+		});
+	}
+
+	// git worktree add|prune from a primary is not this guard's to refuse:
+	// worktree-guard's no-worktree-outside-pc-wt owns it (pc-wt is the one
+	// path). Pin that the refusal comes from that rule, not from this one.
+	for (const command of [
+		`cd ${PRIMARY} && git worktree add /data/tmp/wt/pc-host-x -b x`,
+		`cd ${PRIMARY} && git worktree prune`,
+		`git -C ${PRIMARY} worktree add /data/tmp/wt/pc-host-y -b y`,
+	]) {
+		it(`leaves to no-worktree-outside-pc-wt: ${command}`, async () => {
+			await expectBlocks(
+				loadHarness({ config, host: host() }),
+				{ command, cwd: OTHER },
+				{ rule: "no-worktree-outside-pc-wt" },
+			);
 		});
 	}
 

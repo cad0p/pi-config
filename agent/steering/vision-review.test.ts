@@ -326,9 +326,12 @@ describe("vision-review - the verdict gate", () => {
 	});
 
 	it("allows a verdict naming the invariant and the evidence", async () => {
+		// A real verdict body opens with its head (Lens: <lens> @ <40-hex>),
+		// which is what lets no-bare-citation accept the file:line evidence.
 		await expectAllows(harness, {
 			command: comment(
-				"Vision: V4 FIT (docs/host-incus.md:41: no host-started action runs in the guest); V6 N/A(no CC work)",
+				"Lens: functional @ " + "a".repeat(40) + "\n\n" +
+					"Vision: V4 FIT (docs/host-incus.md:41: no host-started action runs in the guest); V6 N/A(no CC work)",
 			),
 			cwd: "/tmp",
 		});
