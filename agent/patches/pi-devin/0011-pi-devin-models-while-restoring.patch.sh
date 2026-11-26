@@ -12,7 +12,7 @@
 # its first refresh as before. 0009 adds the stored list as the last fallback for an instance with no attached peer.
 PATCH_ID="0011-pi-devin-models-while-restoring"
 PATCH_TITLE="pi-devin: a new instance answers with an attached instance's model list until its own is restored"
-PATCH_UPSTREAM="buYoung/pi-packages (to file; present in @buyong/pi-devin 0.1.16)"
+PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/94 (PR #95; present in @buyong/pi-devin 0.1.16)"
 PATCH_REMOVE_WHEN="upstream's routing provider never reports an empty list while another attached instance has one; then delete this file"
 
 PATCH_ROOTS="${PI_AGENT_DIR}/npm/node_modules/@buyong/pi-devin"
