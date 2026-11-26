@@ -27,6 +27,11 @@
 # api: devin-connect"). The real provider now answers with the stored list while its own is empty (0011 tries another
 # attached instance first). Upgrading an install already on v1/v2 needs index.ts restored from index.ts.orig first,
 # because the runner sees the 0009 marker and reports "already patched".
+#
+# v4 (2026-11-26): subagents that switched to Devin together hung forever or failed. Loads now run one at a time per
+# process (concurrent loads got a half-initialized module: "reading 'makeExtensionRuntime'"), and the session_start /
+# model_select handlers return the load, which Pi awaits, so the session's own instance is attached before its first
+# request (an earlier request reached the instance another session registered last, and died with that session).
 PATCH_ID="0009-pi-devin-lazy-effect"
 PATCH_TITLE="pi-devin: load Effect, protobufjs and the runtime only when the session uses Devin"
 PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/91 (present in @buyong/pi-devin 0.1.16)"
@@ -260,6 +265,15 @@ type LoadedExtension = {
   startSession?: (event: unknown, context: ExtensionContext) => void;
 };
 
+/** Runs process-wide loads one after another, whichever copy of this module asks. */
+function oneLoadAtATime<T>(load: () => Promise<T>): Promise<T> {
+  const key = Symbol.for("@buyong/pi-devin/local-patch-0009/load-queue");
+  const host = globalThis as unknown as Record<symbol, Promise<unknown> | undefined>;
+  const next = (host[key] ?? Promise.resolve()).then(load, load);
+  host[key] = next.catch(() => undefined);
+  return next;
+}
+
 /** Pi's entry point. */
 export default function devinExtension(pi: ExtensionAPI): void {
   const isFusionChild = process.env[FUSION_CHILD_ENV] === "1";
@@ -285,21 +299,26 @@ export default function devinExtension(pi: ExtensionAPI): void {
   });
 
   const ensureLoaded = (): Promise<LoadedExtension> => {
-    loading ??= (async () => {
+    // One load at a time in the process: sessions that load together (subagents switching to Devin at once) raced the
+    // module loader, and one of them got a half-initialized module ("reading 'makeExtensionRuntime'").
+    loading ??= oneLoadAtATime(async () => {
       const registration = await import("./src/pi/adapters/pi/registration.ts");
       const environment = await import("./src/pi/app/environment.ts");
       // Hand over before the real registration installs its own handlers: one handler per event, never two.
       for (const dispose of disposers.splice(0)) dispose();
       loaded = registration.registerDevinExtension(withStoredModels, environment.productionEnvironment({ isFusionChild })) as unknown as LoadedExtension;
       return loaded;
-    })().catch((error: unknown) => { loading = undefined; throw error; });
+    }).catch((error: unknown) => { loading = undefined; throw error; });
     return loading;
   };
 
-  /** Starts loading and, when the session needs its run state, attaches it once the runtime exists. */
-  const warm = (context: ExtensionContext | undefined) => {
-    void ensureLoaded().then((extension) => extension.startSession?.(undefined, context as ExtensionContext)).catch(() => {});
-  };
+  /**
+   * Loads and, when the session needs its run state, attaches it once the runtime exists. Pi awaits the session_start and
+   * model_select handlers that return this, so the session's own instance is attached before its first Devin request:
+   * a request that comes earlier reaches the instance another session registered last.
+   */
+  const warm = (context: ExtensionContext | undefined): Promise<void> =>
+    ensureLoaded().then((extension) => extension.startSession?.(undefined, context as ExtensionContext)).catch(() => {});
 
   /** The message Pi sees when the extension itself cannot load. */
   const errorMessage = (error: unknown): AssistantMessage => ({
@@ -372,7 +391,7 @@ export default function devinExtension(pi: ExtensionAPI): void {
     streamSimple: (model: Model<any>, context: never, options?: never) => streamThrough("streamSimple", model, context, options),
   } as never);
 
-  const on = (event: string, handler: (event: never, context: ExtensionContext) => void) => {
+  const on = (event: string, handler: (event: never, context: ExtensionContext) => void | Promise<void>) => {
     const dispose = (pi as unknown as { on(name: string, handler: unknown): unknown }).on(event, handler);
     if (typeof dispose === "function") disposers.push(dispose as () => void);
   };
@@ -385,10 +404,10 @@ export default function devinExtension(pi: ExtensionAPI): void {
   // A session that starts on a Devin model, that carries a Devin run, or whose stored catalog is missing (nothing to
   // list until the real catalog refresh runs) needs the runtime now. Any other session stays cold.
   on("session_start", (_event, context) => {
-    if (context?.model?.provider === "devin" || models.length === 0 || hasDevinState(context)) warm(context);
+    if (context?.model?.provider === "devin" || models.length === 0 || hasDevinState(context)) return warm(context);
   });
   on("model_select", (event, context) => {
-    if ((event as unknown as { model?: Model<any> }).model?.provider === "devin") warm(context);
+    if ((event as unknown as { model?: Model<any> }).model?.provider === "devin") return warm(context);
   });
   /** /devin refresh: Pi's own forced refresh of this provider, with the result as a notification. */
   const refreshCommand = async (context: ExtensionContext) => {
