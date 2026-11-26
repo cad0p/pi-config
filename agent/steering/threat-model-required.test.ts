@@ -25,6 +25,7 @@ import {
 	lensHeaderLines,
 	postLensVerdicts,
 } from "./lens-test-stubs.ts";
+import { visionSectionText } from "./vision-review.ts";
 
 const harness = loadHarness({ config });
 const REPO = "pc-host";
@@ -57,8 +58,15 @@ afterEach(() => {
 const CONSUMERS =
 	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
 
+/** The VISION REVIEW section every lens brief carries (pc-host #983). */
+const VISION = visionSectionText();
+
 function header(extra: string): string {
-	return `pr: ${PR}\nround: 1\nkind: lens\nlens: red-team\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}`;
+	// The section sits between the header and `extra`: a trailing
+	// 'Threat model:' line must stay the last line (brief-gates.ts reads
+	// its value to the end of the line, and an empty value would otherwise
+	// swallow the heading below it).
+	return `pr: ${PR}\nround: 1\nkind: lens\nlens: red-team\n${CONSUMERS}\n${lensHeaderLines(state)}\n${VISION}\n${extra}`;
 }
 
 function briefPath(name: string): string {
@@ -110,7 +118,7 @@ describe("threat-model-required — brief side", () => {
 			{
 				write: {
 					path: briefPath("r1-trust.md"),
-					content: `pr: ${PR}\nround: 1\nkind: lens\nlens: trust-model\n${CONSUMERS}\n${lensHeaderLines(state)}`,
+					content: `pr: ${PR}\nround: 1\nkind: lens\nlens: trust-model\n${CONSUMERS}\n${lensHeaderLines(state)}\n${VISION}`,
 				},
 				cwd: "/tmp",
 			},
@@ -122,7 +130,7 @@ describe("threat-model-required — brief side", () => {
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("r1-functional.md"),
-				content: `pr: ${PR}\nround: 1\nkind: lens\nlens: functional\n${CONSUMERS}\n${lensHeaderLines(state)}`,
+				content: `pr: ${PR}\nround: 1\nkind: lens\nlens: functional\n${CONSUMERS}\n${lensHeaderLines(state)}\n${VISION}`,
 			},
 			cwd: "/tmp",
 		});

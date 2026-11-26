@@ -29,7 +29,15 @@
  *   green-run: <summary.txt path>          (optional: the tools/ci.sh
  *                                           summary whose result:, run-on
  *                                           and dirty lines the lens gate
- *                                           greps)
+ *                                           greps. An optional
+ *                                           ' @ <40-hex>' trailer names the
+ *                                           head the run was made on: it
+ *                                           must equal the summary's own
+ *                                           'run on:' sha AND the head this
+ *                                           round may cite - 'head:', or
+ *                                           'absorb-of:' when the header
+ *                                           declares it; any other trailer
+ *                                           is refused as malformed)
  *   consumers: none — pre-launch: no tenant slices run; no
  *                                          compatibility window is owed
  *                                          (required, prelaunch-compat-
@@ -151,7 +159,11 @@ export interface BriefHeader {
 	foldOf: string | null;
 	/** Lowercased `head:` value (the lens brief's reviewed head), or null. */
 	head: string | null;
-	/** Value of the `green-run:` line (a summary.txt path), or null. */
+	/**
+	 * Value of the `green-run:` line (a summary.txt path), or null. The
+	 * `@ <head>` trailer is split off by greenRunPath: it is read from the
+	 * header's raw values, not from this field.
+	 */
 	greenRun: string | null;
 	/** Value of the `Threat model:` / `threat-model:` line, or null. */
 	threatModel: string | null;
@@ -219,6 +231,38 @@ export function sessionId8(value: string): string | null {
 	return hex.length >= 8 ? hex.slice(-8) : null;
 }
 
+/** A parsed `green-run:` value: the summary path and its `@ <head>` trailer. */
+export interface GreenRunValue {
+	/** The summary.txt path, with a well-formed `@ <head>` trailer removed. */
+	path: string;
+	/** The trailer's 40 lowercase hex head, or null when there is no trailer. */
+	head: string | null;
+	/** The offending trailer value when one is present but malformed, else null. */
+	malformed: string | null;
+}
+
+/**
+ * The summary a `green-run:` value names. Briefs annotate the value with
+ * the head the run was made on, in the same `@ <sha>` trailer a lens
+ * verdict carries: `green-run: <summary.txt> @ <40-hex>`. The trailer is
+ * not part of the path, so it is split off here; the rule holds it to the
+ * summary's own `run on:` line and to the head the round may cite
+ * (base-rules.ts greenRunTrailerRefusal). A trailer that is not exactly 40
+ * lowercase hex comes back as `malformed`, never as part of the path: the
+ * rule refuses it rather than reading a file that cannot exist.
+ */
+export function greenRunPath(value: string): GreenRunValue {
+	const trimmed = value.trim();
+	const annotated = /^(.*)\s+@\s*(\S*)$/.exec(trimmed);
+	if (annotated === null) return { path: trimmed, head: null, malformed: null };
+	const path = (annotated[1] ?? "").trim();
+	const trailer = annotated[2] ?? "";
+	if (/^[0-9a-f]{40}$/.test(trailer)) {
+		return { path, head: trailer, malformed: null };
+	}
+	return { path, head: null, malformed: trailer };
+}
+
 /** Parse the minimal brief header contract. Never throws. */
 export function parseBriefHeader(content: string): BriefHeader {
 	const values = new Map<string, string>();
@@ -252,8 +296,8 @@ export function parseBriefHeader(content: string): BriefHeader {
 	const head = headRaw === "" ? null : headRaw;
 	const foldOfRaw = (values.get("fold-of") ?? "").trim().toLowerCase();
 	const foldOf = foldOfRaw === "" ? null : foldOfRaw;
-	const greenRunRaw = (values.get("green-run") ?? "").trim();
-	const greenRun = greenRunRaw === "" ? null : greenRunRaw;
+	const greenRunPathValue = greenRunPath(values.get("green-run") ?? "");
+	const greenRun = greenRunPathValue.path === "" ? null : greenRunPathValue.path;
 	// The Threat model line may live in the body, not only the header.
 	const threatMatch = /^threat[ -]model:\s*(.*)$/im.exec(content);
 	const threatModel =

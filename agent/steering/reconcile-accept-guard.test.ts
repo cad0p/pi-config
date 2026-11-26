@@ -24,6 +24,7 @@ import {
 import config from "./index.ts";
 
 const ACCEPT = "no-reconcile-accept";
+const BUDGET = "no-reconcile-budget";
 const WRITE = "no-pc-merge-trust-state-write";
 const EDIT = "no-pc-merge-trust-state-edit";
 
@@ -153,6 +154,45 @@ describe("reconcile-accept-guard", () => {
 	});
 
 	// ---- allowed: every other subcommand ----
+
+	// ---- refused: the gate-budget authorization (owner decision 2026-11-13) ----
+
+	it("blocks a budget authorization recorded from a shell", async () => {
+		await expectBlocks(
+			harness,
+			{
+				command:
+					"cd /home/pier/personal/github/pc-host && bash tools/reconcile.sh budget cad0p/pc-tenant 563 'the tenant gate needs it'",
+			},
+			{ rule: BUDGET },
+		);
+	});
+	it("blocks a budget authorization run as a script path", async () => {
+		await expectBlocks(
+			harness,
+			{
+				command: "tools/reconcile.sh budget cad0p/pc-tenant 563 'the tenant gate needs it'",
+			},
+			{ rule: BUDGET },
+		);
+	});
+	it("blocks a budget revocation (0 is the same verb)", async () => {
+		await expectBlocks(
+			harness,
+			{ command: "bash tools/reconcile.sh budget cad0p/pc-tenant 0 'revoke it'" },
+			{ rule: BUDGET },
+		);
+	});
+	it("blocks a budget authorization nested in bash -c", async () => {
+		await expectBlocks(
+			harness,
+			{
+				command:
+					"bash -c 'cd /home/pier/personal/github/pc-host && bash tools/reconcile.sh budget cad0p/pc-tenant 563 because'",
+			},
+			{ rule: BUDGET },
+		);
+	});
 
 	it("allows sweep", async () => {
 		await expectAllows(harness, { command: "bash tools/reconcile.sh sweep" });

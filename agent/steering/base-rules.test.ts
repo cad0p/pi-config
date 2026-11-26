@@ -47,6 +47,7 @@ import {
 	TENANT_MAIN,
 	TENANT_PR,
 } from "./lens-test-stubs.ts";
+import { visionSectionText } from "./vision-review.ts";
 
 const harness = loadHarness({ config });
 const PR = "cad0p/pc-host#650";
@@ -95,9 +96,12 @@ function setRounds(pr: string, count: number): void {
 const CONSUMERS =
 	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
 
+/** The VISION REVIEW section every lens brief carries (pc-host #983). */
+const VISION = visionSectionText();
+
 /** A lens brief's header; `extra` adds head:, green-run:, split-of:, absorb-of:. */
 function lensHeader(round: number, extra = ""): string {
-	return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\n${extra}`;
+	return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\n${extra}\n${VISION}\n`;
 }
 
 /** A lens brief header with the head and its passing run: the R1/R3 shape. */
@@ -432,6 +436,93 @@ describe("base-rules — R1/R3, no round on a red or unpushed head", () => {
 		);
 	});
 
+	// The operator annotates a green-run with the head it was made on, in
+	// the same '@ <sha>' trailer a lens verdict carries. That annotation is
+	// not part of the path: reading the value whole is ENOENT, which
+	// refused every annotated brief as a summary that "cannot be read".
+	// greenRunPath splits the trailer off, and the trailer is held to the
+	// summary's own 'run on:' line and to the head the round may cite
+	// (greenRunTrailerRefusal): a trailer that names another sha is refused
+	// by name, not only by the summary's line.
+	it("allows an annotated green-run whose summary is green, clean and on the head", async () => {
+		const path = passingSummary(state);
+		await expectAllows(harness, {
+			write: {
+				path: brief("p1-r1-lens.md"),
+				content: lensHeader(
+					1,
+					`head: ${LENS_HEAD}\ngreen-run: ${path} @ ${LENS_HEAD}\n`,
+				),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("blocks an annotated green-run whose summary ran on another head", async () => {
+		// The annotation names the reviewed head; the summary does not. The
+		// trailer is held to the summary, so the mismatch is named there.
+		const path = passingSummary(state, OTHER_HEAD);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("p1-r1-lens.md"),
+					content: lensHeader(
+						1,
+						`head: ${LENS_HEAD}\ngreen-run: ${path} @ ${LENS_HEAD}\n`,
+					),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: new RegExp(
+					`is annotated '@ ${LENS_HEAD}' but its own 'run on: snapshot commit' line names ${OTHER_HEAD}`,
+				),
+			},
+		);
+	});
+
+	it("blocks an annotated green-run whose summary result is not PASS", async () => {
+		const path = passingSummary(state);
+		writeFileSync(
+			path,
+			`run on:    snapshot commit ${LENS_HEAD} tree ${"3".repeat(40)}\nworktree dirty after run: no\nresult: FAIL\n`,
+		);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("p1-r1-lens.md"),
+					content: lensHeader(
+						1,
+						`head: ${LENS_HEAD}\ngreen-run: ${path} @ ${LENS_HEAD}\n`,
+					),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /does not hold exactly one 'result: PASS'/ },
+		);
+	});
+
+	it("blocks an annotated green-run whose summary cannot be read", async () => {
+		const missing = join(state, "no-such-summary.txt");
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("p1-r1-lens.md"),
+					content: lensHeader(
+						1,
+						`head: ${LENS_HEAD}\ngreen-run: ${missing} @ ${LENS_HEAD}\n`,
+					),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /cannot be read/ },
+		);
+	});
+
 	it("allows a lens brief whose head carries a gate record", async () => {
 		gateRecord(LENS_HEAD);
 		await expectAllows(harness, {
@@ -459,6 +550,173 @@ describe("base-rules — R1/R3, no round on a red or unpushed head", () => {
 	});
 });
 
+describe("base-rules — the green-run trailer is held to the run", () => {
+	// A trailer naming one head while the summary ran on another is the
+	// mistake the annotation used to hide: a verdict citing one PR's CI
+	// numbers against another PR's head, and a summary from a pre-absorb head
+	// cited as if it were the reviewed head. The summary's own 'run on:' line
+	// is the evidence, so the trailer must equal it AND the head this round
+	// may cite: 'head:', or 'absorb-of:' when the header declares one.
+
+	it("allows a trailer naming the summary's run-on head and the reviewed head", async () => {
+		const path = passingSummary(state);
+		await expectAllows(harness, {
+			write: {
+				path: brief("p1-r1-lens.md"),
+				content: lensHeader(
+					1,
+					`head: ${LENS_HEAD}\ngreen-run: ${path} @ ${LENS_HEAD}\n`,
+				),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("blocks a trailer naming a head the summary did not run on", async () => {
+		// The reviewed head is LENS_HEAD and the summary ran there; the trailer
+		// claims OTHER_HEAD. The refusal names the trailer, the summary's sha
+		// and the head the round may cite, so the author sees all three.
+		const path = passingSummary(state);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("p1-r1-lens.md"),
+					content: lensHeader(
+						1,
+						`head: ${LENS_HEAD}\ngreen-run: ${path} @ ${OTHER_HEAD}\n`,
+					),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: new RegExp(
+					`is annotated '@ ${OTHER_HEAD}' but its own 'run on: snapshot commit' line names ${LENS_HEAD}: .*the brief claims ${OTHER_HEAD}, the summary ran on ${LENS_HEAD}, and this round may cite ${LENS_HEAD} only`,
+				),
+			},
+		);
+	});
+
+	it("blocks a trailer naming head: when the summary ran on the pre-absorb head", async () => {
+		// The absorb shape without 'absorb-of:': the summary was produced on
+		// the head the absorb was built from (OTHER_HEAD) and the trailer
+		// claims the reviewed head. Nothing ties the run to the reviewed head,
+		// so the trailer is refused by name.
+		const path = passingSummary(state, OTHER_HEAD);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("p1-r1-lens.md"),
+					content: lensHeader(
+						1,
+						`head: ${LENS_HEAD}\ngreen-run: ${path} @ ${LENS_HEAD}\n`,
+					),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: new RegExp(
+					`is annotated '@ ${LENS_HEAD}' but its own 'run on: snapshot commit' line names ${OTHER_HEAD}`,
+				),
+			},
+		);
+	});
+
+	it("allows an absorb brief whose trailer names absorb-of: and the run on it", async () => {
+		designCheck(PR, 5);
+		const path = passingSummary(state, ABSORB, "ci-absorb.txt");
+		await expectAllows(harness, {
+			write: {
+				path: brief("p1-r6-absorb.md"),
+				content: lensHeader(
+					6,
+					`absorb-of: ${ABSORB}\nhead: ${LENS_HEAD}\ngreen-run: ${path} @ ${ABSORB}\n`,
+				),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("blocks a trailer that is not exactly 40 lowercase hex", async () => {
+		const path = passingSummary(state);
+		const content = (trailer: string): string =>
+			lensHeader(1, `head: ${LENS_HEAD}\ngreen-run: ${path} @ ${trailer}\n`);
+		for (const trailer of ["deadbeef", "1".repeat(39), "A".repeat(40)]) {
+			await expectBlocks(
+				harness,
+				{
+					write: { path: brief("p1-r1-lens.md"), content: content(trailer) },
+					cwd: "/tmp",
+				},
+				{
+					rule: "design-check-gate",
+					reason: new RegExp(
+						`carries a malformed head trailer '@ ${trailer}': a trailer must be exactly the 40 lowercase hex head the run was made on`,
+					),
+				},
+			);
+		}
+	});
+
+	it("blocks a trailer when the summary has no run on line to hold it", async () => {
+		const path = passingSummary(state);
+		writeFileSync(
+			path,
+			"ci summary\nworktree dirty after run: no\nresult: PASS\n",
+		);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("p1-r1-lens.md"),
+					content: lensHeader(
+						1,
+						`head: ${LENS_HEAD}\ngreen-run: ${path} @ ${LENS_HEAD}\n`,
+					),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: new RegExp(
+					`is annotated '@ ${LENS_HEAD}' but carries no 'run on: snapshot commit <sha> tree <tree>' line`,
+				),
+			},
+		);
+	});
+
+	it("blocks a trailer matching the summary but not the head the round may cite", async () => {
+		// The trailer and the summary agree on OTHER_HEAD, but the round
+		// reviews LENS_HEAD and the header declares the absorb at ABSORB: the
+		// head this round may cite is the absorb-of sha, so the trailer is
+		// still refused (and named against that head).
+		designCheck(PR, 5);
+		const path = passingSummary(state, OTHER_HEAD, "ci-third.txt");
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("p1-r6-absorb.md"),
+					content: lensHeader(
+						6,
+						`absorb-of: ${ABSORB}\nhead: ${LENS_HEAD}\ngreen-run: ${path} @ ${OTHER_HEAD}\n`,
+					),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: new RegExp(
+					`the green-run trailer '@ ${OTHER_HEAD}' on ${path} is not the head this round may cite: the brief claims ${OTHER_HEAD}, the summary ran on ${OTHER_HEAD}, and this round may cite ${ABSORB} only, as the absorb-of head ${ABSORB}`,
+				),
+			},
+		);
+	});
+});
+
 describe("base-rules — the gate record reads the helper's evidence layout", () => {
 	// The record was read at `evidence/<owner>--<repo>/...` (the helper's repo
 	// key) while merge-pr.sh writes `evidence/<owner>/<repo>/...` with the raw
@@ -469,7 +727,7 @@ describe("base-rules — the gate record reads the helper's evidence layout", ()
 
 	/** A pc-tenant round-1 lens brief: only the gate record can green it. */
 	function tenantLens(): string {
-		return `pr: ${TENANT_PR}\nround: 1\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\n`;
+		return `pr: ${TENANT_PR}\nround: 1\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\n${VISION}\n`;
 	}
 
 	it("allows a pc-tenant gate record at evidence/<owner>/<repo>/<head>/<id>", async () => {
@@ -555,7 +813,7 @@ describe("base-rules — absorb-of reads the PR's own repo clone", () => {
 
 	/** The tenant PR's head + its green run, the header a lens brief needs. */
 	function tenantLens(round: number, extra = ""): string {
-		return `pr: ${TENANT_PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\ngreen-run: ${passingSummary(state, TENANT_HEAD)}\n${extra}`;
+		return `pr: ${TENANT_PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\ngreen-run: ${passingSummary(state, TENANT_HEAD)}\n${extra}\n${VISION}\n`;
 	}
 
 	/** The clone basenames the git stub was called with, deduped. */

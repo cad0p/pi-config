@@ -130,7 +130,27 @@
 // is the visible escape, and every unreadable state ALLOWS — a nudge, the
 // opposite policy from merge-guard's fail-closed refusal; pc-host #836 has
 // shipped the turn since 2026-11-10 and the gate-plus-pair is still what
-// sessions type).
+// sessions type) and
+// ./no-bare-citation.ts (owner rule R4, approved 2026-11-15: a PR/issue
+// body or comment may not cite code by a bare path:NN -- line numbers
+// move. Cite a permalink pinned to a 40-hex commit, or name the symbol;
+// a body whose first non-blank line names the head (Lens: ... @ <40hex>)
+// is bound to one commit and passes, and a note whose frontmatter date is
+// before ACTIVATION_DATE is exempt while in-flight PRs refresh) and
+// ./vision-review.ts (pc-host #983: a vision review cannot be answered
+// with a bare "FIT". A 'kind: lens' brief must carry a '## VISION REVIEW'
+// section naming the candidate invariant ids from the canonical list
+// (the repo's docs/invariants.md when it has one, else the piercloud
+// product invariants V1-V17), the answer shape per invariant (id, one
+// verdict word, the evidence: a file:line, a measured number, or an
+// artifact), the out-of-scope question, and the token set
+// FIT | MOSTLY-FIT | UNFIT - UNFIT, never MISFIT; a posted 'Vision:' line
+// must name at least one canonical id and carry a reason ('Vision: FIT'
+// and 'Vision: FIT - reviewed' are refused, and so is an invented id);
+// and a brief, note or PR/issue body that proposes a host-to-guest
+// execution path ('incus exec', 'a guest agent', 'exec into the guest')
+// must cite V4 and how the design satisfies it - a statement of fact
+// ('incus exec does not work') is not a proposal).
 // ./goldmine-shared-guard.ts (the vault
 // /home/pier/personal/github/Goldmine is ONE checkout shared by many
 // concurrent sessions: a `git pull --autostash` sweeps another session's
@@ -246,9 +266,17 @@ import {
 	unitNameGuardRules,
 } from "./unit-name-guard.ts";
 import {
+	visionReviewPlugin,
+	visionReviewRules,
+} from "./vision-review.ts";
+import {
 	syntheticLoadGuardPlugin,
 	syntheticLoadGuardRules,
 } from "./synthetic-load-guard.ts";
+import {
+	noBareCitationPlugin,
+	noBareCitationRules,
+} from "./no-bare-citation.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -382,6 +410,8 @@ export default defineConfig({
 		unitNameGuardPlugin,
 		syntheticLoadGuardPlugin,
 		queueLandNudgePlugin,
+		visionReviewPlugin,
+		noBareCitationPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -462,5 +492,10 @@ export default defineConfig({
 		...bwCliGuardRules,
 		...reconcileAcceptRules,
 		...pnpmLockfileRules,
+		// pc-host #983: the vision review is graded, not just present.
+		...visionReviewRules,
+		// Owner rule R4: a PR/issue body cites code by a commit-pinned
+		// permalink or by symbol, never a bare path:NN.
+		...noBareCitationRules,
 	],
 });

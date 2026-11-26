@@ -21,6 +21,14 @@
  * 2026-11-11 two owner `--admin` merges (#905, #916) each opened an incident
  * and the agent accepted both with a quote the owner had typed in chat.
  *
+ * Also refused, on the same routing and for the same reason (owner decision
+ * 2026-11-13, decision note
+ * personal/github/pc-host/decisions/2026-11-13-budget-authorization-is-an-owner-action.md):
+ * `reconcile.sh budget ...`, the verb that records the authorization a repo's
+ * declared `gate-budget:` is honoured by. An agent that could run it could move
+ * the bar it is judged by, so it is the owner's, and the authorization mail is
+ * the tell outside the routings this rule sees.
+ *
  * Refused: `reconcile.sh accept ...` in every spelling the walker exposes —
  * `tools/reconcile.sh accept ...`, `./tools/...`, an absolute path,
  * `bash tools/reconcile.sh accept ...`, `bash -c '... reconcile.sh accept'`,
@@ -84,6 +92,8 @@ declare global {
 	interface PiSteeringPredicates {
 		/** `when.reconcileAcceptsIncident` — a `reconcile.sh accept` ref. */
 		reconcileAcceptsIncident: PredicateShape<boolean>;
+		/** `when.reconcileSetsBudget` — a `reconcile.sh budget` ref. */
+		reconcileSetsBudget: PredicateShape<boolean>;
 	}
 }
 
@@ -148,34 +158,54 @@ function scriptBasename(word: string): string {
 }
 
 /**
+ * The subcommand of a `reconcile.sh` ref, or `undefined` when the ref is not
+ * one. `tools/reconcile.sh <sub> ...`, an absolute or `./` path to it, or a
+ * `bash` / `sh` ref whose script position is `reconcile.sh`.
+ */
+function reconcileSubcommand(ctx: PredicateContext): string | undefined {
+	if (ctx.input?.tool !== "bash") return undefined;
+	const basename = ctx.input.basename ?? "";
+	if (basename === SCRIPT) return positionals(ctx, SCRIPT_VALUE_FLAGS)[0];
+	if (SHELLS.has(basename)) {
+		// `bash tools/reconcile.sh accept ...` is a single ref: the first
+		// positional is the script, the rest belong to it. `bash -c '...'`
+		// is expanded by the walker into inner refs of their own, so its
+		// payload never reads as a script path here.
+		const [script, ...rest] = positionals(ctx, SHELL_VALUE_FLAGS);
+		if (script === undefined || scriptBasename(script) !== SCRIPT) {
+			return undefined;
+		}
+		return rest[0];
+	}
+	return undefined;
+}
+
+/**
  * `when.reconcileAcceptsIncident` — is this ref an incident acceptance?
- * `tools/reconcile.sh accept ...`, an absolute or `./` path to it, or a
- * `bash` / `sh` ref whose script position is `reconcile.sh`. Faithful for both
- * polarities: the answer is the ref's, and `when: { ...: true }` is the only
- * use here.
+ * Faithful for both polarities: the answer is the ref's, and
+ * `when: { ...: true }` is the only use here.
  */
 export const reconcileAcceptsIncident = definePredicate<BooleanLeafArgs>(
 	(args, ctx) => {
 		const expected = unwrapBooleanLeafArg(args);
 		if (expected === undefined) return false;
-		if (ctx.input?.tool !== "bash") return false;
-		const basename = ctx.input.basename ?? "";
-		let subcommand: string | undefined;
-		if (basename === SCRIPT) {
-			subcommand = positionals(ctx, SCRIPT_VALUE_FLAGS)[0];
-		} else if (SHELLS.has(basename)) {
-			// `bash tools/reconcile.sh accept ...` is a single ref: the first
-			// positional is the script, the rest belong to it. `bash -c '...'`
-			// is expanded by the walker into inner refs of their own, so its
-			// payload never reads as a script path here.
-			const [script, ...rest] = positionals(ctx, SHELL_VALUE_FLAGS);
-			if (script === undefined) return false === expected;
-			if (scriptBasename(script) !== SCRIPT) return false === expected;
-			subcommand = rest[0];
-		} else {
-			return false === expected;
-		}
-		return (subcommand === "accept") === expected;
+		return (reconcileSubcommand(ctx) === "accept") === expected;
+	},
+);
+
+/**
+ * `when.reconcileSetsBudget` — is this ref a per-repo gate-budget
+ * authorization? Same routing, same refusals, same gaps as `accept`: the verb
+ * writes the record `tools/merge-pr.sh` reads to honour a repo's declared
+ * `gate-budget:`, so an agent that could run it could move the bar it is judged
+ * by (owner decision 2026-11-13, decision note
+ * personal/github/pc-host/decisions/2026-11-13-budget-authorization-is-an-owner-action.md).
+ */
+export const reconcileSetsBudget = definePredicate<BooleanLeafArgs>(
+	(args, ctx) => {
+		const expected = unwrapBooleanLeafArg(args);
+		if (expected === undefined) return false;
+		return (reconcileSubcommand(ctx) === "budget") === expected;
 	},
 );
 
@@ -193,6 +223,19 @@ The owner runs, in his own terminal:
 
 If you were about to accept on his behalf: print that command for him instead,
 with the incident id and a quote he actually said.`;
+
+const BUDGET_REASON = `blocked: a gate-budget authorization is an owner action.
+
+tools/reconcile.sh budget writes the record tools/merge-pr.sh reads to honour a
+repo's declared gate-budget: in its repo file at main. Any session can run it —
+the verb reads no actor, and the authorization mail is the only tell — so agents
+never do: a budget an agent records is a bar an agent moved.
+
+The owner runs, in his own terminal:
+  cd ~/personal/github/pc-host && bash tools/reconcile.sh budget <owner>/<repo> <seconds> "<the owner's words, verbatim>"
+
+If you were about to record one on his behalf: print that command for him
+instead, with the number and the repo the gate refused.`;
 
 const TRUST_STATE_REASON = `blocked: the merge helper's trust state is not an agent-writable file.
 
@@ -221,6 +264,7 @@ export const reconcileAcceptPlugin = {
 	},
 	predicates: {
 		reconcileAcceptsIncident,
+		reconcileSetsBudget,
 	},
 } satisfies Plugin;
 
@@ -231,6 +275,13 @@ export const reconcileAcceptRules = [
 		command: [SCRIPT, ...SHELL_BASENAMES] as const,
 		when: { reconcileAcceptsIncident: true },
 		reason: ACCEPT_REASON,
+	},
+	{
+		name: "no-reconcile-budget",
+		tool: "bash" as const,
+		command: [SCRIPT, ...SHELL_BASENAMES] as const,
+		when: { reconcileSetsBudget: true },
+		reason: BUDGET_REASON,
 	},
 	{
 		name: "no-pc-merge-trust-state-write",
