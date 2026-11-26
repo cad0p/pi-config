@@ -36,16 +36,16 @@ import {
 	failGhComments,
 	installLensStubs,
 	LENS_HEAD,
+	visionFor,
 	lensHeaderLines,
 	OTHER_HEAD,
 	passingSummary,
 	postLensVerdicts,
 	postedHeads,
 } from "./lens-test-stubs.ts";
-import { visionSectionText } from "./vision-review.ts";
 
 /** The VISION REVIEW section every lens brief carries (pc-host #983). */
-const VISION = visionSectionText();
+const VISION = visionFor("cad0p/pc-host#650", LENS_HEAD);
 
 const harness = loadHarness({ config });
 
@@ -78,7 +78,7 @@ const CONSUMERS =
 	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
 
 function header(pr: string, round: number, kind = "lens", extra = ""): string {
-	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}\n${VISION}\n`;
+	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}\n${visionFor(pr, LENS_HEAD)}\n`;
 }
 
 /**

@@ -40,6 +40,7 @@ import {
 	cloneDir,
 	installLensStubs,
 	LENS_HEAD,
+	visionFor,
 	LENS_MAIN,
 	OTHER_HEAD,
 	passingSummary,
@@ -47,7 +48,6 @@ import {
 	TENANT_MAIN,
 	TENANT_PR,
 } from "./lens-test-stubs.ts";
-import { visionSectionText } from "./vision-review.ts";
 
 const harness = loadHarness({ config });
 const PR = "cad0p/pc-host#650";
@@ -97,11 +97,14 @@ const CONSUMERS =
 	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
 
 /** The VISION REVIEW section every lens brief carries (pc-host #983). */
-const VISION = visionSectionText();
+/** Pinned to the brief's head (from its head: line), else LENS_HEAD. */
+function vision(pr: string, extra = ""): string {
+	return visionFor(pr, /head: ([0-9a-f]{40})/.exec(extra)?.[1] ?? LENS_HEAD);
+}
 
 /** A lens brief's header; `extra` adds head:, green-run:, split-of:, absorb-of:. */
 function lensHeader(round: number, extra = ""): string {
-	return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\n${extra}\n${VISION}\n`;
+	return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\n${extra}\n${vision(PR, extra)}\n`;
 }
 
 /** A lens brief header with the head and its passing run: the R1/R3 shape. */
@@ -727,7 +730,7 @@ describe("base-rules — the gate record reads the helper's evidence layout", ()
 
 	/** A pc-tenant round-1 lens brief: only the gate record can green it. */
 	function tenantLens(): string {
-		return `pr: ${TENANT_PR}\nround: 1\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\n${VISION}\n`;
+		return `pr: ${TENANT_PR}\nround: 1\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\n${visionFor(TENANT_PR, TENANT_HEAD)}\n`;
 	}
 
 	it("allows a pc-tenant gate record at evidence/<owner>/<repo>/<head>/<id>", async () => {
@@ -813,7 +816,7 @@ describe("base-rules — absorb-of reads the PR's own repo clone", () => {
 
 	/** The tenant PR's head + its green run, the header a lens brief needs. */
 	function tenantLens(round: number, extra = ""): string {
-		return `pr: ${TENANT_PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\ngreen-run: ${passingSummary(state, TENANT_HEAD)}\n${extra}\n${VISION}\n`;
+		return `pr: ${TENANT_PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${TENANT_HEAD}\ngreen-run: ${passingSummary(state, TENANT_HEAD)}\n${extra}\n${visionFor(TENANT_PR, TENANT_HEAD)}\n`;
 	}
 
 	/** The clone basenames the git stub was called with, deduped. */

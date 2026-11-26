@@ -21,8 +21,10 @@
  * 1. vision-review-section. A brief handed to a lens agent (`kind: lens`)
  *    must carry a `## VISION REVIEW` section that names the candidate
  *    invariants by id from the canonical list, states the answer shape
- *    per invariant (the id, one verdict word, and the evidence: a
- *    file:line, a measured number, or an artifact), asks which
+ *    per invariant (the id linked to a permalink pinned to the brief's
+ *    own repo and head - '[V4](https://github.com/<owner>/<repo>/blob/
+ *    <head>/<path>#L<line>)' - one verdict word, and what was checked; a
+ *    measured number or an artifact may carry the evidence instead), asks which
  *    candidates are out of scope and why, and spells the token set
  *    FIT | MOSTLY-FIT | UNFIT (UNFIT, never MISFIT). Refused at write
  *    time with the text to add. Surfaces: write / edit / tee and a
@@ -31,7 +33,10 @@
  * 2. vision-verdict-shape. A posted `Vision:` line must name at least one
  *    invariant id from the canonical list and carry a reason.
  *    "Vision: FIT", "Vision: FIT - reviewed" and a verdict naming an id
- *    that does not exist (V18) are refused. Surface: `gh pr comment` -
+ *    that does not exist (V18) are refused. A link's URL does not count
+ *    toward the reason, and every GitHub blob link must be pinned to a
+ *    40-hex commit - the verdict's own head when its first line names one
+ *    (`Lens: <lens> @ <40-hex>`). Surface: `gh pr comment` -
  *    where a lens verdict is posted. There is NO separate write-time
  *    rule for the first `Lens:` line in this tree (base-rules.ts parses
  *    that line when it COUNTS posted rounds; design-check-gate.ts reads
@@ -269,16 +274,50 @@ export function exampleId(set: InvariantSet): string {
 		: (set.ids[0] ?? ADVERSARY_INVARIANT);
 }
 
+/**
+ * Where a lens brief's evidence links point: its own repo at its own head
+ * (the brief header's `pr:` and `head:` lines). A link pinned anywhere
+ * else is not evidence for the reviewed commit.
+ */
+export interface PermalinkPin {
+	owner: string;
+	repo: string;
+	/** 40-hex commit. */
+	head: string;
+}
+
+/** The permalink prefix a pin allows, or the placeholder form when unknown. */
+export function permalinkBase(pin?: PermalinkPin | null): string {
+	return pin
+		? "https://github.com/" + pin.owner + "/" + pin.repo + "/blob/" + pin.head + "/"
+		: "https://github.com/<owner>/<repo>/blob/<head>/";
+}
+
+/** What counts as evidence, in every message that names it. */
+export const EVIDENCE_KINDS =
+	"a permalink pinned to the reviewed head (the id's link), a measured number, or an artifact";
+
 /** The answer shape the brief must state, with a real id from the list. */
-export function answerShape(set: InvariantSet): string {
-	return exampleId(set) + " FIT (<evidence: a file:line, a measured number, or an artifact>)";
+export function answerShape(set: InvariantSet, pin?: PermalinkPin | null): string {
+	return (
+		"[" +
+		exampleId(set) +
+		"](" +
+		permalinkBase(pin) +
+		"<path>#L<line>) FIT (<what you checked>)"
+	);
 }
 
 /**
  * The canonical VISION REVIEW section (a template a brief can copy). The
- * tests use it too, so the gate and its fixtures cannot drift.
+ * tests use it too, so the gate and its fixtures cannot drift. `pin` is
+ * the brief's repo and head: without it the link keeps its placeholders,
+ * which the gate refuses.
  */
-export function visionSectionText(set: InvariantSet = loadInvariants()): string {
+export function visionSectionText(
+	set: InvariantSet = loadInvariants(),
+	pin?: PermalinkPin | null,
+): string {
 	return [
 		SECTION_HEADING,
 		"",
@@ -287,8 +326,10 @@ export function visionSectionText(set: InvariantSet = loadInvariants()): string 
 			" (" +
 			set.source +
 			"). Answer every candidate, one line each: " +
-			answerShape(set) +
-			" - the id, one verdict word, and the evidence: a file:line, a measured number, or an artifact.",
+			answerShape(set, pin) +
+			" - the id, one verdict word, and the evidence: " +
+			EVIDENCE_KINDS +
+			".",
 		"",
 		"Verdict words: FIT | MOSTLY-FIT | UNFIT (the third is UNFIT).",
 		"",
@@ -326,19 +367,42 @@ export function visionSection(content: string): VisionSection | null {
 	return { line: start + 1, heading, text: body.join("\n") };
 }
 
-/** One line that names a canonical id, a verdict word, and evidence parens. */
+/**
+ * One line that names a canonical id (bare or as a markdown link), a
+ * verdict word, and evidence parens.
+ */
 function hasAnswerShape(text: string, set: InvariantSet): boolean {
 	const alternation = idAlternation(set);
 	if (alternation === null) return false;
 	const shape = new RegExp(
-		"\\b(?:" + alternation + ")\\d+\\s+(?:FIT|MOSTLY-FIT|UNFIT)\\s*\\(",
+		"(?:\\[(?:" +
+			alternation +
+			")\\d+\\]\\([^)\\s]*\\)|\\b(?:" +
+			alternation +
+			")\\d+)\\s+(?:FIT|MOSTLY-FIT|UNFIT)\\s*\\(",
 	);
 	return shape.test(text);
 }
 
-/** Does the section say what evidence each answer needs? */
-function namesEvidence(text: string): boolean {
-	return /file:line/i.test(text) && /\b(?:measured|number|artifact)\b/i.test(text);
+/**
+ * Does the section say what evidence each answer needs? It must link an id
+ * to a permalink pinned to the brief's own repo and head (`<path>` and
+ * `<line>` may stay placeholders: the brief cannot know the evidence),
+ * and name the other kinds. The old 'a file:line' wording does not pass:
+ * a bare file:line drifts, and no-bare-citation refuses it in a posted body.
+ */
+function namesEvidence(text: string, set: InvariantSet, pin: PermalinkPin): boolean {
+	const alternation = idAlternation(set);
+	if (alternation === null) return false;
+	const link = new RegExp(
+		"\\[(?:" +
+			alternation +
+			")\\d+\\]\\(" +
+			escapeRegExp(permalinkBase(pin)) +
+			"[^)\\s#]+#L[^)\\s]+\\)",
+		"i",
+	);
+	return link.test(text) && /\b(?:measured|number|artifact)\b/i.test(text);
 }
 
 /**
@@ -350,6 +414,7 @@ export function visionSectionRefusal(
 	content: string,
 	set: InvariantSet,
 	where: string,
+	pin: PermalinkPin | null = null,
 ): string | null {
 	if (set.error !== null) return unreadableReason(set);
 	const section = visionSection(content);
@@ -361,8 +426,10 @@ export function visionSectionRefusal(
 			"' section. Add one that (1) names every candidate invariant by id from the canonical list " +
 			listLabel(set) +
 			"; (2) states the answer shape per invariant - '" +
-			answerShape(set) +
-			"' (the id, one verdict word, and the evidence: a file:line, a measured number, or an artifact); (3) asks which candidates are out of scope and why; (4) spells the token set FIT | MOSTLY-FIT | UNFIT, the third being UNFIT. The section must name real ids, not a prose summary."
+			answerShape(set, pin) +
+			"' (the id, one verdict word, and the evidence: " +
+			EVIDENCE_KINDS +
+			"); (3) asks which candidates are out of scope and why; (4) spells the token set FIT | MOSTLY-FIT | UNFIT, the third being UNFIT. The section must name real ids, not a prose summary."
 		);
 	}
 	const text = section.text;
@@ -373,7 +440,7 @@ export function visionSectionRefusal(
 			"the VISION REVIEW section says '" +
 			WRONG_TOKEN +
 			"', which is not a verdict word. The token set is FIT | MOSTLY-FIT | UNFIT - the third token is UNFIT. Replace the word, then answer each candidate id with '" +
-			answerShape(set) +
+			answerShape(set, pin) +
 			"'."
 		);
 	}
@@ -400,7 +467,7 @@ export function visionSectionRefusal(
 		return (
 			at +
 			"the VISION REVIEW section does not state the answer shape. Add a line like '" +
-			answerShape(set) +
+			answerShape(set, pin) +
 			"': the id, one verdict word from FIT | MOSTLY-FIT | UNFIT, and the evidence."
 		);
 	}
@@ -427,13 +494,58 @@ export function visionSectionRefusal(
 			"the VISION REVIEW section never asks which candidates are out of scope. Add 'Out of scope: name each candidate id you ruled out, and why.' - a reviewer that silently drops an invariant is the failure this gate exists for."
 		);
 	}
-	if (!namesEvidence(text)) {
+	// No pin (no readable head): the header gate owns that refusal.
+	if (pin !== null && !namesEvidence(text, set, pin)) {
 		return (
 			at +
-			"the VISION REVIEW section does not say what evidence each answer needs. Name it: 'a file:line, a measured number, or an artifact'. A verdict with no evidence is the bare 'FIT' this gate refuses."
+			"the VISION REVIEW section does not state the evidence each answer needs. Link the id to a permalink pinned to this brief's repo and head - '" +
+			answerShape(set, pin) +
+			"' - and name the other kinds: " +
+			EVIDENCE_KINDS +
+			". A bare file:line is not accepted: it drifts, and no-bare-citation refuses it in a posted body."
 		);
 	}
 	return null;
+}
+
+/** A GitHub blob link and the ref it is pinned to. */
+const BLOB_LINK = /https?:\/\/github\.com\/[^/\s)]+\/[^/\s)]+\/blob\/([^/\s)]+)\//gi;
+
+/**
+ * Why a `Vision:` value's evidence link is not a correct permalink, or
+ * null. Every GitHub blob link must be pinned to a 40-hex commit, and to
+ * the verdict's own head when the body names one (its first line,
+ * `Lens: <lens> @ <40-hex>`): evidence read at another commit is not
+ * evidence for the reviewed one.
+ */
+export function unpinnedPermalink(value: string, head: string | null): string | null {
+	for (const match of value.matchAll(BLOB_LINK)) {
+		const ref = (match[1] ?? "").toLowerCase();
+		if (!/^[0-9a-f]{40}$/.test(ref)) {
+			return (
+				"the 'Vision:' line links evidence at '" +
+				(match[1] ?? "") +
+				"', which is not a commit: a branch moves, so the line it points at drifts. Pin the link to the reviewed head (/blob/<40-hex>/<path>#L<line>)."
+			);
+		}
+		if (head !== null && ref !== head) {
+			return (
+				"the 'Vision:' line links evidence at " +
+				ref +
+				", but this verdict is for " +
+				head +
+				". Pin every evidence link to the head the verdict reviewed."
+			);
+		}
+	}
+	return null;
+}
+
+/** The head a verdict body names on its first non-blank line, or null. */
+export function verdictHead(body: string): string | null {
+	const first = body.split(/\r?\n/).find((line) => line.trim() !== "") ?? "";
+	const match = /@\s*([0-9a-fA-F]{40})\b/.exec(first);
+	return match === null ? null : (match[1] ?? "").toLowerCase();
 }
 
 /** One `Vision:` line of a verdict body. */
@@ -485,7 +597,11 @@ function reasonWords(value: string, set: InvariantSet): string[] {
 		alternation === null
 			? value
 			: value.replace(new RegExp("\\b(?:" + alternation + ")\\d+\\b", "g"), " ");
+	// A link's URL is not a reason: `[V4](https://github.com/.../blob/...)`
+	// alone would otherwise pass on 'https', 'github', 'blob' and the path.
 	return stripped
+		.replace(/\]\([^)]*\)/g, "] ")
+		.replace(/https?:\/\/\S+/g, " ")
 		.replace(/\b(?:FIT|MOSTLY-FIT|UNFIT)\b/g, " ")
 		.split(/[^A-Za-z]+/)
 		.map((word) => word.toLowerCase())
@@ -500,13 +616,14 @@ function reasonWords(value: string, set: InvariantSet): string[] {
  * reason (four or more non-filler words beyond the ids and the verdict
  * word). "FIT", "FIT - reviewed" and an id outside the list are refused.
  */
-export function visionVerdictRefusal(value: string, set: InvariantSet): string | null {
+export function visionVerdictRefusal(
+	value: string,
+	set: InvariantSet,
+	head: string | null = null,
+): string | null {
 	if (set.error !== null) return unreadableReason(set);
 	const trimmed = value.trim();
-	const shape =
-		"'Vision: " +
-		exampleId(set) +
-		" FIT (<what you checked: a file:line, a measured number, or an artifact>)'";
+	const shape = "'Vision: " + answerShape(set) + "' (the evidence: " + EVIDENCE_KINDS + ")";
 	if (trimmed === "") {
 		return "the 'Vision:' line is empty. A vision review answers the invariants: " + shape + ".";
 	}
@@ -539,6 +656,8 @@ export function visionVerdictRefusal(value: string, set: InvariantSet): string |
 			"."
 		);
 	}
+	const unpinned = unpinnedPermalink(trimmed, head);
+	if (unpinned !== null) return unpinned;
 	const words = reasonWords(trimmed, set);
 	if (words.length < 4) {
 		return (
@@ -817,7 +936,14 @@ function lensSectionRefusal(write: BriefWrite): string | null {
 	if (content === null) return null; // the header gate owns unverifiable writes
 	const header = parseBriefHeader(content);
 	if (!header.complete || header.kind !== "lens") return null;
-	return visionSectionRefusal(content, loadInvariants(), write.path);
+	const pin =
+		header.owner !== null &&
+		header.repo !== null &&
+		header.head !== null &&
+		/^[0-9a-f]{40}$/.test(header.head)
+			? { owner: header.owner, repo: header.repo, head: header.head }
+			: null;
+	return visionSectionRefusal(content, loadInvariants(), write.path, pin);
 }
 
 /** Every lens brief write this tool call performs that needs the section. */
@@ -835,8 +961,9 @@ function verdictOffences(ctx: PredicateContext): VisionLine[] {
 	const body = ghBody(ctx);
 	if (body === null) return [];
 	const set = loadInvariants();
+	const head = verdictHead(body.body);
 	return visionLines(body.body).filter(
-		(line) => visionVerdictRefusal(line.value, set) !== null,
+		(line) => visionVerdictRefusal(line.value, set, head) !== null,
 	);
 }
 
@@ -864,8 +991,9 @@ function verdictReason(ctx: PredicateContext): string {
 	const body = ghBody(ctx);
 	if (body === null) return "the 'Vision:' line is refused.";
 	const set = loadInvariants();
+	const head = verdictHead(body.body);
 	for (const line of visionLines(body.body)) {
-		const reason = visionVerdictRefusal(line.value, set);
+		const reason = visionVerdictRefusal(line.value, set, head);
 		if (reason !== null) {
 			return (
 				body.where +

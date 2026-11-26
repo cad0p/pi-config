@@ -23,9 +23,9 @@ import {
 	installLensStubs,
 	LENS_HEAD,
 	lensHeaderLines,
+	visionFor,
 	postLensVerdicts,
 } from "./lens-test-stubs.ts";
-import { visionSectionText } from "./vision-review.ts";
 
 const harness = loadHarness({ config });
 const REPO = "pc-host";
@@ -59,7 +59,7 @@ const CONSUMERS =
 	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
 
 /** The VISION REVIEW section every lens brief carries (pc-host #983). */
-const VISION = visionSectionText();
+const VISION = visionFor(PR, LENS_HEAD);
 
 function header(extra: string): string {
 	// The section sits between the header and `extra`: a trailing

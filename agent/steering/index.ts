@@ -142,8 +142,9 @@
 // section naming the candidate invariant ids from the canonical list
 // (the repo's docs/invariants.md when it has one, else the piercloud
 // product invariants V1-V17), the answer shape per invariant (id, one
-// verdict word, the evidence: a file:line, a measured number, or an
-// artifact), the out-of-scope question, and the token set
+// verdict word, the evidence: the id linked to a permalink pinned to the
+// brief's repo and head, a measured number, or an artifact; a bare
+// file:line is refused), the out-of-scope question, and the token set
 // FIT | MOSTLY-FIT | UNFIT - UNFIT, never MISFIT; a posted 'Vision:' line
 // must name at least one canonical id and carry a reason ('Vision: FIT'
 // and 'Vision: FIT - reviewed' are refused, and so is an invented id);

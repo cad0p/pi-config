@@ -30,6 +30,7 @@ import config from "./index.ts";
 import {
 	clearLensStubs,
 	installLensStubs,
+	LENS_HEAD,
 	lensHeaderLines,
 } from "./lens-test-stubs.ts";
 import {
@@ -45,6 +46,10 @@ import {
 const harness = loadHarness({ config });
 
 const PR = "cad0p/pc-host#650";
+/** The repo and head every lensBrief() fixture names (pr: PR, head: LENS_HEAD). */
+const PIN = { owner: "cad0p", repo: "pc-host", head: LENS_HEAD };
+/** A permalink at the brief's head. */
+const BASE = "https://github.com/cad0p/pc-host/blob/" + LENS_HEAD + "/";
 const CONSUMERS =
 	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
 
@@ -103,7 +108,7 @@ function note(name: string): string {
 
 /** The canonical section, with one line swapped out. */
 function sectionWithout(line: string): string {
-	return visionSectionText()
+	return visionSectionText(undefined, PIN)
 		.split("\n")
 		.filter((entry) => !entry.includes(line))
 		.join("\n");
@@ -125,14 +130,14 @@ describe("vision-review - the brief gate", () => {
 		await expectAllows(harness, {
 			write: {
 				path: join(briefs, "p1-r1-functional.md"),
-				content: lensBrief(visionSectionText()),
+				content: lensBrief(visionSectionText(undefined, PIN)),
 			},
 			cwd: "/tmp",
 		});
 	});
 
 	it("blocks the section's wrong token: MISFIT is not a verdict", async () => {
-		const section = visionSectionText().replace(
+		const section = visionSectionText(undefined, PIN).replace(
 			"Verdict words: FIT | MOSTLY-FIT | UNFIT",
 			"Verdict words: FIT | MOSTLY-FIT | MISFIT",
 		);
@@ -169,7 +174,7 @@ describe("vision-review - the brief gate", () => {
 	});
 
 	it("blocks a section naming an invented id (V18)", async () => {
-		const section = visionSectionText().replace("Candidates: ", "Candidates: V18 ");
+		const section = visionSectionText(undefined, PIN).replace("Candidates: ", "Candidates: V18 ");
 		await expectBlocks(
 			harness,
 			{
@@ -208,12 +213,12 @@ describe("vision-review - the brief gate", () => {
 				write: { path: join(briefs, "p1-r1-functional.md"), content: lensBrief(section) },
 				cwd: "/tmp",
 			},
-			{ rule: "vision-review-section", reason: /does not say what evidence/ },
+			{ rule: "vision-review-section", reason: /does not state the evidence/ },
 		);
 	});
 
 	it("blocks a section missing the UNFIT token", async () => {
-		const section = visionSectionText()
+		const section = visionSectionText(undefined, PIN)
 			.split("\n")
 			.map((line) =>
 				line.startsWith("Verdict words:") ? "Verdict words: FIT | MOSTLY-FIT." : line,
@@ -264,6 +269,74 @@ describe("vision-review - the brief gate", () => {
 	});
 
 	
+});
+
+describe("vision-review - the brief's evidence link", () => {
+	/** The canonical section with its answer-shape link rewritten. */
+	function sectionLinking(base: string): string {
+		return visionSectionText(undefined, PIN).split(BASE).join(base);
+	}
+
+	async function refused(section: string, reason: RegExp): Promise<void> {
+		await expectBlocks(
+			harness,
+			{ write: { path: join(briefs, "p1-r1-functional.md"), content: lensBrief(section) }, cwd: "/tmp" },
+			{ rule: "vision-review-section", reason },
+		);
+	}
+
+	it("refuses the old 'a file:line' wording", async () => {
+		const old = [
+			"## VISION REVIEW",
+			"",
+			"Candidates: V4 V6. Answer every candidate, one line each: V4 FIT (<evidence: a file:line, a measured number, or an artifact>).",
+			"",
+			"Verdict words: FIT | MOSTLY-FIT | UNFIT (the third is UNFIT).",
+			"",
+			"Out of scope: name each candidate id you ruled out, and why.",
+		].join("\n");
+		await refused(old, /does not state the evidence.*pinned to this brief's repo and head/);
+	});
+
+	it("refuses a link left with the placeholder repo and head", async () => {
+		await refused(
+			sectionLinking("https://github.com/<owner>/<repo>/blob/<head>/"),
+			/does not state the evidence/,
+		);
+	});
+
+	it("refuses a link pinned to another head", async () => {
+		await refused(
+			sectionLinking("https://github.com/cad0p/pc-host/blob/" + "2".repeat(40) + "/"),
+			/does not state the evidence/,
+		);
+	});
+
+	it("refuses a link to another repo", async () => {
+		await refused(
+			sectionLinking("https://github.com/cad0p/pc-tenant/blob/" + LENS_HEAD + "/"),
+			/does not state the evidence/,
+		);
+	});
+
+	it("refuses a link pinned to a branch", async () => {
+		await refused(
+			sectionLinking("https://github.com/cad0p/pc-host/blob/main/"),
+			/does not state the evidence/,
+		);
+	});
+
+	it("accepts a real path and line in the link", async () => {
+		await expectAllows(harness, {
+			write: {
+				path: join(briefs, "p1-r1-functional.md"),
+				content: lensBrief(
+					visionSectionText(undefined, PIN).replace("<path>#L<line>", "docs/host-incus.md#L41"),
+				),
+			},
+			cwd: "/tmp",
+		});
+	});
 });
 
 describe("vision-review - the verdict gate", () => {
@@ -335,6 +408,59 @@ describe("vision-review - the verdict gate", () => {
 			),
 			cwd: "/tmp",
 		});
+	});
+
+	it("allows a verdict whose id links to a permalink at its head", async () => {
+		await expectAllows(harness, {
+			command: comment(
+				"Lens: functional @ " + LENS_HEAD + "\n\n" +
+					"Vision: [V4](" + BASE + "docs/host-incus.md#L41) FIT (no host-started action runs in the guest)",
+			),
+			cwd: "/tmp",
+		});
+	});
+
+	it("refuses a linked id with no reason: the URL is not a reason", async () => {
+		await expectBlocks(
+			harness,
+			{
+				command: comment(
+					"Lens: functional @ " + LENS_HEAD + "\n\n" +
+						"Vision: [V4](" + BASE + "docs/host-incus.md#L41) FIT",
+				),
+				cwd: "/tmp",
+			},
+			{ rule: "vision-verdict-shape", reason: /no reason/ },
+		);
+	});
+
+	it("refuses an evidence link pinned to a branch", async () => {
+		await expectBlocks(
+			harness,
+			{
+				command: comment(
+					"Lens: functional @ " + LENS_HEAD + "\n\n" +
+						"Vision: [V4](https://github.com/cad0p/pc-host/blob/main/docs/host-incus.md#L41) FIT (no host-started action runs in the guest)",
+				),
+				cwd: "/tmp",
+			},
+			{ rule: "vision-verdict-shape", reason: /'main', which is not a commit/ },
+		);
+	});
+
+	it("refuses an evidence link pinned to another commit than the verdict's head", async () => {
+		const other = "2".repeat(40);
+		await expectBlocks(
+			harness,
+			{
+				command: comment(
+					"Lens: functional @ " + LENS_HEAD + "\n\n" +
+						"Vision: [V4](https://github.com/cad0p/pc-host/blob/" + other + "/docs/host-incus.md#L41) FIT (no host-started action runs in the guest)",
+				),
+				cwd: "/tmp",
+			},
+			{ rule: "vision-verdict-shape", reason: new RegExp("links evidence at " + other + ", but this verdict is for " + LENS_HEAD) },
+		);
 	});
 
 	it("allows a comment with no Vision line at all", async () => {
@@ -530,7 +656,7 @@ describe("vision-review - pure checks", () => {
 			visionSectionRefusal("# Brief\n", loadInvariants(), "b.md"),
 		);
 		assert.match(reason, /VISION REVIEW/);
-		assert.match(reason, new RegExp(ADVERSARY_INVARIANT + " FIT"));
+		assert.match(reason, new RegExp("\\[" + ADVERSARY_INVARIANT + "\\]\\(https://github\\.com/<owner>/<repo>/blob/<head>/<path>#L<line>\\) FIT"));
 	});
 
 	it("pins the known gaps: a bare gh pr comment and a top-level cat redirect", async () => {
@@ -550,13 +676,13 @@ describe("vision-review - the canonical list is loaded, not copied", () => {
 			"",
 			"Candidates: " + ids,
 			"",
-			"V18 FIT (<evidence: a file:line, a measured number, or an artifact>)",
+			"[V18](" + BASE + "<path>#L<line>) FIT (<what you checked>)",
 			"",
 			"Verdict words: FIT | MOSTLY-FIT | UNFIT.",
 			"",
 			"Out of scope: name each id you ruled out, and why.",
 			"",
-			"Evidence: a file:line, a measured number, or an artifact.",
+			"Evidence: the id's permalink, a measured number, or an artifact.",
 		].join("\n");
 	}
 
@@ -575,7 +701,7 @@ describe("vision-review - the canonical list is loaded, not copied", () => {
 	});
 
 	it("refuses with the path when the canonical file cannot be read", async () => {
-		const good = visionSectionText(loadInvariants());
+		const good = visionSectionText(loadInvariants(), PIN);
 		process.env.PI_H4_INVARIANTS_FILE = join(state, "no-such-invariants.md");
 		await expectBlocks(
 			harness,

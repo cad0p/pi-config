@@ -18,6 +18,7 @@
 
 import { chmodSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { visionSectionText } from "./vision-review.ts";
 
 /** The head every stub lens brief reviews (40 hex). */
 export const LENS_HEAD = "1".repeat(40);
@@ -293,6 +294,16 @@ export function failGhComments(root: string): void {
 	};
 	cfg.comments_fail = true;
 	writeFileSync(path, JSON.stringify(cfg));
+}
+
+/**
+ * The VISION REVIEW section of a brief for PR (owner/repo#n) at HEAD:
+ * its evidence link must be pinned to that repo and head.
+ */
+export function visionFor(pr: string, head: string): string {
+	const [owner = "", rest = ""] = pr.split("/");
+	const repo = rest.split("#")[0] ?? "";
+	return visionSectionText(undefined, { owner, repo, head });
 }
 
 /** The header lines a lens brief needs: the head and its passing run. */
