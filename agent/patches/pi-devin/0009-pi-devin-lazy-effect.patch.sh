@@ -21,6 +21,12 @@
 # daily account check (oauth.refresh) runs cold too, both in a short-lived Node child that exits when done: a worker
 # thread leaves its Effect graph resident in pi (+50 MB measured after terminate + GC). /devin refresh forces the
 # fetch (cold: stub handler; loaded: a branch in devinCommand). No Node child (single-file build, Bun) -> in-process.
+#
+# v3 (2026-11-26): loading on first use registers the real provider mid-session, often a few ms before a request, while
+# its list is still empty until Pi's refresh restores it; Pi then refuses the request ("No API provider registered for
+# api: devin-connect"). The real provider now answers with the stored list while its own is empty (0011 tries another
+# attached instance first). Upgrading an install already on v1/v2 needs index.ts restored from index.ts.orig first,
+# because the runner sees the 0009 marker and reports "already patched".
 PATCH_ID="0009-pi-devin-lazy-effect"
 PATCH_TITLE="pi-devin: load Effect, protobufjs and the runtime only when the session uses Devin"
 PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/91 (present in @buyong/pi-devin 0.1.16)"
@@ -49,6 +55,10 @@ NEW_DEVIN_INDEX=$(cat <<'DEVIN_INDEX_EOF'
  * - the catalog refresh, when Pi allows network and the stored list is older than a day, is missing, or /devin refresh forces it;
  * - the daily account check Pi runs as an OAuth refresh (pi-devin never renews the token; it re-checks the account).
  * A Pi that cannot start a Node child (a single-file build or Bun) loads the extension in-process instead.
+ *
+ * The real provider's list is empty until Pi's first refresh restores it, and Pi checks that list before every call, so a
+ * request sent in between fails ("No API provider registered for api: devin-connect"). Until then the real provider
+ * answers with the stored list (after another attached instance's list: local patch 0011).
  */
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -260,13 +270,27 @@ export default function devinExtension(pi: ExtensionAPI): void {
   let catalogFetch: Promise<{ persist?: unknown } | undefined> | undefined;
   const disposers: (() => void)[] = [];
 
+  // Pi as the real extension sees it: the provider it registers answers with the stored list while its own is empty.
+  const withStoredModels = new Proxy(pi, {
+    get: (target, key) => {
+      if (key === "registerProvider") return (provider: { getModels(): StoredModel[] }) => {
+        const own = provider.getModels;
+        // In place: a copy would drop the routing marker the next instance checks for.
+        provider.getModels = () => { const list = own(); return list.length > 0 ? list : models; };
+        return target.registerProvider(provider as never);
+      };
+      const value = Reflect.get(target, key, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+
   const ensureLoaded = (): Promise<LoadedExtension> => {
     loading ??= (async () => {
       const registration = await import("./src/pi/adapters/pi/registration.ts");
       const environment = await import("./src/pi/app/environment.ts");
       // Hand over before the real registration installs its own handlers: one handler per event, never two.
       for (const dispose of disposers.splice(0)) dispose();
-      loaded = registration.registerDevinExtension(pi, environment.productionEnvironment({ isFusionChild })) as unknown as LoadedExtension;
+      loaded = registration.registerDevinExtension(withStoredModels, environment.productionEnvironment({ isFusionChild })) as unknown as LoadedExtension;
       return loaded;
     })().catch((error: unknown) => { loading = undefined; throw error; });
     return loading;
