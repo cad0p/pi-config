@@ -23,7 +23,7 @@
 # refresh persists, and an instance is restored only when there is one. Same code as PR #95's second commit.
 PATCH_ID="0011-pi-devin-models-while-restoring"
 PATCH_TITLE="pi-devin: a new instance lists an attached instance's models until its own are restored, and restores itself if Pi never refreshes it"
-PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/94 (PR #95; present in @buyong/pi-devin 0.1.16)"
+PATCH_UPSTREAM="https://github.com/buYoung/pi-packages/issues/94 + https://github.com/buYoung/pi-packages/issues/96 (both fixed by PR #95; present in @buyong/pi-devin 0.1.16)"
 PATCH_REMOVE_WHEN="upstream's routing provider never reports an empty list while another attached instance has one, and every attached instance gets its first refresh; then delete this file"
 
 PATCH_ROOTS="${PI_AGENT_DIR}/npm/node_modules/@buyong/pi-devin"
