@@ -278,7 +278,7 @@ async function evaluateBash(
 }
 
 describe("global config — shape", () => {
-	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + shared-tmp-guard + ref-write-guard + git-identity-guard + merge-guard + primary-checkout-guard + worktree-guard + brief-gate + rm-relative-guard + tsh-guard + critical-path-label-guard + secret-file-read-guard + bw-cli-guard + reconcile-accept-guard + pnpm-lockfile-guard + prelaunch-compat + probe-scope-guard + unit-name-guard + synthetic-load-guard + queue-land-nudge + vision-review plugins (opt-in since the monorepo split)", () => {
+	it("declares git + rm + napkin + github + agent-dir + agent-config-guard + dev-shm-guard + shared-tmp-guard + ref-write-guard + git-identity-guard + merge-guard + primary-checkout-guard + worktree-guard + brief-gate + rm-relative-guard + tsh-guard + critical-path-label-guard + secret-file-read-guard + bw-cli-guard + reconcile-accept-guard + pnpm-lockfile-guard + prelaunch-compat + probe-scope-guard + commit-hook-guard + unit-name-guard + synthetic-load-guard + queue-land-nudge + vision-review plugins (opt-in since the monorepo split)", () => {
 		// Since the pi-steering monorepo split (2026-08-10) DEFAULT_PLUGINS
 		// is empty: plugins are opt-in and MUST be declared here. Since
 		// #72 (0.2.0-20260825.0) DEFAULT_RULES is gone too — rm
@@ -321,6 +321,7 @@ describe("global config — shape", () => {
 			"pnpm-lockfile-guard",
 			"prelaunch-compat",
 			"probe-scope-guard",
+			"commit-hook-guard",
 			// 2026-11-23: pc-gate-/pc-land-/pc-q*/pc-preflight- names are the
 			// merge tools', and no systemd-run ExecStart may hide its work in
 			// a /data/tmp or state-dir script (unit-name-guard.ts).

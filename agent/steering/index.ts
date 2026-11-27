@@ -262,6 +262,8 @@ import {
 	probeScopeGuardPlugin,
 	probeScopeGuardRules,
 } from "./probe-scope-guard.ts";
+// Owner ruling 2026-11-27: no commit-time git hooks, anywhere.
+import { commitHookGuardPlugin, commitHookRules } from "./commit-hook-guard.ts";
 import {
 	unitNameGuardPlugin,
 	unitNameGuardRules,
@@ -405,6 +407,7 @@ export default defineConfig({
 		pnpmLockfilePlugin,
 		prelaunchCompatPlugin,
 		probeScopeGuardPlugin,
+		commitHookGuardPlugin,
 		// The reserved gate/land/queue unit names, and no script ExecStart
 		// (2026-11-23: pc-gate-xbx1 held every lane's CI queue; a2-four.sh
 		// hid a worktree add from the guards).
@@ -474,6 +477,9 @@ export default defineConfig({
 		...prelaunchCompatRules,
 		// An ad-hoc probe may not outlive its turn (incident 2026-11-11).
 		...probeScopeGuardRules,
+		// Owner ruling 2026-11-27: no pre-commit / commit-msg hooks, no hook
+		// managers, no core.hooksPath — they slow every lane's commits.
+		...commitHookRules,
 		// pc-gate-/pc-land-/pc-q*/pc-preflight- names are the merge tools'
 		// (owner rule r), and a systemd-run ExecStart may not hide its work
 		// in a /data/tmp or state-dir script (2026-11-23).
