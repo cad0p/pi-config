@@ -264,6 +264,8 @@ import {
 } from "./probe-scope-guard.ts";
 // Owner ruling 2026-11-27: no commit-time git hooks, anywhere.
 import { commitHookGuardPlugin, commitHookRules } from "./commit-hook-guard.ts";
+// A file's frontmatter limits (limit-lines/-bytes/-line-chars, steering-check) hold on every write/edit.
+import { frontmatterLimitPlugin, frontmatterLimitRules } from "./frontmatter-limit-guard.ts";
 import {
 	unitNameGuardPlugin,
 	unitNameGuardRules,
@@ -408,6 +410,7 @@ export default defineConfig({
 		prelaunchCompatPlugin,
 		probeScopeGuardPlugin,
 		commitHookGuardPlugin,
+		frontmatterLimitPlugin,
 		// The reserved gate/land/queue unit names, and no script ExecStart
 		// (2026-11-23: pc-gate-xbx1 held every lane's CI queue; a2-four.sh
 		// hid a worktree add from the guards).
@@ -480,6 +483,8 @@ export default defineConfig({
 		// Owner ruling 2026-11-27: no pre-commit / commit-msg hooks, no hook
 		// managers, no core.hooksPath — they slow every lane's commits.
 		...commitHookRules,
+		// Owner 2026-11-27: limits live in the file's frontmatter, enforced on modification.
+		...frontmatterLimitRules,
 		// pc-gate-/pc-land-/pc-q*/pc-preflight- names are the merge tools'
 		// (owner rule r), and a systemd-run ExecStart may not hide its work
 		// in a /data/tmp or state-dir script (2026-11-23).
