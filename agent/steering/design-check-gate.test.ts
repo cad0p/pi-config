@@ -36,6 +36,7 @@ import {
 	failGhComments,
 	installLensStubs,
 	LENS_HEAD,
+	LENS_MAIN,
 	visionFor,
 	lensHeaderLines,
 	OTHER_HEAD,
@@ -114,7 +115,24 @@ function setHelperRoundsFor(pr: string, count: number): void {
 	writeFileSync(path, JSON.stringify(cfg));
 }
 
-/** The gh stub's changed-line count for a PR (pieceIsSmaller reads it). */
+/** The diff the repo clone reports for `head` against the stub main. */
+function setDiffAtHead(
+	head: string,
+	rows: Array<[additions: number, deletions: number, path: string]>,
+): void {
+	const path = join(state, "stubs", "git.json");
+	const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+		diffs?: Record<string, { paths: string[]; numstat: string[] }>;
+	};
+	cfg.diffs ??= {};
+	cfg.diffs[`${LENS_MAIN}..${head}`] = {
+		paths: rows.map((row) => row[2]),
+		numstat: rows.map((row) => `${row[0]}\t${row[1]}\t${row[2]}`),
+	};
+	writeFileSync(path, JSON.stringify(cfg));
+}
+
+/** The gh stub's changed-line count for a PR (the current diff). */
 function setGhLines(pr: string, lines: number): void {
 	const number = pr.split("#")[1] ?? "";
 	const path = join(state, "stubs", "gh.json");
@@ -605,6 +623,10 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	});
 
 	it("allows a split piece at round 2 whose header carries split-of", async () => {
+		// Round 2 means round 1 is already counted; its head was strictly
+		// smaller, so the frozen verdict restarts the piece.
+		setDiffAtHead(postedHeads(1)[0] ?? LENS_HEAD, [[10, 0, "tools/example.sh"]]);
+		setHelperRoundsFor("cad0p/pc-host#700", 1);
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("piece-r2-lens.md"),
@@ -615,6 +637,8 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	});
 
 	it("still caps the piece PR at round 6 (split-of is lineage, not an exemption)", async () => {
+		setDiffAtHead(postedHeads(1)[0] ?? LENS_HEAD, [[10, 0, "tools/example.sh"]]);
+		setHelperRoundsFor("cad0p/pc-host#700", 5);
 		designCheck("cad0p/pc-host#700", 5);
 		await expectBlocks(
 			harness,
@@ -649,10 +673,13 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	});
 
 	it("demands the r5 design check when a header of 2 understates an effective round of 5", async () => {
-		// The piece is grown (its changed lines are not strictly fewer than the
-		// parent's 40), so it inherits: parent 3 + own 1 + 1 = 5. The design
-		// check requirement keys on that effective round, not the header's 2,
-		// so the r5 check is owed even though round 2 would owe nothing.
+		// The piece was already non-shrinking at its first reviewed head (40
+		// lines, the parent's size), so it inherits: parent 3 + own 1 + 1 = 5.
+		// The design check requirement keys on that effective round, not the
+		// header's 2, so the r5 check is owed even though round 2 would owe
+		// nothing. The current diff is deliberately non-shrinking too; the
+		// frozen first-head verdict, not a re-test, is what decides.
+		setDiffAtHead(postedHeads(1)[0] ?? LENS_HEAD, [[40, 0, "tools/example.sh"]]);
 		setGhLines("cad0p/pc-host#700", 40);
 		setHelperRoundsFor(PR, 3);
 		setHelperRoundsFor("cad0p/pc-host#700", 1);

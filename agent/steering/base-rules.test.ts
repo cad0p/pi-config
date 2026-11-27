@@ -8,8 +8,9 @@
 //       understate it. Live since pc-host #730 closed #704 (2026-11-08):
 //       the operator clone's helper carries the rounds verb, so every
 //       gated brief's count is read with no seam.
-//   R2  a split piece restarts at round 1 only when it is strictly
-//       smaller than its parent; otherwise it inherits the parent's count.
+//   R2  a split piece's strictly-smaller test is frozen once, at the
+//       split: a pass restarts it at round 1 for its whole life; otherwise
+//       it inherits the parent's count.
 //   R1/R3 a `kind: lens` brief carries `head: <40-hex>`, that sha must be
 //       the PR's current head, and a passing run must be bound to it (a
 //       gate record for that head, or a green-run summary that is green,
@@ -36,6 +37,7 @@ import { join } from "node:path";
 import { afterEach, beforeEach, describe, it } from "node:test";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
+import { splitRestartRecordPath } from "./split-restart.ts";
 import {
 	clearLensStubs,
 	cloneDir,
@@ -91,6 +93,25 @@ function setRounds(pr: string, count: number): void {
 			(i + 5).toString(16).repeat(40).slice(0, 40),
 		);
 	});
+}
+
+/** The diff the repo clone reports for `head` against the stub main. */
+function setDiffAtHead(
+	head: string,
+	rows: Array<[additions: number, deletions: number, path: string]>,
+): void {
+	editStub("git", (cfg) => {
+		cfg.diffs ??= {};
+		cfg.diffs[`${LENS_MAIN}..${head}`] = {
+			paths: rows.map((row) => row[2]),
+			numstat: rows.map((row) => `${row[0]}\t${row[1]}\t${row[2]}`),
+		};
+	});
+}
+
+/** The first head setRounds() gives a PR. */
+function firstCountedHead(): string {
+	return "5".repeat(40);
 }
 
 /** The pre-launch consumers line every brief header now carries. */
@@ -341,6 +362,9 @@ describe("base-rules — R2, a re-cut must shrink", () => {
 		// A header of 2 cannot understate the count: 3 + 1 + 1 = 5, so the r5
 		// design check is owed (and present), and round 5 is under the cap.
 		// The old max-of-two arithmetic computes 4 here and asks only for r3.
+		// The frozen split-time diff was already non-shrinking (40 lines, the
+		// parent's size); later current-diff values are never read again.
+		setDiffAtHead(firstCountedHead(), [[40, 0, "tools/example.sh"]]);
 		editStub("gh", (cfg) => {
 			cfg.prs["700"].lines = 40;
 		});
@@ -358,7 +382,9 @@ describe("base-rules — R2, a re-cut must shrink", () => {
 
 	it("caps an inherited round of parent 3 + own 3 at round 7", async () => {
 		// 3 + 3 + 1 = 7 >= ROUND_CAP: the cap the max-of-two arithmetic evades
-		// (it computes 4). The refusal names the round it counted.
+		// (it computes 4). The refusal names the round it counted. The frozen
+		// split-time diff was already non-shrinking.
+		setDiffAtHead(firstCountedHead(), [[40, 0, "tools/example.sh"]]);
 		editStub("gh", (cfg) => {
 			cfg.prs["700"].lines = 40;
 		});
@@ -377,6 +403,128 @@ describe("base-rules — R2, a re-cut must shrink", () => {
 				rule: "design-check-gate",
 				reason: /round 7 on cad0p\/pc-host#700: split the PR into independent pieces/,
 			},
+		);
+	});
+
+	it("freezes a smaller verdict at r1 when the piece grows a new path at r2 (the #821 shape)", async () => {
+		// r1 is strictly smaller, so it restarts. At r2 the current PR diff has
+		// grown outside the parent AND can no longer even be read: any re-test
+		// would fail or inherit (5 + 1 + 1 = 7). The frozen verdict keeps the
+		// piece on its own count, so round 2 passes.
+		await expectAllows(harness, {
+			write: {
+				path: brief("piece-r1-lens-freeze.md"),
+				content: greenLens(1, `split-of: ${PR}\n`).replace(PR, PIECE),
+			},
+			cwd: "/tmp",
+		});
+		editStub("gh", (cfg) => {
+			cfg.prs["700"].paths = ["tools/example.sh", "tools/ci.Dockerfile"];
+			cfg.prs["700"].lines = 41;
+			cfg.prs["700"].diff_fail = true;
+		});
+		setRounds(PR, 5);
+		setRounds(PIECE, 1);
+		await expectAllows(harness, {
+			write: {
+				path: brief("piece-r2-lens-freeze.md"),
+				content: greenLens(2, `split-of: ${PR}\n`).replace(PR, PIECE),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("freezes a non-smaller verdict at r1 when the piece later shrinks", async () => {
+		// The opposite half of 'once': a piece that fails the split-time test
+		// inherits for its whole life. It may not shrink later to launder the
+		// parent's rounds away.
+		editStub("gh", (cfg) => {
+			cfg.prs["700"].lines = 40;
+		});
+		await expectAllows(harness, {
+			write: {
+				path: brief("piece-r1-lens-inherit-freeze.md"),
+				content: greenLens(1, `split-of: ${PR}\n`).replace(PR, PIECE),
+			},
+			cwd: "/tmp",
+		});
+		editStub("gh", (cfg) => {
+			cfg.prs["700"].lines = 10;
+			cfg.prs["700"].diff_fail = true;
+		});
+		setRounds(PR, 5);
+		setRounds(PIECE, 1);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("piece-r2-lens-inherit-freeze.md"),
+					content: greenLens(2, `split-of: ${PR}\n`).replace(PR, PIECE),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /round 7 on cad0p\/pc-host#700: split the PR into independent pieces/,
+			},
+		);
+	});
+
+	it("reconstructs a legacy first counted head: smaller there, grown now, still on its own count", async () => {
+		// The pre-freeze #821 shape: the helper already knows r1's head, the
+		// branch has since grown tools/ci.Dockerfile, and the current piece diff
+		// cannot be read at all. The clone reconstruction measures the r1 head
+		// (2 paths, 29 lines) against the parent's 6 paths and 720 lines, then
+		// freezes that pass.
+		const head = firstCountedHead();
+		setDiffAtHead(head, [
+			[9, 2, "docs/verification.md"],
+			[18, 0, "tools/ci-image-inputs"],
+		]);
+		editStub("gh", (cfg) => {
+			cfg.prs["650"].paths = [
+				"docs/verification.md",
+				"tools/check-repo-blocks.sh",
+				"tools/ci-image-inputs",
+				"tools/ci-run.sh",
+				"tools/tests/test-check-repo-blocks.sh",
+				"tools/tests/test-ci-snapshot.sh",
+			];
+			cfg.prs["650"].lines = 720;
+			cfg.prs["700"].paths = [
+				"docs/verification.md",
+				"tools/ci-image-inputs",
+				"tools/ci.Dockerfile",
+			];
+			cfg.prs["700"].lines = 41;
+			cfg.prs["700"].diff_fail = true;
+		});
+		setRounds(PR, 5);
+		setRounds(PIECE, 1);
+		await expectAllows(harness, {
+			write: {
+				path: brief("piece-r2-lens-legacy.md"),
+				content: greenLens(2, `split-of: ${PR}\n`).replace(PR, PIECE),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("fails closed when the frozen split-restart record is malformed", async () => {
+		const path = splitRestartRecordPath(PIECE);
+		assert.ok(path !== null, "the piece has a freeze-record path");
+		mkdirSync(join(state, "split-restarts"), { recursive: true });
+		writeFileSync(path, "not json\n");
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("piece-r1-lens-malformed-record.md"),
+					content: greenLens(1, `split-of: ${PR}\n`).replace(PR, PIECE),
+				},
+				cwd: "/tmp",
+			},
+			{ rule: "design-check-gate", reason: /split-restart record .* is not JSON/ },
 		);
 	});
 });

@@ -53,10 +53,20 @@ for a in "\$@"; do
   esac
   [[ -z "\$pr" ]] || break
 done
+jqfilter=""
+prev=""
+for a in "\$@"; do
+  [[ "\$prev" != "--jq" ]] || jqfilter="\$a"
+  prev="\$a"
+done
 case "\$sub" in
   "pr view")
     [[ "\$(jq -r --arg p "\$pr" '.prs[\$p].head_fail // false' "\$cfg")" != true ]] || { echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; }
-    jq -r --arg p "\$pr" '.prs[\$p].head // .default_head // ""' "\$cfg" ;;
+    if [[ "\$jqfilter" == ".baseRefName" ]]; then
+      jq -r --arg p "\$pr" '.prs[\$p].base // .default_base // "main"' "\$cfg"
+    else
+      jq -r --arg p "\$pr" '.prs[\$p].head // .default_head // ""' "\$cfg"
+    fi ;;
   "pr diff")
     [[ "\$(jq -r --arg p "\$pr" '.prs[\$p].diff_fail // false' "\$cfg")" != true ]] || { echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; }
     jq -r --arg p "\$pr" '(.prs[\$p].paths // .default_paths // [])[]' "\$cfg" ;;
@@ -67,12 +77,6 @@ case "\$sub" in
         jq -r --arg p "\$pr" '.prs[\$p].lines // .default_lines // 0' "\$cfg" ;;
       *"/issues/"*"/comments"*)
         [[ "\$(jq -r '.comments_fail // false' "\$cfg")" != true ]] || { echo "gh: Bad Gateway (HTTP 502)" >&2; exit 1; }
-        jqfilter=""
-        prev=""
-        for a in "\$@"; do
-          [[ "\$prev" != "--jq" ]] || jqfilter="\$a"
-          prev="\$a"
-        done
         if [[ -n "\$jqfilter" ]]; then
           jq -r "\$jqfilter" <<<"\$(jq -c '.comments // []' "\$cfg")"
         else
@@ -110,10 +114,24 @@ case "\$cmd" in
       printf '\n'
     } ;;
   merge-base)
-    # A pair the config does not name is an ancestor (the permissive default);
-    # a case that needs the negative answer names the pair.
-    [[ "\$(jq -r --arg n "\$name" --arg k "\$3 \$4" '(.clones[\$n] // .) | ((.ancestors // {}) | if has(\$k) then .[\$k] else true end)' "\$cfg")" == true ]] && exit 0
-    exit 1 ;;
+    if [[ "\${2:-}" == "--is-ancestor" ]]; then
+      # A pair the config does not name is an ancestor (the permissive default);
+      # a case that needs the negative answer names the pair.
+      [[ "\$(jq -r --arg n "\$name" --arg k "\$3 \$4" '(.clones[\$n] // .) | ((.ancestors // {}) | if has(\$k) then .[\$k] else true end)' "\$cfg")" == true ]] && exit 0
+      exit 1
+    fi
+    mb="\$(jq -r --arg n "\$name" --arg k "\$2 \$3" --arg base "\$3" '(.clones[\$n] // .) | (.merge_bases[\$k] // .default_merge_base // \$base)' "\$cfg")"
+    [[ -n "\$mb" ]] || { echo "fatal: Not a valid object name \$2" >&2; exit 128; }
+    printf '%s\n' "\$mb" ;;
+  diff)
+    key="\$3..\$4"
+    found="\$(jq -r --arg n "\$name" --arg k "\$key" '(.clones[\$n] // .) | if (.diffs[\$k] // null) != null then "yes" else "no" end' "\$cfg")"
+    [[ "\$found" == yes ]] || { echo "fatal: bad revision '\$key'" >&2; exit 128; }
+    case "\$2" in
+      --name-only) jq -r --arg n "\$name" --arg k "\$key" '(.clones[\$n] // .) | (.diffs[\$k].paths // [])[]' "\$cfg" ;;
+      --numstat) jq -r --arg n "\$name" --arg k "\$key" '(.clones[\$n] // .) | (.diffs[\$k].numstat // [])[]' "\$cfg" ;;
+      *) echo "unexpected git diff: \$*" >&2; exit 97 ;;
+    esac ;;
   *) echo "unexpected git: \$*" >&2; exit 97 ;;
 esac
 `;

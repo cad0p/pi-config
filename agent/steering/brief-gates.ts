@@ -15,7 +15,8 @@
  *   split-of: cad0p/pc-host#611            (optional: this brief is a
  *                                           split piece of that PR; it
  *                                           restarts at round 1 only when
- *                                           it is strictly smaller)
+ *                                           its frozen split-time test
+ *                                           says it was strictly smaller)
  *   head: <40-hex>                         (required for kind: lens: the
  *                                           head it reviews, which must be
  *                                           the PR's current head and have

@@ -24,9 +24,11 @@
  * 2026-11-08: "yes it should be enforced, advisories don't work with
  * agents"). The count is merge-pr.sh's (base-rules.ts): the effective
  * round is the higher of the header's `round:` and the helper's count
- * plus one, so a re-cut cannot understate it. A piece restarts at round 1
- * only when its changed paths are a subset of the parent's and its
- * changed lines strictly fewer; otherwise its rounds continue the
+ * plus one, so a re-cut cannot understate it. A piece's strictly-smaller
+ * test runs ONCE, at the split, on its first reviewed head (owner
+ * 2026-11-27: "a split pr should restart at round one that's the whole
+ * point"). If it passes there the piece restarts at round 1 for its whole
+ * life, whatever paths later folds add; otherwise its rounds continue the
  * parent's count: the inherited round is the parent's count plus the
  * piece's own count plus one (docs/verification.md § Split at round 5),
  * still max'd with the header (a header can raise, never lower). There
@@ -152,8 +154,6 @@ import {
 	ghBin,
 	lensHeadRefusal,
 	mergeHelper,
-	pieceIsSmaller,
-	pathsOutsideParent,
 	postedLensRounds,
 	prHead,
 	repoClone,
@@ -176,6 +176,7 @@ import {
 	requiredDesignCheckRound,
 	unverifiableReason,
 } from "./brief-gates.ts";
+import { splitShrinkVerdict } from "./split-restart.ts";
 
 declare global {
 	interface PiSteeringPredicates {
@@ -215,7 +216,7 @@ function roundCapReason(
 	const number = pr.split("#")[1] ?? "<n>";
 	const tail =
 		why === null
-			? `A split piece is a new PR whose brief header carries split-of: ${pr} and restarts at round 1 only when its changed paths are a subset of the parent's and its changed lines strictly fewer; otherwise it inherits the parent's round count. There is no one-split limit: a piece that reaches round 5 splits again.`
+			? `A split piece is a new PR whose brief header carries split-of: ${pr} and restarts at round 1 only when its one split-time test passes: changed paths a subset of the parent's and changed lines strictly fewer at its first reviewed head. That verdict is frozen for the piece's whole life, whatever later folds add; otherwise it inherits the parent's round count. There is no one-split limit: a piece that reaches round 5 splits again.`
 			: why;
 	const addendum = splitAddendumPath();
 	const local = existsSync(addendum)
@@ -232,7 +233,8 @@ function roundCapReason(
  * one, again max'd with the header (docs/verification.md § Split at round
  * 5: the piece's rounds continue the parent's count, so parent 3 + own 1
  * is round 5, not the 4 a max-of-two computes). A piece restarts at round
- * 1 only when it is strictly smaller than its parent. The cap and the
+ * 1 only when its one frozen split-time verdict says it was strictly
+ * smaller than its parent on its first reviewed head. The cap and the
  * design-check requirement both read this one function, so they cannot
  * drift. Every count is merge-pr.sh's own `rounds` list, and a check
  * that cannot run is an error: the caller refuses (fail closed).
@@ -248,24 +250,24 @@ function effectiveRound(
 	let parentCount = 0;
 	if (header.splitOfKey !== null) {
 		const parent = header.splitOfKey;
-		const shrink = pieceIsSmaller(pr, parent);
+		const shrink = splitShrinkVerdict(header);
 		if (!shrink.ok) {
 			return {
 				ok: false,
-				err: `could not compare ${pr} with its split parent ${parent} (${shrink.err}); a piece restarts at round 1 only when it is strictly smaller, so the cap cannot be evaluated (fail closed)`,
+				err: `${shrink.err}; a piece restarts at round 1 only when its frozen split-time verdict is strictly smaller, so the cap cannot be evaluated (fail closed)`,
 			};
 		}
-		if (!shrink.smaller) {
-			const outside = pathsOutsideParent(pr, parent);
+		if (!shrink.comparison.smaller) {
+			const outside = shrink.comparison.outside;
 			const why =
 				outside.length > 0
-					? `it changes ${outside.length} path(s) its parent does not (${outside.slice(0, 3).join(", ")}${outside.length > 3 ? ", ..." : ""})`
-					: "its changed lines are not strictly fewer than its parent's";
+					? `it changed ${outside.length} path(s) its parent did not at the split (${outside.slice(0, 3).join(", ")}${outside.length > 3 ? ", ..." : ""})`
+					: "its changed lines were not strictly fewer than its parent's at the split";
 			const parentRounds = roundsCount(parent);
 			if (!parentRounds.ok) {
 				return {
 					ok: false,
-					err: `the round count of the split parent ${parent} could not be read (${parentRounds.err}); a piece that is not strictly smaller (${why}) inherits it, so the cap cannot be evaluated (fail closed)`,
+					err: `the round count of the split parent ${parent} could not be read (${parentRounds.err}); a piece that was not strictly smaller at the split (${why}) inherits it, so the cap cannot be evaluated (fail closed)`,
 				};
 			}
 			parentCount = parentRounds.count;
