@@ -73,9 +73,11 @@
  * (pc-host and pc-control were masked by the green-run route; pc-tenant's
  * ci.sh prints no 'run on: snapshot commit' line to use instead).
  *
- * R2, a re-cut must shrink. A `split-of: <owner/repo>#<n>` piece restarts
- * at round 1 only when its changed paths are a subset of the parent's and
- * its changed lines are strictly fewer; otherwise it inherits the parent's
+ * R2, a re-cut must shrink — once, at the split. A
+ * `split-of: <owner/repo>#<n>` piece's strictly-smaller test is frozen on
+ * its first reviewed head: changed paths a subset of the parent's and
+ * changed lines strictly fewer means the piece restarts at round 1 for its
+ * whole life, whatever later folds add; otherwise it inherits the parent's
  * round count. There is no one-split limit and no owner step: a piece that
  * reaches round 5 splits again.
  *
@@ -346,6 +348,30 @@ export function prHead(
 		: { ok: false, err: `gh pr view printed no head sha: ${sha || "<empty>"}` };
 }
 
+/** The PR's base branch on GitHub (`main` in the h4 repos). */
+export function prBaseRef(
+	ref: string,
+): { ok: true; branch: string } | { ok: false; err: string } {
+	const parts = splitPr(ref);
+	if (parts === null) return { ok: false, err: `not a PR ref: ${ref}` };
+	const result = run(ghBin(), [
+		"pr",
+		"view",
+		parts.number,
+		"--repo",
+		parts.repo,
+		"--json",
+		"baseRefName",
+		"--jq",
+		".baseRefName",
+	]);
+	if (!result.ok) return { ok: false, err: oneLine(result) || "gh pr view failed" };
+	const branch = oneLine(result);
+	return /^[A-Za-z0-9][A-Za-z0-9_./-]*$/.test(branch)
+		? { ok: true, branch }
+		: { ok: false, err: `gh pr view printed no usable base branch: ${branch || "<empty>"}` };
+}
+
 /**
  * The rounds of a PR, oldest first, from the helper's read-only `rounds`
  * subcommand: its `<round> <head>` lines, one head each. A failed run, or
@@ -448,10 +474,17 @@ export function postedLensRounds(
 	return { ok: true, heads };
 }
 
+interface ChangedDiff {
+	paths: string[];
+	lines: number;
+}
+
+type ChangedDiffResult =
+	| { ok: true; paths: string[]; lines: number }
+	| { ok: false; err: string };
+
 /** A diff's changed paths and its changed lines (additions + deletions). */
-function changedDiff(
-	ref: string,
-): { ok: true; paths: string[]; lines: number } | { ok: false; err: string } {
+function changedDiff(ref: string): ChangedDiffResult {
 	const parts = splitPr(ref);
 	if (parts === null) return { ok: false, err: `not a PR ref: ${ref}` };
 	const paths = run(ghBin(), [
@@ -490,27 +523,158 @@ function changedDiff(
 }
 
 /**
- * Is this piece strictly smaller than its split parent: changed paths a
- * subset, changed lines strictly fewer? A check that cannot run is an
- * error (the caller refuses), never a pass.
+ * A PR diff at one head, reconstructed in the PR repo's clone: merge-base
+ * of the head and the PR's current base branch, then name-only and numstat
+ * diffs. This is how a split piece's first reviewed head is measured after
+ * the branch has moved on; the live `gh pr diff` answer is always the
+ * current head and would re-open the frozen split verdict. A read that
+ * cannot run is an error (the caller refuses), never a pass.
+ */
+function changedDiffAtHead(ref: string, head: string): ChangedDiffResult {
+	const parts = splitPr(ref);
+	if (parts === null) return { ok: false, err: `not a PR ref: ${ref}` };
+	if (!/^[0-9a-f]{40}$/.test(head)) {
+		return { ok: false, err: `not a 40-hex head: ${head}` };
+	}
+	const clone = repoClone(parts.repo);
+	if (!clone.ok) return { ok: false, err: clone.err };
+	const base = prBaseRef(ref);
+	if (!base.ok) return { ok: false, err: base.err };
+	const baseRef = `refs/remotes/origin/${base.branch}`;
+	const baseSha = fetchedRef(baseRef, clone.path);
+	if (!baseSha.ok) {
+		return { ok: false, err: `${baseRef}: ${baseSha.err}` };
+	}
+	const mergeBase = cloneGit(clone.path, ["merge-base", head, baseSha.sha]);
+	const mergeBaseSha = oneLine(mergeBase);
+	if (!mergeBase.ok || !/^[0-9a-f]{40}$/.test(mergeBaseSha)) {
+		return {
+			ok: false,
+			err: `git merge-base ${head} ${baseSha.sha}: ${oneLine(mergeBase) || "printed no merge base"}`,
+		};
+	}
+	const pathsResult = cloneGit(clone.path, [
+		"diff",
+		"--name-only",
+		mergeBaseSha,
+		head,
+	]);
+	if (!pathsResult.ok) {
+		return {
+			ok: false,
+			err: oneLine(pathsResult) || `git diff --name-only ${mergeBaseSha} ${head} failed`,
+		};
+	}
+	const numstat = cloneGit(clone.path, [
+		"diff",
+		"--numstat",
+		mergeBaseSha,
+		head,
+	]);
+	if (!numstat.ok) {
+		return {
+			ok: false,
+			err: oneLine(numstat) || `git diff --numstat ${mergeBaseSha} ${head} failed`,
+		};
+	}
+	let lines = 0;
+	for (const line of numstat.out.split("\n")) {
+		const trimmed = line.trim();
+		if (trimmed === "") continue;
+		if (/^-\t-\t/.test(line)) continue; // binary diff: no line count
+		const match = /^([0-9]+)\t([0-9]+)\t/.exec(line);
+		if (match === null) {
+			return {
+				ok: false,
+				err: `git diff --numstat printed a line that is not '<additions>\\t<deletions>\\t<path>': ${trimmed}`,
+			};
+		}
+		lines += Number.parseInt(match[1] ?? "0", 10);
+		lines += Number.parseInt(match[2] ?? "0", 10);
+	}
+	return {
+		ok: true,
+		paths: pathsResult.out
+			.split("\n")
+			.map((path) => path.trim())
+			.filter((path) => path !== ""),
+		lines,
+	};
+}
+
+/** The strictly-smaller comparison, with the measurements kept for the freeze record. */
+export interface SplitComparison {
+	smaller: boolean;
+	outside: string[];
+	piecePaths: string[];
+	pieceLines: number;
+	parentPaths: string[];
+	parentLines: number;
+}
+
+type SplitComparisonResult =
+	| { ok: true; comparison: SplitComparison }
+	| { ok: false; err: string };
+
+function compareDiffs(mine: ChangedDiff, theirs: ChangedDiff): SplitComparison {
+	const parentPaths = new Set(theirs.paths);
+	const outside = mine.paths.filter((path) => !parentPaths.has(path));
+	return {
+		smaller: outside.length === 0 && mine.lines < theirs.lines,
+		outside,
+		piecePaths: [...mine.paths],
+		pieceLines: mine.lines,
+		parentPaths: [...theirs.paths],
+		parentLines: theirs.lines,
+	};
+}
+
+function comparePieceWithParent(
+	mine: ChangedDiffResult,
+	piece: string,
+	parent: string,
+): SplitComparisonResult {
+	if (!mine.ok) return { ok: false, err: `${piece}: ${mine.err}` };
+	const theirs = changedDiff(parent);
+	if (!theirs.ok) return { ok: false, err: `${parent}: ${theirs.err}` };
+	return { ok: true, comparison: compareDiffs(mine, theirs) };
+}
+
+/**
+ * Is this piece strictly smaller than its split parent at the piece's
+ * first reviewed head: changed paths a subset, changed lines strictly
+ * fewer? The parent is read as it stands now: the comparison is made and
+ * frozen at the split, so the parent's current diff IS its split-time diff
+ * for a new piece, and a closed parent's final diff for a legacy piece.
+ */
+export function pieceIsSmallerAtHead(
+	piece: string,
+	parent: string,
+	head: string,
+): SplitComparisonResult {
+	return comparePieceWithParent(changedDiffAtHead(piece, head), piece, parent);
+}
+
+/**
+ * Is this piece strictly smaller than its split parent as its diff stands
+ * now: changed paths a subset, changed lines strictly fewer? A check that
+ * cannot run is an error (the caller refuses), never a pass.
  */
 export function pieceIsSmaller(
 	piece: string,
 	parent: string,
 ): { ok: true; smaller: boolean } | { ok: false; err: string } {
-	const mine = changedDiff(piece);
-	if (!mine.ok) return { ok: false, err: `${piece}: ${mine.err}` };
-	const theirs = changedDiff(parent);
-	if (!theirs.ok) return { ok: false, err: `${parent}: ${theirs.err}` };
-	const parentPaths = new Set(theirs.paths);
-	const outside = mine.paths.filter((path) => !parentPaths.has(path));
-	if (outside.length > 0) {
-		return {
-			ok: true,
-			smaller: false,
-		};
-	}
-	return { ok: true, smaller: mine.lines < theirs.lines };
+	const compared = comparePieceWithParent(changedDiff(piece), piece, parent);
+	if (!compared.ok) return { ok: false, err: compared.err };
+	return { ok: true, smaller: compared.comparison.smaller };
+}
+
+/** The detailed current comparison, for the split-time freeze record. */
+export function pieceComparison(
+	piece: string,
+	parent: string,
+): SplitComparisonResult {
+	return comparePieceWithParent(changedDiff(piece), piece, parent);
 }
 
 /** The changed paths of a piece that its parent does not carry (for the message). */
