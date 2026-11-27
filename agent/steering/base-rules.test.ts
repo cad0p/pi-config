@@ -5,8 +5,9 @@
 //
 //   R4  one round definition: the cap reads merge-pr.sh's count (the
 //       helper's read-only `rounds`), so the header's round can never
-//       understate it. Dormant behind ROUNDS_FROM_HELPER until #704
-//       merges; PI_H4_ROUNDS_FROM_HELPER=1 drives the live path here.
+//       understate it. Live since pc-host #730 closed #704 (2026-11-08):
+//       the operator clone's helper carries the rounds verb, so every
+//       gated brief's count is read with no seam.
 //   R2  a split piece restarts at round 1 only when it is strictly
 //       smaller than its parent; otherwise it inherits the parent's count.
 //   R1/R3 a `kind: lens` brief carries `head: <40-hex>`, that sha must be
@@ -194,7 +195,6 @@ const HEAD_MISSING = /needs 'head: <40-hex>'/;
 const HEAD_MISMATCH = /is at [0-9a-f]{40}: push the head/;
 const NO_RUN = /no gate-record comment bound to head/;
 const COUNT_FAILED = /could not be read .*fail closed/s;
-const PIECE_REFUSED = /does not restart .* at round 1/;
 const INHERITED =
 	/round 6 on cad0p\/pc-host#700: split the PR[\s\S]*inherits its split parent cad0p\/pc-host#650/;
 const ABSORB_PARENTS = /is not a merge commit/;
@@ -202,16 +202,11 @@ const ABSORB_MAIN = /parents reachable from origin\/main/;
 const ABSORB_BRANCH = /is not on the cad0p\/pc-host#650 branch/;
 
 describe("base-rules — R4, one round definition (the helper's count)", () => {
-	it("keeps the count path dormant by default (the live steering is untouched)", async () => {
-		setRounds(PR, 5);
-		await expectAllows(harness, {
-			write: { path: brief("p1-r1-lens.md"), content: greenLens(1) },
-			cwd: "/tmp",
-		});
-	});
-
-	it("blocks a round-1 lens brief when the helper already counts 5 rounds", async () => {
-		process.env.PI_H4_ROUNDS_FROM_HELPER = "1";
+	it("reads the count live by default: a round-1 brief over 5 counted rounds is capped", async () => {
+		// The dormancy precondition is met (pc-host #730 closed #704 on
+		// 2026-11-08; the operator clone's helper carries the rounds verb), so
+		// no seam is needed: five counted rounds make this round-1 header
+		// effectively round 6.
 		setRounds(PR, 5);
 		await expectBlocks(
 			harness,
@@ -221,8 +216,11 @@ describe("base-rules — R4, one round definition (the helper's count)", () => {
 	});
 
 	it("allows a round-1 lens brief when the helper counts 2 rounds", async () => {
-		process.env.PI_H4_ROUNDS_FROM_HELPER = "1";
+		// Two counted rounds make the brief effectively round 3, which is under
+		// the cap but owes the r3 design check (the requirement keys on the
+		// effective round, not the header).
 		setRounds(PR, 2);
+		designCheck(PR, 3);
 		await expectAllows(harness, {
 			write: { path: brief("p1-r1-lens.md"), content: greenLens(1) },
 			cwd: "/tmp",
@@ -230,7 +228,6 @@ describe("base-rules — R4, one round definition (the helper's count)", () => {
 	});
 
 	it("fails closed when the helper's count fails", async () => {
-		process.env.PI_H4_ROUNDS_FROM_HELPER = "1";
 		editStub("helper", (cfg) => {
 			cfg.fail[PR.split("#")[1] ?? ""] = true;
 		});
@@ -253,10 +250,14 @@ describe("base-rules — R2, a re-cut must shrink", () => {
 		});
 	});
 
-	it("blocks a piece that changes a path its parent does not", async () => {
+	it("makes a piece that changes a path its parent does not inherit the parent's count", async () => {
+		// Paths outside the parent's: not strictly smaller, so the piece
+		// inherits - parent 5 + own 0 + 1 = 6, the cap. The classification is
+		// what pins it: a strictly-smaller reading would restart at round 1.
 		editStub("gh", (cfg) => {
 			cfg.prs["700"].paths = ["tools/other.sh"];
 		});
+		setRounds(PR, 5);
 		await expectBlocks(
 			harness,
 			{
@@ -266,14 +267,17 @@ describe("base-rules — R2, a re-cut must shrink", () => {
 				},
 				cwd: "/tmp",
 			},
-			{ rule: "design-check-gate", reason: PIECE_REFUSED },
+			{ rule: "design-check-gate", reason: INHERITED },
 		);
 	});
 
-	it("blocks a piece whose changed lines are not strictly fewer", async () => {
+	it("makes a piece whose changed lines are not strictly fewer inherit the parent's count", async () => {
+		// Equal lines are not strictly fewer: not strictly smaller, so the
+		// piece inherits - parent 5 + own 0 + 1 = 6, the cap.
 		editStub("gh", (cfg) => {
 			cfg.prs["700"].lines = 40;
 		});
+		setRounds(PR, 5);
 		await expectBlocks(
 			harness,
 			{
@@ -283,12 +287,11 @@ describe("base-rules — R2, a re-cut must shrink", () => {
 				},
 				cwd: "/tmp",
 			},
-			{ rule: "design-check-gate", reason: /changed lines are not strictly fewer/ },
+			{ rule: "design-check-gate", reason: INHERITED },
 		);
 	});
 
 	it("makes a non-shrinking piece inherit its parent's count", async () => {
-		process.env.PI_H4_ROUNDS_FROM_HELPER = "1";
 		editStub("gh", (cfg) => {
 			cfg.prs["700"].lines = 40;
 		});
@@ -307,7 +310,6 @@ describe("base-rules — R2, a re-cut must shrink", () => {
 	});
 
 	it("still lets a strictly smaller piece restart at round 1 under a capped parent", async () => {
-		process.env.PI_H4_ROUNDS_FROM_HELPER = "1";
 		setRounds(PR, 5);
 		await expectAllows(harness, {
 			write: {
@@ -316,6 +318,66 @@ describe("base-rules — R2, a re-cut must shrink", () => {
 			},
 			cwd: "/tmp",
 		});
+	});
+
+	it("evaluates a grown split piece instead of failing closed", async () => {
+		// The count path is live by default: a piece that is not strictly
+		// smaller no longer fails closed - its round is read from the helper.
+		// Parent and piece both count 0 rounds here, so the inherited round is
+		// 0 + 0 + 1 and the round-1 brief passes.
+		editStub("gh", (cfg) => {
+			cfg.prs["700"].lines = 40;
+		});
+		await expectAllows(harness, {
+			write: {
+				path: brief("piece-r1-grown.md"),
+				content: greenLens(1, `split-of: ${PR}\n`).replace(PR, PIECE),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("inherits parent + own + 1: parent 3 and own 1 evaluate to round 5", async () => {
+		// A header of 2 cannot understate the count: 3 + 1 + 1 = 5, so the r5
+		// design check is owed (and present), and round 5 is under the cap.
+		// The old max-of-two arithmetic computes 4 here and asks only for r3.
+		editStub("gh", (cfg) => {
+			cfg.prs["700"].lines = 40;
+		});
+		setRounds(PR, 3);
+		setRounds(PIECE, 1);
+		designCheck(PIECE, 5);
+		await expectAllows(harness, {
+			write: {
+				path: brief("piece-r5-grown.md"),
+				content: greenLens(2, `split-of: ${PR}\n`).replace(PR, PIECE),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("caps an inherited round of parent 3 + own 3 at round 7", async () => {
+		// 3 + 3 + 1 = 7 >= ROUND_CAP: the cap the max-of-two arithmetic evades
+		// (it computes 4). The refusal names the round it counted.
+		editStub("gh", (cfg) => {
+			cfg.prs["700"].lines = 40;
+		});
+		setRounds(PR, 3);
+		setRounds(PIECE, 3);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: brief("piece-r7-grown.md"),
+					content: greenLens(2, `split-of: ${PR}\n`).replace(PR, PIECE),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /round 7 on cad0p\/pc-host#700: split the PR into independent pieces/,
+			},
+		);
 	});
 });
 

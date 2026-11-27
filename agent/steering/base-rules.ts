@@ -15,10 +15,10 @@
  * one `<round> <head>` line per round, and this module counts those lines
  * with grep-shaped code (one regex per line, no parser). The cap and the
  * split-piece inheritance both read it, so the base, the helper and the
- * steering cannot drift. ROUNDS_FROM_HELPER gates that path: it stays
- * false until pc-host #704 (which adds the subcommand) merges, so the
- * live steering keeps its header-only count and never shells out to a
- * helper that does not have the subcommand yet.
+ * steering cannot drift. ROUNDS_FROM_HELPER gates that path: it is
+ * true since pc-host #730 (which closed #704 on 2026-11-08) put the
+ * subcommand in the operator clone's helper, so the live steering reads
+ * the helper's count for every gated brief.
  *
  * R1/R3, no round on a red or unpushed head. A `kind: lens` brief carries
  * `head: <40-hex>` and is refused unless that sha is the PR's current head
@@ -107,11 +107,13 @@ import { type GreenRunValue, greenRunPath } from "./brief-gates.ts";
 
 /**
  * Whether the round count comes from merge-pr.sh's `rounds` subcommand.
- * False until pc-host #704 merges: the subcommand does not exist in the
- * operator clone's helper yet, and the live steering must keep working.
- * Flip this to true in the same change that absorbs #704 into the clone.
+ * True since pc-host #730 closed #704 on 2026-11-08: the operator clone's
+ * tools/merge-pr.sh carries the `rounds)` dispatch and prints well-formed
+ * `<round> <head>` lists, so the dormancy precondition is met and every
+ * gated brief's count is read from the helper. The constant stays as the
+ * record of that precondition; nothing flips it back.
  */
-export const ROUNDS_FROM_HELPER = false;
+export const ROUNDS_FROM_HELPER = true;
 
 /**
  * Whether the count path is live: the constant above, or the seam

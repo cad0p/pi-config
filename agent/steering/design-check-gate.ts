@@ -26,11 +26,16 @@
  * round is the higher of the header's `round:` and the helper's count
  * plus one, so a re-cut cannot understate it. A piece restarts at round 1
  * only when its changed paths are a subset of the parent's and its
- * changed lines strictly fewer; otherwise it inherits the parent's count.
- * There is no one-split limit: a piece that reaches round 5 splits again.
- * The helper's `rounds` subcommand does not exist until #704 merges, so
- * ROUNDS_FROM_HELPER keeps that path dormant and the header's round
- * stands - the live steering never shells out to a missing subcommand.
+ * changed lines strictly fewer; otherwise its rounds continue the
+ * parent's count: the inherited round is the parent's count plus the
+ * piece's own count plus one (docs/verification.md § Split at round 5),
+ * still max'd with the header (a header can raise, never lower). There
+ * is no one-split limit: a piece that reaches round 5 splits again. The
+ * operator clone's helper carries the `rounds` subcommand since pc-host
+ * #730 closed #704 (2026-11-08), so ROUNDS_FROM_HELPER is true and every
+ * gated brief's count is read from the helper. The design-check
+ * requirement below keys on the same effective round the cap computes -
+ * one function, so they cannot drift.
  *
  * No round on a red or unpushed head (pc-host #704 R1/R3). A `kind: lens`
  * brief carries `head: <40-hex>`; it is refused unless that sha is the
@@ -119,8 +124,8 @@
  *
  *   <state>/design-checks/<owner>--<repo>-<pr>-r<N>.md
  *
- * where N is the latest odd round <= the brief's round (r3 for rounds
- * 3-4, r5 for 5-6, ...). The file is checked with a simple line-key
+ * where N is the latest odd round <= the brief's effective round (r3
+ * for rounds 3-4, r5 for 5-6, ...). The file is checked with a simple line-key
  * scan (scope:, design:, class: non-empty; verdict:
  * continue|cut|redesign) - deliberately not a YAML parser.
  *
@@ -153,7 +158,6 @@ import {
 	prHead,
 	repoClone,
 	roundsCount,
-	roundsFromHelper,
 	splitPr,
 } from "./base-rules.ts";
 import type { BriefHeader } from "./brief-gates.ts";
@@ -221,22 +225,35 @@ function roundCapReason(
 }
 
 /**
- * The round this brief effectively is (pc-host #704 R2/R4) and whether the
- * cap refuses it. The effective round is the higher of the header's round and
- * the helper's count plus one, so a re-cut cannot understate it; a split piece
- * restarts at round 1 only when it is strictly smaller than its parent, else it
- * inherits the parent's count. A check that cannot run refuses (fail closed).
+ * The round this brief effectively is (pc-host #704 R2/R4): the helper's
+ * count of the PR's own rounds plus one, max'd with the header's round (a
+ * header can raise, never lower) - and, for a split piece that is not
+ * strictly smaller, the parent's count plus the piece's own count plus
+ * one, again max'd with the header (docs/verification.md § Split at round
+ * 5: the piece's rounds continue the parent's count, so parent 3 + own 1
+ * is round 5, not the 4 a max-of-two computes). A piece restarts at round
+ * 1 only when it is strictly smaller than its parent. The cap and the
+ * design-check requirement both read this one function, so they cannot
+ * drift. Every count is merge-pr.sh's own `rounds` list, and a check
+ * that cannot run is an error: the caller refuses (fail closed).
  */
-function roundCapRefusal(header: BriefHeader): string | null {
-	if (!isGatedKind(header.kind) || header.round === null) return null;
+function effectiveRound(
+	header: BriefHeader,
+):
+	| { ok: true; round: number; inherited: boolean }
+	| { ok: false; err: string } {
 	const pr = header.pr ?? "";
-	let round = header.round;
+	const headerRound = header.round ?? 0;
 	let inherited = false;
+	let parentCount = 0;
 	if (header.splitOfKey !== null) {
 		const parent = header.splitOfKey;
 		const shrink = pieceIsSmaller(pr, parent);
 		if (!shrink.ok) {
-			return `could not compare ${pr} with its split parent ${parent} (${shrink.err}); a piece restarts at round 1 only when it is strictly smaller, so the cap cannot be evaluated (fail closed)`;
+			return {
+				ok: false,
+				err: `could not compare ${pr} with its split parent ${parent} (${shrink.err}); a piece restarts at round 1 only when it is strictly smaller, so the cap cannot be evaluated (fail closed)`,
+			};
 		}
 		if (!shrink.smaller) {
 			const outside = pathsOutsideParent(pr, parent);
@@ -244,32 +261,28 @@ function roundCapRefusal(header: BriefHeader): string | null {
 				outside.length > 0
 					? `it changes ${outside.length} path(s) its parent does not (${outside.slice(0, 3).join(", ")}${outside.length > 3 ? ", ..." : ""})`
 					: "its changed lines are not strictly fewer than its parent's";
-			if (!roundsFromHelper()) {
-				return `split-of: ${parent} does not restart ${pr} at round 1: ${why}. A piece restarts only when it is strictly smaller; otherwise it inherits the parent's round count, which the helper's rounds subcommand reads (dormant until pc-host #704 merges), so this piece cannot be evaluated (fail closed).`;
-			}
 			const parentRounds = roundsCount(parent);
 			if (!parentRounds.ok) {
-				return `the round count of the split parent ${parent} could not be read (${parentRounds.err}); a piece that is not strictly smaller (${why}) inherits it, so the cap cannot be evaluated (fail closed)`;
+				return {
+					ok: false,
+					err: `the round count of the split parent ${parent} could not be read (${parentRounds.err}); a piece that is not strictly smaller (${why}) inherits it, so the cap cannot be evaluated (fail closed)`,
+				};
 			}
-			round = Math.max(round, parentRounds.count + 1);
+			parentCount = parentRounds.count;
 			inherited = true;
 		}
 	}
-	if (roundsFromHelper()) {
-		const own = roundsCount(pr);
-		if (!own.ok) {
-			return `the round count of ${pr} could not be read (${own.err}); the cap reads merge-pr.sh rounds and refuses when it cannot (fail closed)`;
-		}
-		round = Math.max(round, own.count + 1);
+	const own = roundsCount(pr);
+	if (!own.ok) {
+		return {
+			ok: false,
+			err: `the round count of ${pr} could not be read (${own.err}); the cap reads merge-pr.sh rounds and refuses when it cannot (fail closed)`,
+		};
 	}
-	if (round < ROUND_CAP) return null;
-	return roundCapReason(
-		pr,
-		round,
-		inherited
-			? `It inherits its split parent ${header.splitOfKey} round count.`
-			: null,
-	);
+	const round = inherited
+		? Math.max(headerRound, parentCount + own.count + 1)
+		: Math.max(headerRound, own.count + 1);
+	return { ok: true, round, inherited };
 }
 
 /** Every `absorb-of:` value in the brief's header block, in order. */
@@ -628,18 +641,30 @@ function writeBlockReason(write: BriefWrite): string | null {
 	// of what is posted is the diagnosis the author can act on.
 	const fold = foldVerdictRefusal(header, absorbOf);
 	if (fold !== null) return fold;
-	if (!absorbLens) {
-		const capped = roundCapRefusal(header);
-		if (capped !== null) return capped;
+	// The effective round is computed once for the cap and the design
+	// check (one function, so they cannot drift): a count that cannot be
+	// read refuses the brief before either use (fail closed). An absorb
+	// lens is exempt from the cap but still owes the design check its
+	// effective round computes.
+	let effective: { round: number; inherited: boolean } | null = null;
+	if (isGatedKind(header.kind) && header.round !== null) {
+		const eff = effectiveRound(header);
+		if (!eff.ok) return eff.err;
+		effective = eff;
 	}
-	if (
-		!isGatedKind(header.kind) ||
-		header.round === null ||
-		header.round < 3
-	) {
+	if (!absorbLens && effective !== null && effective.round >= ROUND_CAP) {
+		return roundCapReason(
+			header.pr ?? "",
+			effective.round,
+			effective.inherited
+				? `It inherits its split parent ${header.splitOfKey} round count.`
+				: null,
+		);
+	}
+	if (effective === null || effective.round < 3) {
 		return null;
 	}
-	const need = requiredDesignCheckRound(header.round);
+	const need = requiredDesignCheckRound(effective.round);
 	const path = designCheckPath(header, need);
 	const status = designCheckStatus(path);
 	if (!status.exists) {

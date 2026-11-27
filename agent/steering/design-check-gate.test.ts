@@ -103,6 +103,28 @@ function setHelperRounds(count: number): void {
 	writeFileSync(path, JSON.stringify(cfg));
 }
 
+/** The stub helper's rounds for any PR (one head per round). */
+function setHelperRoundsFor(pr: string, count: number): void {
+	const number = pr.split("#")[1] ?? "";
+	const path = join(state, "stubs", "helper.json");
+	const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+		rounds: Record<string, string[]>;
+	};
+	cfg.rounds[number] = postedHeads(count);
+	writeFileSync(path, JSON.stringify(cfg));
+}
+
+/** The gh stub's changed-line count for a PR (pieceIsSmaller reads it). */
+function setGhLines(pr: string, lines: number): void {
+	const number = pr.split("#")[1] ?? "";
+	const path = join(state, "stubs", "gh.json");
+	const cfg = JSON.parse(readFileSync(path, "utf8")) as {
+		prs: Record<string, { lines: number }>;
+	};
+	cfg.prs[number] = { ...(cfg.prs[number] ?? { lines: 0 }), lines };
+	writeFileSync(path, JSON.stringify(cfg));
+}
+
 /** Write a design-check file for `pr` at `round`; returns its path. */
 function designCheck(pr: string, round: number, body?: string): string {
 	const [repoPart, number] = pr.split("#");
@@ -625,6 +647,30 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 			{ rule: "design-check-gate", reason: /split-of must be a PR ref/ },
 		);
 	});
+
+	it("demands the r5 design check when a header of 2 understates an effective round of 5", async () => {
+		// The piece is grown (its changed lines are not strictly fewer than the
+		// parent's 40), so it inherits: parent 3 + own 1 + 1 = 5. The design
+		// check requirement keys on that effective round, not the header's 2,
+		// so the r5 check is owed even though round 2 would owe nothing.
+		setGhLines("cad0p/pc-host#700", 40);
+		setHelperRoundsFor(PR, 3);
+		setHelperRoundsFor("cad0p/pc-host#700", 1);
+		await expectBlocks(
+			harness,
+			{
+				write: {
+					path: briefPath("piece-r2-understated.md"),
+					content: header("cad0p/pc-host#700", 2, "lens", `split-of: ${PR}\n`),
+				},
+				cwd: "/tmp",
+			},
+			{
+				rule: "design-check-gate",
+				reason: /design check required for cad0p\/pc-host#700 r5/,
+			},
+		);
+	});
 });
 
 describe("design-check-gate — a fold needs its verdicts posted", () => {
@@ -748,8 +794,11 @@ describe("design-check-gate — a fold needs its verdicts posted", () => {
 
 	it("reads the helper's rounds list when it carries the subcommand (#730)", async () => {
 		// Nothing is posted on the stub PR: only the helper's list can green it.
+		// Two counted rounds make the fold effectively round 3, so the r3
+		// design check is owed (the requirement keys on the effective round).
 		process.env.PI_H4_HELPER_ROUNDS = "1";
 		setHelperRounds(2);
+		designCheck(PR, 3);
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("p1-r2-fold.md"),
