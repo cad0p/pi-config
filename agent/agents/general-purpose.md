@@ -15,5 +15,5 @@ scoped_models:
   # - devin*/deepseek-v4-1-flash-1017:max
   # - opencode-go*/deepseek-v4.1-flash:max
   - mistral*/deepseek-v4-1-flash-1017:max
-  - openai-codex*/gpt-6-luna:max
+  - openai*/gpt-6-luna:max
 ---
