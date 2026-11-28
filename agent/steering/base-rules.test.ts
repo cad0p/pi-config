@@ -46,6 +46,11 @@ import {
 	LENS_HEAD,
 	visionFor,
 	LENS_MAIN,
+	LENS_TREE,
+	mluxHeader,
+	mluxLocalLegSummary,
+	mluxRemoteRunOn,
+	mluxRemoteSummary,
 	OTHER_HEAD,
 	passingSummary,
 	TENANT_HEAD,
@@ -1198,5 +1203,189 @@ describe("base-rules — absorb-of binding (#719 trust-model F1)", () => {
 			},
 			{ rule: "design-check-gate", reason: ABSORB_BRANCH },
 		);
+	});
+});
+
+
+describe("base-rules — S1, a bound MeluXina builder run is lens evidence", () => {
+	// Owner, 2026-11-28 07h2xZ: "our local ci is the bottleneck so we fucking
+	// lose time every time we're forced to use local ci", and on whether a
+	// routed builder run counts: "it should". The green-run predicate used to
+	// accept the exact local line and nothing else, so every mlux summary -
+	// whose run-on line starts 'run on:    mlux ' and ends with the
+	// NON-EVIDENCE marker - was refused as "did not run on head".
+	// (Goldmine dd4104e1e2, plan 2026-11-28-mlux-ci-is-evidence.md, section S1.)
+	//
+	// One predicate (runOnBinding) reads the three shapes: the local line, the
+	// remote builder leg and the local builder leg. The builder legs are lens
+	// evidence only when bound: one run-on line, its tree is the header's one
+	// 'tree:' line, the header names '@ <sha>', and that tree is the head's
+	// tree in the PR's own clone. The release channel only ('-ci@'): a
+	// '-ci-candidate@' package names no manifest digest yet (follow-up P1).
+
+	const TREE = LENS_TREE;
+	const OTHER_TREE = "4".repeat(40);
+	const CANDIDATE = "cad0p/pc-host-ci-candidate@54ab41bf9427";
+	const DID_NOT_RUN = /did not run on head/;
+
+	/** A round-1 lens brief over LENS_HEAD whose green-run is `path`. */
+	function builderLens(path: string): string {
+		return lensHeader(1, `head: ${LENS_HEAD}\ngreen-run: ${path}\n`);
+	}
+
+	async function blocksBuilder(
+		path: string,
+		reason: RegExp,
+		name = "p1-mlux-lens.md",
+	): Promise<void> {
+		await expectBlocks(
+			harness,
+			{ write: { path: brief(name), content: builderLens(path) }, cwd: "/tmp" },
+			{ rule: "design-check-gate", reason },
+		);
+	}
+
+	it("G1: accepts a remote-leg builder summary on the release image, tree = head^{tree}", async () => {
+		const path = mluxRemoteSummary(state);
+		await expectAllows(harness, {
+			write: { path: brief("p1-mlux-lens.md"), content: builderLens(path) },
+			cwd: "/tmp",
+		});
+	});
+
+	it("G2: accepts a local-leg builder summary", async () => {
+		const path = mluxLocalLegSummary(state);
+		await expectAllows(harness, {
+			write: { path: brief("p1-mlux-lens.md"), content: builderLens(path) },
+			cwd: "/tmp",
+		});
+	});
+
+	it("G3: keeps accepting the local snapshot summary", async () => {
+		await expectAllows(harness, {
+			write: {
+				path: brief("p1-mlux-lens.md"),
+				content: builderLens(passingSummary(state)),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("G4: an absorb-of brief accepts a builder summary on the absorb head", async () => {
+		designCheck(PR, 5);
+		editStub("git", (cfg) => {
+			cfg.trees[ABSORB] = OTHER_TREE;
+		});
+		const path = mluxRemoteSummary(state, {
+			head: ABSORB,
+			headerTree: OTHER_TREE,
+		});
+		await expectAllows(harness, {
+			write: {
+				path: brief("p1-mlux-absorb.md"),
+				content: lensHeader(
+					6,
+					`absorb-of: ${ABSORB}\nhead: ${LENS_HEAD}\ngreen-run: ${path}\n`,
+				),
+			},
+			cwd: "/tmp",
+		});
+	});
+
+	it("R1: refuses a candidate-image builder line (no manifest digest yet)", async () => {
+		const path = mluxRemoteSummary(state, { image: CANDIDATE });
+		await blocksBuilder(path, /candidate-image builder run names no manifest digest yet/);
+	});
+
+	it("R2: refuses a builder summary whose tree: line is not the run-on tree", async () => {
+		const path = mluxRemoteSummary(state, {
+			headerTree: OTHER_TREE,
+			runOnTree: TREE,
+		});
+		await blocksBuilder(path, /is not the one tree its 'run on:' line names/);
+	});
+
+	it("R3: refuses a builder summary whose tree is not the head's tree in the clone", async () => {
+		// The header and the run-on line agree on OTHER_TREE; the clone reads
+		// the head's tree as TREE. The host-side binding is what refuses it.
+		const path = mluxRemoteSummary(state, { headerTree: OTHER_TREE });
+		await blocksBuilder(path, /the PR's clone reads [0-9a-f]{40} for /);
+	});
+
+	it("R4: fails closed when the clone cannot read the head's tree", async () => {
+		editStub("git", (cfg) => {
+			delete cfg.trees[LENS_HEAD];
+		});
+		const path = mluxRemoteSummary(state);
+		await blocksBuilder(path, /tree cannot be read in the PR's clone/);
+	});
+
+	it("R5: refuses the empty builder arm (names no head or tree)", async () => {
+		const path = mluxRemoteSummary(state, {
+			runOn: [
+				"run on:    mlux (MeluXina executor: job 5504609, node mel0053)",
+			],
+		});
+		await blocksBuilder(path, /names no head or tree/);
+	});
+
+	it("R6: refuses a builder summary with two run-on lines", async () => {
+		const path = mluxRemoteSummary(state, {
+			runOn: [mluxRemoteRunOn(LENS_HEAD, TREE), mluxRemoteRunOn(LENS_HEAD, TREE)],
+		});
+		await blocksBuilder(path, /carries 2 'run on:' lines/);
+	});
+
+	it("R7: refuses a builder summary whose result is not PASS", async () => {
+		const path = mluxRemoteSummary(state, { result: "FAIL" });
+		await blocksBuilder(path, /does not hold exactly one 'result: PASS'/);
+	});
+
+	it("R8: refuses a builder summary from a dirty worktree", async () => {
+		const path = mluxRemoteSummary(state, { dirty: "yes" });
+		await blocksBuilder(path, /ran on a dirty worktree/);
+	});
+
+	it("R9: refuses a builder summary on another sha with the unchanged text", async () => {
+		const path = mluxRemoteSummary(state, {
+			head: OTHER_HEAD,
+			headerTree: OTHER_TREE,
+		});
+		await blocksBuilder(path, DID_NOT_RUN);
+	});
+
+	it("R10: refuses a builder line with garbage between its fields", async () => {
+		// Three spaces after 'run on:' (the job prints four), and an extra
+		// field the grammar does not name: both are 'another sha', never a
+		// looser match.
+		const spaces = mluxRemoteSummary(state, {
+			runOn: [
+				mluxRemoteRunOn(LENS_HEAD, TREE).replace("run on:    ", "run on:   "),
+			],
+			name: "mlux-spaces-summary.txt",
+		});
+		await blocksBuilder(spaces, DID_NOT_RUN);
+		const extra = mluxRemoteSummary(state, {
+			runOn: [
+				mluxRemoteRunOn(LENS_HEAD, TREE).replace(" x86_64 ", " x86_64 extra "),
+			],
+			name: "mlux-extra-summary.txt",
+		});
+		await blocksBuilder(extra, DID_NOT_RUN, "p1-mlux-lens2.md");
+	});
+
+	it("R11: refuses the unit aggregate (its run-on is the checkout shape)", async () => {
+		const path = join(state, "mlux-aggregate-summary.txt");
+		writeFileSync(
+			path,
+			[
+				mluxHeader(LENS_HEAD),
+				`run on: snapshot commit ${LENS_HEAD} (checkout /data/ci/${LENS_HEAD.slice(0, 8)}, branch main)`,
+				"worktree dirty after run: no",
+				"result: PASS",
+				"",
+			].join("\n"),
+		);
+		await blocksBuilder(path, DID_NOT_RUN);
 	});
 });

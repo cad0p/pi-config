@@ -106,7 +106,17 @@ shift 2   # -C <clone>
 cmd="\$1"
 case "\$cmd" in
   fetch) exit 0 ;;
-  rev-parse) jq -r --arg n "\$name" --arg r "\$2" '(.clones[\$n] // .) | (.refs[\$r] // "")' "\$cfg" ;;
+  rev-parse)
+    # A sha^{tree} argument reads the clone's tree map: a sha it does not
+    # hold fails as git does, which is the fail-closed arm the builder's tree
+    # binding (S1) rests on.
+    if [[ "\$2" == *'^{tree}' ]]; then
+      t="\$(jq -r --arg n "\$name" --arg s "\${2%%\^*}" '(.clones[\$n] // .) | (.trees[\$s] // "")' "\$cfg")"
+      [[ -n "\$t" ]] || { echo "fatal: ambiguous argument '\$2': unknown revision or path not in the working tree." >&2; exit 128; }
+      printf '%s\n' "\$t"
+      exit 0
+    fi
+    jq -r --arg n "\$name" --arg r "\$2" '(.clones[\$n] // .) | (.refs[\$r] // "")' "\$cfg" ;;
   cat-file)
     found="\$(jq -r --arg n "\$name" --arg s "\$3" '(.clones[\$n] // .) | if (.commits[\$s] // null) != null then "commit" elif has("default_parents") then "default" else "missing" end' "\$cfg")"
     # A clone scope with no default_parents answers "missing" for a sha it
@@ -212,6 +222,9 @@ export function installLensStubs(root: string): void {
 		JSON.stringify({
 			commits: {},
 			refs: { "refs/remotes/origin/main": LENS_MAIN },
+			// The reviewed head's tree, as `git rev-parse <head>^{tree}` answers:
+			// the builder tree binding reads it (S1).
+			trees: { [LENS_HEAD]: LENS_TREE },
 			ancestors: { [`${LENS_HEAD} ${LENS_MAIN}`]: false },
 			default_parents: [LENS_HEAD, LENS_MAIN],
 		}),
@@ -279,6 +292,109 @@ export function passingSummary(
 		].join("\n"),
 	);
 	return path;
+}
+
+/** The image a routed builder run-on line names (the release channel). */
+export const MLUX_IMAGE = "cad0p/pc-host-ci@54ab41bf9427";
+
+/** The SIF digest a routed builder run-on line names. */
+export const MLUX_SIF_SHA =
+	"d2e752a2c6ff5d1fae30583961bb47d2661d9865dbcb1c468f1f0f9d89f76379";
+
+/** The marker every routed builder run-on line ends with. */
+export const MLUX_MARKER =
+	"(NON-EVIDENCE: an --executor mlux run, never a gate record)";
+
+/** A remote-leg builder `run on:` line, byte for byte as the job prints it. */
+export function mluxRemoteRunOn(
+	head: string,
+	tree: string,
+	image = MLUX_IMAGE,
+): string {
+	return `run on:    mlux job 5504609 mel0053 x86_64 snapshot commit ${head} tree ${tree} sif ${image} sha ${MLUX_SIF_SHA} ${MLUX_MARKER}`;
+}
+
+/** A local-leg builder `run on:` line, byte for byte as the host prints it. */
+export function mluxLocalLegRunOn(head: string, tree: string): string {
+	return `run on:    mlux local leg (the jobs the split keeps on this host), snapshot commit ${head} tree ${tree} ${MLUX_MARKER}`;
+}
+
+/** The header line a routed builder summary carries. */
+export function mluxHeader(head: string, name = "pc-host"): string {
+	return `ci — ${name} @ ${head} (HEAD)`;
+}
+
+/** What a routed builder summary may vary, for the refusal cases. */
+export type MluxSummaryOpts = {
+	head?: string;
+	/** The tree the header's `tree:` line names (default: the run-on tree). */
+	headerTree?: string;
+	/** The tree the default `run on:` line names (default: `headerTree`). */
+	runOnTree?: string;
+	/** The `run on:` lines (default: the one builder line of that leg). */
+	runOn?: string[];
+	/** The first line (default: the header naming `@ <head>`). */
+	header?: string;
+	image?: string;
+	result?: string;
+	dirty?: string;
+	name?: string;
+};
+
+/**
+ * A routed MeluXina builder summary, shaped as the copied phase summaries
+ * beside /data/tmp/ci-evidence-*: the header `@ <head>`, one `tree:`
+ * line, one builder `run on:` line, both dirty lines and one result.
+ * Returns its path.
+ */
+function mluxSummary(
+	root: string,
+	leg: "remote" | "local-leg",
+	opts: MluxSummaryOpts = {},
+): string {
+	const head = opts.head ?? LENS_HEAD;
+	const tree = opts.headerTree ?? LENS_TREE;
+	const runOn =
+		opts.runOn ??
+		[
+			leg === "remote"
+				? mluxRemoteRunOn(head, opts.runOnTree ?? tree, opts.image)
+				: mluxLocalLegRunOn(head, opts.runOnTree ?? tree),
+		];
+	const dirty = opts.dirty ?? "no";
+	const path = join(root, opts.name ?? `mlux-${leg}-summary.txt`);
+	writeFileSync(
+		path,
+		[
+			opts.header ?? mluxHeader(head),
+			`tree: ${tree}`,
+			"ci.sh blob: 431e4767e2741080354684e7ada5dec1a71b34a1",
+			"head ci-run blob: d69061734a40056f56250bf01c8c2fd3d9511eab",
+			...runOn,
+			"  ok  lint",
+			`worktree dirty before run (recorded by the host): ${dirty}`,
+			`worktree dirty before run (computed here): ${dirty}`,
+			`result: ${opts.result ?? "PASS"}`,
+			"",
+		].join("\n"),
+	);
+	return path;
+}
+
+/** A remote-leg builder summary (exported, executor mlux, job <id>). */
+export function mluxRemoteSummary(
+	root: string,
+	opts: MluxSummaryOpts = {},
+): string {
+	return mluxSummary(root, "remote", opts);
+}
+
+/** A builder summary for the jobs the split keeps on this host. */
+export function mluxLocalLegSummary(
+	root: string,
+	opts: MluxSummaryOpts = {},
+): string {
+	return mluxSummary(root, "local-leg", opts);
 }
 
 /**

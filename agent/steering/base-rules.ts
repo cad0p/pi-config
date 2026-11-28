@@ -965,14 +965,95 @@ function gateRecordForHead(ref: string, head: string): string | null {
 }
 
 /**
+/**
+ * The `run on:` shapes a green-run summary may carry, matched against the
+ * trimmed line and nothing else. The local snapshot line is unchanged; the
+ * other two are the routed MeluXina builder's own bytes (tools/lib/
+ * ci-exec-mlux.sh :817 for the remote leg, ci-mlux.sh :997-1001 for the
+ * local leg and :1069-1071 for the marker), so a summary is evidence only
+ * when its line is byte for byte one of these. The `-ci@` names the release
+ * channel: a `-ci-candidate@` package never matches (it names no manifest
+ * digest yet, follow-up P1).
+ */
+const RUN_ON_LOCAL =
+	/^run on:\s+snapshot commit ([0-9a-f]{40}) tree ([0-9a-f]{40})\s*$/;
+const RUN_ON_MLUX_REMOTE =
+	/^run on: {4}mlux job [0-9]+ [A-Za-z0-9._-]+ [A-Za-z0-9._-]+ snapshot commit ([0-9a-f]{40}) tree ([0-9a-f]{40}) sif [A-Za-z0-9._-]+\/[A-Za-z0-9._-]+-ci@[0-9a-f]{12} sha [0-9a-f]{64} \(NON-EVIDENCE: an --executor mlux run, never a gate record\)$/;
+const RUN_ON_MLUX_LOCAL_LEG =
+	/^run on: {4}mlux local leg \(the jobs the split keeps on this host\), snapshot commit ([0-9a-f]{40}) tree ([0-9a-f]{40}) \(NON-EVIDENCE: an --executor mlux run, never a gate record\)$/;
+
+/** What a summary's one `run on:` line attests: its leg, sha and tree. */
+type RunOnBinding = {
+	kind: "local" | "mlux-remote" | "mlux-local-leg";
+	sha: string;
+	tree: string;
+};
+
+/**
+ * The one predicate behind every green-run read (greenRunRefusal,
+ * summaryNamesSha, summaryRunOnShas): the line's binding, or null when it is
+ * none of the three shapes. No looser match - never `.*` - so a summary can
+ * only widen by the shapes named here.
+ */
+function runOnBinding(line: string): RunOnBinding | null {
+	const trimmed = line.trim();
+	const shapes: Array<[RunOnBinding["kind"], RegExp]> = [
+		["local", RUN_ON_LOCAL],
+		["mlux-remote", RUN_ON_MLUX_REMOTE],
+		["mlux-local-leg", RUN_ON_MLUX_LOCAL_LEG],
+	];
+	for (const [kind, shape] of shapes) {
+		const match = shape.exec(trimmed);
+		if (match !== null) {
+			return { kind, sha: match[1] ?? "", tree: match[2] ?? "" };
+		}
+	}
+	return null;
+}
+
+/**
+ * `git rev-parse <sha>^{tree}` in the PR's own repo clone: the host-side half
+ * of a builder run's binding (the node never sees the commit, so the tree it
+ * measured is the only thing that ties it to the head). Any read failure is
+ * named, and the caller refuses.
+ */
+function commitTree(
+	ref: string,
+	sha: string,
+): { ok: true; tree: string } | { ok: false; err: string } {
+	const parts = splitPr(ref);
+	if (parts === null) return { ok: false, err: `not a PR ref: ${ref}` };
+	const clone = repoClone(parts.repo);
+	if (!clone.ok) return { ok: false, err: clone.err };
+	const result = cloneGit(clone.path, ["rev-parse", `${sha}^{tree}`]);
+	const tree = oneLine(result);
+	if (!result.ok || !/^[0-9a-f]{40}$/.test(tree)) {
+		return {
+			ok: false,
+			err: oneLine(result) || `cannot read ${sha}^{tree} in ${clone.path}`,
+		};
+	}
+	return { ok: true, tree };
+}
+
+/**
  * The green-run half of R3: a tools/ci.sh summary whose result is PASS,
  * whose run sha is `runOn` and whose dirty-worktree lines all say no.
  * `runOn` is the reviewed head, or the `absorb-of:` head when the brief
- * declares the absorb relaxation (lensHeadRefusal decides which). The three
- * reads are greps; nothing here parses the summary.
+ * declares the absorb relaxation (lensHeadRefusal decides which). The reads
+ * are greps; nothing here parses the summary.
+ *
+ * A routed MeluXina builder run counts exactly as a local run does (owner
+ * 2026-11-28 07h2xZ, Goldmine dd4104e1e2 S1): its summary's one run-on line
+ * is one of the two builder shapes (runOnBinding), release channel only, and
+ * is held to the tree binding - one run-on line, the header's one `tree:`
+ * line equal to it, the header naming `@ <runOn>`, and that tree being
+ * `git rev-parse <runOn>^{tree}` in the PR's own clone. A gate's nonce is
+ * not owed: a local lens run carries none either.
  */
 function greenRunRefusal(
 	path: string,
+	ref: string,
 	head: string,
 	runOn: string = head,
 ): string | null {
@@ -983,19 +1064,58 @@ function greenRunRefusal(
 		return `the green-run summary ${path} cannot be read; a lens round needs a run bound to head ${head}`;
 	}
 	const lines = text.split("\n");
-	const pass = lines.filter((line) => line.trim() === "result: PASS").length;
-	const fail = lines.filter((line) => /^result: /.test(line.trim())).length;
+	const trimmed = lines.map((line) => line.trim());
+	const pass = trimmed.filter((line) => line === "result: PASS").length;
+	const fail = trimmed.filter((line) => /^result: /.test(line)).length;
 	if (pass !== 1 || fail !== 1) {
 		return `the green-run summary ${path} does not hold exactly one 'result: PASS' (found ${pass} PASS of ${fail} result lines)`;
 	}
-	const bound = new RegExp(
-		`^run on:\\s+snapshot commit ${runOn} tree [0-9a-f]{40}\\s*$`,
-	);
-	if (!lines.some((line) => bound.test(line.trim()))) {
+	const runOnLines = trimmed.filter((line) => /^run on:/.test(line));
+	const bound =
+		runOnLines
+			.map(runOnBinding)
+			.find((binding) => binding !== null && binding.sha === runOn) ?? null;
+	if (bound === null) {
+		// A builder line that matched none of the shapes is refused for the
+		// reason it is not evidence, not only as "another sha".
+		const mlux = runOnLines.find((line) => /^run on:\s+mlux/.test(line));
+		if (mlux !== undefined && /-ci-candidate@/.test(mlux)) {
+			return `the green-run summary ${path} is a builder run on a candidate image: a candidate-image builder run names no manifest digest yet (follow-up P1), so its 'run on:' line is not evidence for head ${head}`;
+		}
+		if (mlux !== undefined && /^run on:\s+mlux \(/.test(mlux)) {
+			return `the green-run summary ${path} is the empty builder arm ('${mlux}'): its 'run on:' line names no head or tree, so it is not evidence for head ${head}`;
+		}
 		if (runOn !== head) {
 			return `the green-run summary ${path} did not run on head ${head}: its 'run on: snapshot commit <sha> tree <tree>' line names neither head ${head} nor the absorb-of head ${runOn} (a live-worktree run is never evidence)`;
 		}
 		return `the green-run summary ${path} did not run on head ${head}: its 'run on: snapshot commit <sha> tree <tree>' line names another sha (a live-worktree run is never evidence)`;
+	}
+	// A routed builder run is one summary of ONE job set, and its evidence is
+	// the tree the job measured: one run-on line, the header's one 'tree:'
+	// line equal to it, the header naming the same head, and that tree being
+	// the head's tree in the PR's own clone. A read this cannot make refuses
+	// (fail closed).
+	if (bound.kind !== "local") {
+		if (runOnLines.length !== 1) {
+			return `the green-run summary ${path} carries ${runOnLines.length} 'run on:' lines; a bound builder run's summary carries exactly one (fail closed)`;
+		}
+		const treeLines = trimmed.filter((line) => /^tree: /.test(line));
+		const namedTree =
+			treeLines.length === 1 ? (treeLines[0] ?? "").slice("tree: ".length).trim() : "";
+		if (treeLines.length !== 1 || namedTree !== bound.tree) {
+			return `the green-run summary ${path} is a builder run whose header names ${treeLines.length === 1 ? `tree ${namedTree}` : `${treeLines.length} 'tree:' lines`}, which is not the one tree its 'run on:' line names (${bound.tree}): the job's measured tree is what the run attests`;
+		}
+		const header = (lines.find((line) => line.trim() !== "") ?? "").trim();
+		if (!header.includes(`@ ${runOn}`)) {
+			return `the green-run summary ${path} is a builder run but its header ('${header}') does not name '@ ${runOn}': a builder summary states the head it ran on, and the two must agree (fail closed)`;
+		}
+		const tree = commitTree(ref, runOn);
+		if (!tree.ok) {
+			return `the green-run summary ${path} is a builder run on ${runOn} whose tree cannot be read in the PR's clone (${tree.err}); a lens round needs the tree the run measured to be the head's tree (fail closed)`;
+		}
+		if (tree.tree !== bound.tree) {
+			return `the green-run summary ${path} is a builder run that attests tree ${bound.tree} for ${runOn}, but the PR's clone reads ${tree.tree} for ${runOn}: the run's tree is not the head's tree (a builder run counts only when its tree is the head's)`;
+		}
 	}
 	const dirty = lines.filter((line) => /^worktree dirty /.test(line.trim()));
 	if (dirty.length === 0) {
@@ -1016,12 +1136,9 @@ function summaryNamesSha(path: string, sha: string): boolean {
 	} catch {
 		return false;
 	}
-	const bound = new RegExp(
-		`^run on:\\s+snapshot commit ${sha} tree [0-9a-f]{40}\\s*$`,
-	);
 	return text
 		.split("\n")
-		.some((line) => bound.test(line.trim()));
+		.some((line) => runOnBinding(line)?.sha === sha);
 }
 
 /**
@@ -1044,15 +1161,11 @@ function greenRunValues(
 		: [greenRunPath(greenRun)];
 }
 
-/** The shas a summary's `run on: snapshot commit <sha> tree <tree>` lines name. */
+/** The shas a summary's `run on:` lines name, one predicate (runOnBinding). */
 function summaryRunOnShas(text: string): string[] {
 	const shas: string[] = [];
 	for (const line of text.split("\n")) {
-		const match =
-			/^run on:\s+snapshot commit ([0-9a-f]{40}) tree [0-9a-f]{40}\s*$/.exec(
-				line.trim(),
-			);
-		const sha = match?.[1] ?? "";
+		const sha = runOnBinding(line)?.sha ?? "";
 		if (sha !== "" && !shas.includes(sha)) shas.push(sha);
 	}
 	return shas;
@@ -1178,10 +1291,10 @@ export function lensHeadRefusal(
 	for (const value of values) {
 		const trailer = greenRunTrailerRefusal(value, head, absorbOf);
 		if (trailer !== null) return trailer;
-		const onHead = greenRunRefusal(value.path, head);
+		const onHead = greenRunRefusal(value.path, ref, head);
 		if (onHead === null) continue;
 		if (!relaxed) return onHead;
-		const onAbsorb = greenRunRefusal(value.path, head, absorbOf ?? "");
+		const onAbsorb = greenRunRefusal(value.path, ref, head, absorbOf ?? "");
 		if (onAbsorb === null) {
 			usesAbsorb = true;
 			continue;
