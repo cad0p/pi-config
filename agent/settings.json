@@ -1,5 +1,5 @@
 {
-  "lastChangelogVersion": "1.6.0",
+  "lastChangelogVersion": "1.7.0",
   "defaultProvider": "anthropic",
   "defaultModel": "claude-opus-5-5",
   "defaultThinkingLevel": "high",
@@ -96,7 +96,6 @@
   "compaction": {
     "enabled": false
   },
-  "showCacheMissNotices": true,
   "tuiMode": "fullscreen",
   "hideThinkingBlock": false,
   "terminal": {
@@ -126,5 +125,11 @@
     "{\"source\":\"npm:@cad0p/pi-usage@next\",\"scope\":\"user\"}": "0.11.6-20261107.4",
     "{\"source\":\"npm:pi-context-view\",\"scope\":\"user\"}": "0.8.4",
     "{\"source\":\"npm:@buyong/pi-devin\",\"scope\":\"user\"}": "0.1.16"
+  },
+  "notices": {
+    "cacheMisses": true,
+    "cacheWarming": true,
+    "compactionCosts": true,
+    "reasoningDrops": true
   }
 }
