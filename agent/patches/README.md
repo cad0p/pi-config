@@ -10,7 +10,8 @@ each version into `~/.pi/agent/install/releases/<version>/`, so anything we chan
 - `lib.sh` — helpers the runner and patch files share (state probe, backup, syntax check).
 - `pi/NNNN-<name>.patch.sh` — patches to pi itself (the active release under `install/releases/`).
 - `<extension>/NNNN-<name>.patch.sh` — patches to one installed npm extension, one folder per extension (`pi-devin/` = `@buyong/pi-devin`). Each sets `PATCH_ROOTS`.
-- One patch per file, with the upstream link and a removal condition. Numbers are global and never reused: the number is also the `local patch NNNN` marker written into the patched code, which is how the runner knows a file is already patched, and the upstream issues and notes cite it.
+- `<extension>/NNNN-<name>.<ext>` — optional sidecars of a patch: its perl program (`.pl`) or a whole replacement file (`.index.ts`). The `.patch.sh` loads them with `PATCH_PERL=$(patch_asset .pl) || return 1`. Use a sidecar for any body longer than a few lines: never write `$(cat <<'EOF' … EOF)`, because macOS `/bin/sh` (bash 3.2, which is what `sh apply.sh` runs) cannot parse it when the body has unbalanced parentheses or quotes. That broke 0009 and 0012 on 2026-11-28 while bash 5 on Linux took them.
+- One patch per number (a `.patch.sh` plus its sidecars), with the upstream link and a removal condition. Numbers are global and never reused: the number is also the `local patch NNNN` marker written into the patched code, which is how the runner knows a file is already patched, and the upstream issues and notes cite it.
 - `local-patches/` — a local pi package whose extension runs `apply.sh -q` at `session_start`
   and registers `/patches`.
 
@@ -86,9 +87,10 @@ Status as of 2026-11-11, after `@buyong/pi-devin` 0.1.16. Five of the six pi-dev
 
 1. Copy an existing `.patch.sh` into the folder of its target (`pi/`, or a folder named after the extension) and give it the next global number.
 2. Fill in the metadata; keep `PATCHED_RE` narrow enough to be unique in the target files.
-3. `./apply.sh --dry-run`, then `./apply.sh`, then run it twice to prove idempotency.
-4. Verify the effect in a fresh pi session, not just the syntax check.
-5. Delete the file once upstream ships the fix — the runner is a no-op for absent targets, so
+3. Check it parses under the shell that runs it: `/bin/sh -n <file>.patch.sh` (on macOS that is bash 3.2).
+4. `./apply.sh --dry-run`, then `./apply.sh`, then run it twice to prove idempotency.
+5. Verify the effect in a fresh pi session, not just the syntax check.
+6. Delete the file (and its sidecars) once upstream ships the fix — the runner is a no-op for absent targets, so
    leaving a stale patch is only noise, but it is noise.
 
 Note: `agent/bin`, `agent/install` and `agent/npm` are gitignored in this repo, so the

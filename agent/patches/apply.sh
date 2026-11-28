@@ -52,6 +52,7 @@ for patch in $PATCHES; do
   # Reset the contract before each file so one patch can never inherit another's state.
   PATCH_ID= PATCH_TITLE= PATCH_UPSTREAM= PATCH_REMOVE_WHEN= PATCH_FILES= PATCH_ROOTS=
   UNPATCHED_RE= PATCHED_RE= UPSTREAM_FIXED_RE= PATCH_PERL=
+  PATCH_SELF=$patch   # patch_asset resolves sidecars against this
   # shellcheck disable=SC1090
   . "$patch" || { printf 'pi-patches: cannot source %s\n' "$patch" >&2; failures=$((failures + 1)); continue; }
   if [ -z "$PATCH_ID" ] || [ -z "$PATCH_FILES" ] || [ -z "$UNPATCHED_RE" ] || [ -z "$PATCH_PERL" ]; then

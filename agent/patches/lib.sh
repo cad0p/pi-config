@@ -4,10 +4,22 @@
 # PATCH_REMOVE_WHEN, PATCH_FILES (glob relative to the package root), UNPATCHED_RE,
 # PATCHED_RE, PATCH_PERL (perl -0 -p substitution program), and optionally PATCH_ROOTS
 # (package root globs; default: the pi-coding-agent package in the selected releases).
+# Long bodies (a perl program, a replacement file) live in sidecar files next to the patch and are
+# loaded with patch_asset, e.g. PATCH_PERL=$(patch_asset .pl) || return 1.
 
 PI_AGENT_DIR="${PI_AGENT_DIR:-${HOME}/.pi/agent}"
 RELEASES_GLOB="${PI_AGENT_DIR}/install/releases/*/node_modules/@earendil-works/pi-coding-agent"
 PKG_REL="node_modules/@earendil-works/pi-coding-agent"
+
+# Print the sidecar <patch-basename><suffix> of the patch being sourced (apply.sh sets PATCH_SELF).
+# Why sidecars and not heredocs: macOS /bin/sh is bash 3.2, which cannot parse $(cat <<'EOF' ... EOF)
+# when the body has unbalanced parentheses or quotes, i.e. any real perl or TypeScript (2026-11-28:
+# 0009 and 0012 failed to source on macOS while bash 5 on Linux took them).
+patch_asset() {
+  _asset="${PATCH_SELF%.patch.sh}$1"
+  [ -r "$_asset" ] || { printf 'pi-patches: missing sidecar %s\n' "$_asset" >&2; return 1; }
+  cat "$_asset"
+}
 
 active_version() {
   f="${PI_AGENT_DIR}/install/current-version"
