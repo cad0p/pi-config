@@ -23,6 +23,14 @@ import { visionSectionText } from "./vision-review.ts";
 /** The head every stub lens brief reviews (40 hex). */
 export const LENS_HEAD = "1".repeat(40);
 
+/**
+ * The blocking-hunks ask every lens brief carries in its body (pc-host
+ * #1099, hunk-approval-gate.ts): without it the lens-brief-blocking-hunks
+ * gate refuses the write, so every lens-brief fixture includes it.
+ */
+export const BLOCKING_HUNKS_ASK =
+	"Write one line `Blocking-hunks: <hunk ids> | none` (cad0p/pc-host#1099): every hunk you do not list is approved by you; list a hunk that only works with a blocked one too.";
+
 /** A second head, for the "not the PR's head" cases. */
 export const OTHER_HEAD = "2".repeat(40);
 

@@ -336,6 +336,9 @@ describe("global config — shape", () => {
 			// pc-host #983: the vision review is graded, not just present.
 			"vision-review",
 			"pinned-citation",
+			// pc-host #1099's steering half: lens briefs ask for
+			// Blocking-hunks, round-3/5 design checks rule Partial-merge.
+			"hunk-approval",
 		]);
 	});
 

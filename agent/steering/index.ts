@@ -164,7 +164,13 @@
 // walker's cwd and `git -C`, and both re-read a `sh -c` payload; the
 // vault's gm-commit.sh helper stays allowed (it uses commit-tree and
 // never pulls, stashes or stages). Tests:
-// ./goldmine-shared-guard.test.ts.)
+// ./goldmine-shared-guard.test.ts.) and
+// ./hunk-approval-gate.ts (pc-host #1099's steering half, owner
+// 2026-11-28: every lens verdict carries one 'Blocking-hunks: <ids> |
+// none' line — a hunk no lens lists is approved — and the round-3/5
+// design check rules 'Partial-merge: yes | no — <reason>'; both are
+// enforced where they are authored, since the split must be a constant
+// reminder. Tests: ./hunk-approval-gate.test.ts.)
 // Tests: ./integration.test.ts
 // (loadHarness matrix against real vault fixtures), ./merge-guard.test.ts
 // (the merge guard's positive/negative matrix) and
@@ -282,6 +288,10 @@ import {
 	noBareCitationPlugin,
 	noBareCitationRules,
 } from "./no-bare-citation.ts";
+import {
+	hunkApprovalPlugin,
+	hunkApprovalRules,
+} from "./hunk-approval-gate.ts";
 import { homedir } from "node:os";
 import { join, sep } from "node:path";
 
@@ -419,6 +429,7 @@ export default defineConfig({
 		queueLandNudgePlugin,
 		visionReviewPlugin,
 		noBareCitationPlugin,
+		hunkApprovalPlugin,
 	],
 	rules: [
 		...mergeGuardRules,
@@ -509,5 +520,11 @@ export default defineConfig({
 		// Owner rule R4: a PR/issue body cites code by a commit-pinned
 		// permalink or by symbol, never a bare path:NN.
 		...noBareCitationRules,
+		// pc-host #1099's steering half (owner 2026-11-28): every lens
+		// brief asks for the Blocking-hunks line, and the round-3/5 design
+		// check rules Partial-merge. Last in the array: first-wins lets the
+		// older brief rails (header contract, vision, threat model) speak
+		// before this reminder does.
+		...hunkApprovalRules,
 	],
 });

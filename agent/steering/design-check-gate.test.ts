@@ -32,6 +32,7 @@ import config from "./index.ts";
 import { parseBriefHeader } from "./brief-gates.ts";
 import { SPLIT_TEMPLATE, splitAddendumPath } from "./design-check-gate.ts";
 import {
+	BLOCKING_HUNKS_ASK,
 	clearLensStubs,
 	failGhComments,
 	installLensStubs,
@@ -79,7 +80,8 @@ const CONSUMERS =
 	"consumers: none — pre-launch: no tenant slices run; no compatibility window is owed";
 
 function header(pr: string, round: number, kind = "lens", extra = ""): string {
-	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}\n${visionFor(pr, LENS_HEAD)}\n`;
+	const ask = kind === "lens" ? `${BLOCKING_HUNKS_ASK}\n` : "";
+	return `pr: ${pr}\nround: ${round}\nkind: ${kind}\n${CONSUMERS}\n${lensHeaderLines(state)}${extra}\n${visionFor(pr, LENS_HEAD)}\n${ask}`;
 }
 
 /**
@@ -505,7 +507,7 @@ describe("design-check-gate — round cap (owner rule: split at round 5)", () =>
 	/** A lens header carrying exactly the runs the case gives it (plus absorb-of). */
 	function absorbHeader(round: number, absorbOf: string, runs: string[]): string {
 		const lines = runs.map((path) => `green-run: ${path}\n`).join("");
-		return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${absorbOf}\n${lines}${VISION}\n`;
+		return `pr: ${PR}\nround: ${round}\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\nabsorb-of: ${absorbOf}\n${lines}${VISION}\n${BLOCKING_HUNKS_ASK}\n`;
 	}
 
 	it("allows a green-run on the absorb-of head when the brief reviews the absorb head", async () => {
@@ -866,7 +868,7 @@ describe("design-check-gate — a merge-train gate counts for its member heads",
 
 	/** A lens brief with a head and no green-run: the gate-record path decides. */
 	function trainBrief(): string {
-		return `pr: ${PR}\nround: 2\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\n${VISION}\n`;
+		return `pr: ${PR}\nround: 2\nkind: lens\n${CONSUMERS}\nhead: ${LENS_HEAD}\n${VISION}\n${BLOCKING_HUNKS_ASK}\n`;
 	}
 
 	/**

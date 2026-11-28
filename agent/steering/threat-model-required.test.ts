@@ -19,6 +19,7 @@ import { BODY_STRIP } from "@cad0p/pi-steering-github";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
 import {
+	BLOCKING_HUNKS_ASK,
 	clearLensStubs,
 	installLensStubs,
 	LENS_HEAD,
@@ -66,7 +67,7 @@ function header(extra: string): string {
 	// 'Threat model:' line must stay the last line (brief-gates.ts reads
 	// its value to the end of the line, and an empty value would otherwise
 	// swallow the heading below it).
-	return `pr: ${PR}\nround: 1\nkind: lens\nlens: red-team\n${CONSUMERS}\n${lensHeaderLines(state)}\n${VISION}\n${extra}`;
+	return `pr: ${PR}\nround: 1\nkind: lens\nlens: red-team\n${CONSUMERS}\n${lensHeaderLines(state)}\n${VISION}\n${BLOCKING_HUNKS_ASK}\n${extra}`;
 }
 
 function briefPath(name: string): string {
@@ -130,7 +131,7 @@ describe("threat-model-required — brief side", () => {
 		await expectAllows(harness, {
 			write: {
 				path: briefPath("r1-functional.md"),
-				content: `pr: ${PR}\nround: 1\nkind: lens\nlens: functional\n${CONSUMERS}\n${lensHeaderLines(state)}\n${VISION}`,
+				content: `pr: ${PR}\nround: 1\nkind: lens\nlens: functional\n${CONSUMERS}\n${lensHeaderLines(state)}\n${VISION}\n${BLOCKING_HUNKS_ASK}\n`,
 			},
 			cwd: "/tmp",
 		});

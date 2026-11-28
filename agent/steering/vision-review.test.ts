@@ -28,6 +28,7 @@ import { afterEach, beforeEach, describe, it } from "node:test";
 import { expectAllows, expectBlocks, loadHarness } from "@cad0p/pi-steering/testing";
 import config from "./index.ts";
 import {
+	BLOCKING_HUNKS_ASK,
 	clearLensStubs,
 	installLensStubs,
 	LENS_HEAD,
@@ -96,6 +97,7 @@ function lensBrief(section: string, extra = ""): string {
 		"",
 		"# Brief",
 		"",
+		BLOCKING_HUNKS_ASK,
 		extra,
 		"",
 	].join("\n");
